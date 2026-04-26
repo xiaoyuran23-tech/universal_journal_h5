@@ -1,10 +1,10 @@
-/**
- * 万物手札 H5 - 主应用逻辑 (优化版)
- * 使用 localStorage 存储数据，支持密码加密保护
+锘?**
+ * 娑撳洨澧块幍瀣贡 H5 - 娑撹绨查悽銊┾偓鏄忕帆 (娴兼ê瀵查悧?
+ * 娴ｈ法鏁?localStorage 鐎涙ê鍋嶉弫鐗堝祦閿涘本鏁幐浣哥槕閻礁濮炵€靛棔绻氶幎?
  */
 
 // ===================================
-// 加密工具
+// 閸旂姴鐦戝銉ュ徔
 // ===================================
 
 const Crypto = {
@@ -68,7 +68,7 @@ const Crypto = {
 };
 
 // ===================================
-// 安全模块
+// 鐎瑰鍙忓Ο鈥虫健
 // ===================================
 
 const Security = {
@@ -134,7 +134,7 @@ const Security = {
 };
 
 // ===================================
-// 数据存储
+// 閺佺増宓佺€涙ê鍋?
 // ===================================
 
 const Storage = {
@@ -165,7 +165,7 @@ const Storage = {
       day: '2-digit' 
     });
     item.isFavorite = item.isFavorite || false;
-    item.photos = item.photos || []; // 照片数组
+    item.photos = item.photos || []; // 閻撗呭閺佹壆绮?
     items.unshift(item);
     this.save(items);
     return item;
@@ -176,7 +176,7 @@ const Storage = {
     const index = items.findIndex(item => item._id === id);
     if (index === -1) return null;
     
-    // 保留原有 photos 如果没有新的
+    // 娣囨繄鏆€閸樼喐婀?photos 婵″倹鐏夊▽鈩冩箒閺傛壆娈?
     if (!updates.photos && items[index].photos) {
       updates.photos = items[index].photos;
     }
@@ -229,7 +229,7 @@ const Storage = {
     try {
       const data = JSON.parse(jsonString);
       if (!data.items || !Array.isArray(data.items)) {
-        return { success: false, message: '无效的数据格式' };
+        return { success: false, message: '鏃犳晥鐨勬暟鎹牸寮? };
       }
       
       const existing = this.getAll();
@@ -251,29 +251,29 @@ const Storage = {
       this.save(existing);
       return {
         success: true,
-        message: `导入成功：新增 ${imported} 条，跳过 ${skipped} 条重复`,
+        message: `鐎电厧鍙嗛幋鎰閿涙碍鏌婃晶?${imported} 閺夆槄绱濈捄瀹犵箖 ${skipped} 閺夛繝鍣告径宄?
         imported,
         skipped
       };
     } catch (e) {
-      return { success: false, message: 'JSON 解析失败：' + e.message };
+      return { success: false, message: 'JSON 鐟欙絾鐎芥径杈Е閿? + e.message };
     }
   }
 };
 
 // ===================================
-// 主题管理
+// 娑撳顣界粻锛勬倞
 // ===================================
 
 const ThemeManager = {
   KEY: 'universal_journal_theme',
   
   themes: [
-    { id: 'void', name: '无界原白', color: '#1a1a1a' },
-    { id: 'grid', name: '模数框架', color: '#0071e3' },
-    { id: 'ink', name: '单色墨影', color: '#2c2c2c' },
-    { id: 'warm', name: '暖光纸本', color: '#8b7355' },
-    { id: 'dark', name: '深空墨色', color: '#0a84ff' }
+    { id: 'void', name: '閺冪姷鏅崢鐔烘', color: '#1a1a1a' },
+    { id: 'grid', name: '濡剝鏆熷鍡樼仸', color: '#0071e3' },
+    { id: 'ink', name: '閸楁洝澹婃晶銊ュ', color: '#2c2c2c' },
+    { id: 'warm', name: '閺嗘牕鍘滅痪鍛婃拱', color: '#8b7355' },
+    { id: 'dark', name: '濞ｈ京鈹栨晶銊ㄥ', color: '#0a84ff' }
   ],
   
   init() {
@@ -288,7 +288,7 @@ const ThemeManager = {
     localStorage.setItem(this.KEY, themeId);
     this.updatePanel(themeId);
     document.getElementById('current-theme-name').textContent = 
-      this.themes.find(t => t.id === themeId)?.name || '无界原白';
+      this.themes.find(t => t.id === themeId)?.name || '閺冪姷鏅崢鐔烘';
   },
   
   bindEvents() {
@@ -343,7 +343,7 @@ const ThemeManager = {
 };
 
 // ===================================
-// 密码管理 UI
+// 鐎靛棛鐖滅粻锛勬倞 UI
 // ===================================
 
 const PasswordUI = {
@@ -356,7 +356,7 @@ const PasswordUI = {
     document.getElementById('modal-title').textContent = title;
     document.getElementById('modal-hint').textContent = hint || '';
     document.getElementById('modal-hint').className = 'modal-hint';
-    document.getElementById('modal-password').placeholder = placeholder || '请输入密码';
+    document.getElementById('modal-password').placeholder = placeholder || '鐠囩柉绶崗銉ョ槕閻?;
     document.getElementById('modal-password').value = '';
     document.getElementById('password-modal').style.display = 'flex';
     
@@ -393,7 +393,7 @@ const PasswordUI = {
 };
 
 // ===================================
-// 应用主逻辑
+// 鎼存梻鏁ゆ稉濠氣偓鏄忕帆
 // ===================================
 
 const App = {
@@ -404,12 +404,33 @@ const App = {
   filteredItems: [],
   editingId: null,
   
-  init() {
+  async init() {
+    // 閸掓繂顫愰崠?IndexedDB
+    if (window.IDB) {
+      await IDB.init();
+      const migration = await IDB.migrateFromLocalStorage();
+      if (migration.migrated > 0) {
+        console.log(`棣冩憹 娴?localStorage 鏉╀胶些娴?${migration.migrated} 閺壜ゎ唶瑜版洖鍩?IndexedDB`);
+      }
+    }
+    
     ThemeManager.init();
     ThemeManager.renderOptions();
     this.bindEvents();
     this.bindPasswordEvents();
     this.bindSettingsEvents();
+    
+    // 閸掓繂顫愰崠鏍ь杻瀵搫濮涢懗?
+    if (window.EnhancedFeatures) {
+      EnhancedFeatures.init();
+    }
+    
+    CloudSync.loadConfig();
+    this.updateCloudStatus();
+    
+    if (CloudSync.isEnabled() && CloudSync.config.syncOnStart) {
+      this.autoSync();
+    }
     
     if (Security.isLocked()) {
       PasswordUI.showLockScreen();
@@ -419,11 +440,11 @@ const App = {
       this.renderItems();
     }
     
-    console.log('📦 万物手札 H5 已启动');
+    console.log('棣冩憹 娑撳洨澧块幍瀣贡 H5 瀹告彃鎯庨崝?);
   },
   
   bindEvents() {
-    // TabBar 切换
+    // TabBar 閸掑洦宕?
     document.querySelectorAll('.tab-item').forEach(tab => {
       tab.addEventListener('click', (e) => {
         const page = e.currentTarget.closest('.tab-item').dataset.page;
@@ -431,21 +452,21 @@ const App = {
       });
     });
     
-    // FAB 添加按钮
+    // FAB 濞ｈ濮為幐澶愭尦
     document.getElementById('fab-add').addEventListener('click', () => {
       this.editingId = null;
       this.resetForm();
       this.switchPage('create');
     });
     
-    // 空状态添加按钮
+    // 缁岃櫣濮搁幀浣瑰潑閸旂姵瀵滈柦?
     document.getElementById('empty-add-btn')?.addEventListener('click', () => {
       this.editingId = null;
       this.resetForm();
       this.switchPage('create');
     });
     
-    // 搜索
+    // 閹兼粎鍌?
     document.getElementById('search-btn')?.addEventListener('click', () => {
       this.searchKey = document.getElementById('search-input').value.trim();
       this.filterItems();
@@ -460,7 +481,7 @@ const App = {
       }
     });
     
-    // 分类筛选
+    // 閸掑棛琚粵娑⑩偓?
     document.getElementById('category-filter')?.addEventListener('click', (e) => {
       if (e.target.classList.contains('category-item')) {
         document.querySelectorAll('.category-item').forEach(b => b.classList.remove('active'));
@@ -471,7 +492,7 @@ const App = {
       }
     });
     
-    // 返回按钮
+    // 鏉╂柨娲栭幐澶愭尦
     document.getElementById('detail-back-btn')?.addEventListener('click', () => {
       this.switchPage('home');
     });
@@ -480,7 +501,7 @@ const App = {
       this.switchPage('profile');
     });
     
-    // 创建页按钮
+    // 閸掓稑缂撴い鍨瘻闁?
     document.getElementById('create-cancel-btn')?.addEventListener('click', () => {
       this.switchPage('home');
     });
@@ -489,7 +510,7 @@ const App = {
       this.submitForm();
     });
     
-    // 富文本工具栏
+    // 鐎靛本鏋冮張顒€浼愰崗閿嬬埉
     document.querySelectorAll('.toolbar-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const command = e.currentTarget.dataset.command;
@@ -498,7 +519,7 @@ const App = {
       });
     });
     
-    // 照片上传
+    // 閻撗呭娑撳﹣绱?
     this.currentPhotos = [];
     document.getElementById('create-photo-btn')?.addEventListener('click', () => {
       document.getElementById('create-photo-input').click();
@@ -508,28 +529,38 @@ const App = {
       this.handlePhotoUpload(e);
     });
     
-    // 详情收藏按钮
+    // 鐠囷附鍎忛弨鎯版閹稿鎸?
     document.getElementById('detail-favorite-btn')?.addEventListener('click', () => {
       if (this.currentDetailId) {
         const isFav = Storage.toggleFavorite(this.currentDetailId);
         this.updateFavoriteButton(isFav);
-        this.showToast(isFav ? '已收藏' : '已取消收藏');
+        this.showToast(isFav ? '瀹稿弶鏁归挊? : '瀹告彃褰囧☉鍫熸暪閽?);
       }
     });
     
-    // 收藏页筛选
+    // 鐠囷附鍎忛崚鍡曢煩閹稿鎸?
+    document.getElementById('detail-share-btn')?.addEventListener('click', () => {
+      if (this.currentDetailId && window.EnhancedFeatures) {
+        const item = Storage.get(this.currentDetailId);
+        if (item) {
+          EnhancedFeatures.showShare(item);
+        }
+      }
+    });
+    
+    // 閺€鎯版妞ょ數鐡柅?
     document.getElementById('favorites-category-filter')?.addEventListener('change', () => {
       this.renderFavorites();
     });
   },
   
   bindSettingsEvents() {
-    // 导出数据
+    // 鐎电厧鍤弫鐗堝祦
     document.getElementById('settings-export')?.addEventListener('click', () => {
       this.exportData();
     });
     
-    // 导入数据
+    // 鐎电厧鍙嗛弫鐗堝祦
     document.getElementById('settings-import')?.addEventListener('click', () => {
       document.getElementById('import-file-input').click();
     });
@@ -538,48 +569,51 @@ const App = {
       this.importData(e);
     });
     
-    // 清空数据
+    // 濞撳懐鈹栭弫鐗堝祦
     document.getElementById('settings-clear')?.addEventListener('click', () => {
-      if (confirm('⚠️ 确定要删除所有数据吗？此操作不可恢复！')) {
-        if (confirm('再次确认：真的要清空所有物品数据吗？')) {
+      if (confirm('閳跨媴绗?绾喖鐣剧憰浣稿灩闂勩倖澧嶉張澶嬫殶閹诡喖鎮ч敍鐔割劃閹垮秳缍旀稉宥呭讲閹垹顦查敍?)) {
+        if (confirm('閸愬秵顐肩涵顔款吇閿涙氨婀￠惃鍕洣濞撳懐鈹栭幍鈧張澶屽⒖閸濅焦鏆熼幑顔兼偋閿?)) {
           localStorage.removeItem('universal_journal_items');
           localStorage.removeItem(Security.DATA_KEY);
           this.items = [];
           this.filteredItems = [];
           this.renderItems();
           this.renderFavorites();
-          this.showToast('数据已清空');
+          this.showToast('閺佺増宓佸鍙夌缁?);
         }
       }
     });
     
-    // 密码保护
+    // 鐎靛棛鐖滄穱婵囧Б
     document.getElementById('settings-lock')?.addEventListener('click', () => {
       this.togglePasswordLock();
     });
     
-    // 主题
+    // 娑撳顣?
     document.getElementById('settings-theme')?.addEventListener('click', () => {
       document.getElementById('theme-toggle').click();
     });
     
-    // 统计
+    // 缂佺喕顓?
     document.getElementById('settings-stats')?.addEventListener('click', () => {
       this.loadStats();
       this.switchPage('stats');
     });
     
-    // 关于
+    // 閸忓厖绨?
     document.getElementById('settings-about')?.addEventListener('click', () => {
       this.showAbout();
     });
+    
+    // 娴滄垹顏崥灞绢劄
+    this.bindCloudEvents();
   },
   
   bindPasswordEvents() {
     document.getElementById('modal-confirm-btn')?.addEventListener('click', () => {
       const password = document.getElementById('modal-password').value;
       if (!password) {
-        PasswordUI.showError('请输入密码');
+        PasswordUI.showError('鐠囩柉绶崗銉ョ槕閻?);
         return;
       }
       
@@ -601,7 +635,7 @@ const App = {
     document.getElementById('lock-unlock-btn')?.addEventListener('click', () => {
       const password = document.getElementById('lock-password').value;
       if (!password) {
-        document.getElementById('lock-hint').textContent = '请输入密码';
+        document.getElementById('lock-hint').textContent = '鐠囩柉绶崗銉ョ槕閻?;
         document.getElementById('lock-hint').className = 'lock-hint error';
         return;
       }
@@ -613,9 +647,9 @@ const App = {
         this.loadItems();
         this.renderCategoryFilter();
         this.renderItems();
-        this.showToast('已解锁');
+        this.showToast('瀹歌尪袙闁?);
       } else {
-        document.getElementById('lock-hint').textContent = '密码错误，请重试';
+        document.getElementById('lock-hint').textContent = '鐎靛棛鐖滈柨娆掝嚖閿涘矁顕柌宥堢槸';
         document.getElementById('lock-hint').className = 'lock-hint error';
       }
     });
@@ -627,7 +661,7 @@ const App = {
     });
   },
   
-  // 页面切换
+  // 妞ょ敻娼伴崚鍥ㄥ床
   switchPage(page) {
     document.querySelectorAll('.tab-item').forEach(tab => {
       tab.classList.toggle('active', tab.dataset.page === page);
@@ -653,7 +687,7 @@ const App = {
     document.querySelector('.main-content').scrollTop = 0;
   },
   
-  // 加载物品
+  // 閸旂姾娴囬悧鈺佹惂
   loadItems() {
     this.items = Storage.getAll();
     this.filterItems();
@@ -673,19 +707,19 @@ const App = {
     const container = document.getElementById('category-filter');
     const categories = [...new Set(this.items.map(item => item.mainCategory))];
     
-    let html = '<button class="category-item active" data-category="">全部</button>';
+    let html = '<button class="category-item active" data-category="">閸忋劑鍎?/button>';
     categories.forEach(cat => {
-      if (cat && cat !== '全部') {
+      if (cat && cat !== '閸忋劑鍎?) {
         html += `<button class="category-item" data-category="${cat}">${cat}</button>`;
       }
     });
     
     container.innerHTML = html;
     
-    // 更新收藏页筛选
+    // 閺囧瓨鏌婇弨鎯版妞ょ數鐡柅?
     const favFilter = document.getElementById('favorites-category-filter');
     if (favFilter) {
-      let favHtml = '<option value="">全部品类</option>';
+      let favHtml = '<option value="">閸忋劑鍎撮崫浣鸿</option>';
       categories.forEach(cat => {
         if (cat) {
           favHtml += `<option value="${cat}">${cat}</option>`;
@@ -710,14 +744,14 @@ const App = {
     
     let html = '';
     this.filteredItems.forEach(item => {
-      const favIcon = item.isFavorite ? '⭐' : '';
+      const favIcon = item.isFavorite ? '鐚? : '';
       html += `
         <div class="item-card" data-id="${item._id}">
           <div class="item-card-content">
             <div class="item-content-left">
               <div class="item-meta">${item.createdAt}</div>
               <div class="item-name">${item.name} ${favIcon}</div>
-              <div class="item-desc">${item.notes || '暂无备注'}</div>
+              <div class="item-desc">${item.notes || '閺嗗倹妫ゆ径鍥ㄦ暈'}</div>
             </div>
           </div>
         </div>
@@ -733,7 +767,7 @@ const App = {
     });
   },
   
-  // 渲染收藏页
+  // 濞撳弶鐓嬮弨鎯版妞?
   renderFavorites() {
     const favorites = Storage.getFavorites();
     const container = document.getElementById('favorites-grid');
@@ -776,18 +810,18 @@ const App = {
   
   getCategoryIcon(category) {
     const icons = {
-      '植物': '🌿',
-      '书籍': '📚',
-      '数码': '💻',
-      '宠物': '🐱',
-      '手办': '🎭',
-      '光影': '💡',
-      '其他': '📦'
+      '濡炲秶澧?: '棣冨岸',
+      '娑旓妇鐫?: '棣冩憥',
+      '閺佹壆鐖?: '棣冩崌',
+      '鐎圭姷澧?: '棣冩儛',
+      '閹靛濮?: '棣冨箒',
+      '閸忓濂?: '棣冩寱',
+      '閸忔湹绮?: '棣冩憹'
     };
-    return icons[category] || '📦';
+    return icons[category] || '棣冩憹';
   },
   
-  // 显示详情
+  // 閺勫墽銇氱拠锔藉剰
   showDetail(id) {
     const item = Storage.get(id);
     if (!item) return;
@@ -798,7 +832,7 @@ const App = {
     
     const container = document.getElementById('detail-container');
     
-    // 渲染照片
+    // 濞撳弶鐓嬮悡褏澧?
     let photosHtml = '';
     if (item.photos && item.photos.length > 0) {
       photosHtml = '<div class="detail-photos">';
@@ -816,19 +850,19 @@ const App = {
       <div class="detail-content">
         <div class="detail-header">
           <div class="detail-title">${item.name}</div>
-          <div class="detail-status">${item.status || '在役'}</div>
+          <div class="detail-status">${item.status || '閸︺劌鐒?}</div>
         </div>
         <div class="detail-meta">
-          <div class="detail-meta-item">📂 品类：${item.mainCategory}</div>
-          <div class="detail-meta-item">📅 录入时间：${item.createdAt}</div>
-          <div class="detail-meta-item">⭐ 收藏：${isFav ? '已收藏' : '未收藏'}</div>
+          <div class="detail-meta-item">棣冩惃 閸濅胶琚敍?{item.mainCategory}</div>
+          <div class="detail-meta-item">棣冩惍 瑜版洖鍙嗛弮鍫曟？閿?{item.createdAt}</div>
+          <div class="detail-meta-item">鐚?閺€鎯版閿?{isFav ? '瀹稿弶鏁归挊? : '閺堫亝鏁归挊?}</div>
         </div>
         ${photosHtml}
-        <div class="detail-desc">${item.notes || '暂无备注'}</div>
+        <div class="detail-desc">${item.notes || '閺嗗倹妫ゆ径鍥ㄦ暈'}</div>
       </div>
     `;
     
-    // 绑定照片点击事件（全屏查看）
+    // 缂佹垵鐣鹃悡褏澧栭悙鐟板毊娴滃娆㈤敍鍫濆弿鐏炲繑鐓￠惇瀣剁礆
     container.querySelectorAll('.detail-photo-item').forEach(item => {
       item.addEventListener('click', (e) => {
         const index = parseInt(e.currentTarget.dataset.index);
@@ -839,7 +873,7 @@ const App = {
     this.switchPage('detail');
   },
   
-  // 照片全屏查看
+  // 閻撗呭閸忋劌鐫嗛弻銉ф箙
   showPhotoViewer(photoSrc) {
     const viewer = document.createElement('div');
     viewer.className = 'photo-viewer';
@@ -858,7 +892,7 @@ const App = {
     
     document.body.appendChild(viewer);
     
-    // 绑定关闭事件
+    // 缂佹垵鐣鹃崗鎶芥４娴滃娆?
     const close = () => {
       viewer.remove();
     };
@@ -875,11 +909,11 @@ const App = {
     }
   },
   
-  // 提交表单
+  // 閹绘劒姘︾悰銊ュ礋
   submitForm() {
     const name = document.getElementById('create-name').value.trim();
     if (!name) {
-      this.showToast('请填写名称');
+      this.showToast('鐠囧嘲锝為崘娆忔倳缁?);
       return;
     }
     
@@ -890,7 +924,7 @@ const App = {
     
     const itemData = {
       name,
-      mainCategory: category || '其他',
+      mainCategory: category || '閸忔湹绮?,
       status,
       notes: notes || richContent,
       isFavorite: false,
@@ -899,10 +933,10 @@ const App = {
     
     if (this.editingId) {
       Storage.update(this.editingId, itemData);
-      this.showToast('保存成功');
+      this.showToast('娣囨繂鐡ㄩ幋鎰');
     } else {
       Storage.add(itemData);
-      this.showToast('创建成功');
+      this.showToast('閸掓稑缂撻幋鎰');
     }
     
     this.loadItems();
@@ -920,12 +954,12 @@ const App = {
     document.getElementById('create-status').value = 'in-use';
     document.getElementById('create-notes').value = '';
     document.getElementById('create-rich-content').innerHTML = '';
-    document.getElementById('create-title').textContent = '新建记录';
+    document.getElementById('create-title').textContent = '閺傛澘缂撶拋鏉跨秿';
     this.currentPhotos = [];
     this.renderPhotoPreview();
   },
   
-  // 照片上传处理
+  // 閻撗呭娑撳﹣绱舵径鍕倞
   handlePhotoUpload(e) {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -942,11 +976,11 @@ const App = {
       reader.readAsDataURL(file);
     });
     
-    // 清空 input 以允许重复选择同一文件
+    // 濞撳懐鈹?input 娴犮儱鍘戠拋鎼佸櫢婢跺秹鈧瀚ㄩ崥灞肩閺傚洣娆?
     e.target.value = '';
   },
   
-  // 渲染照片预览
+  // 濞撳弶鐓嬮悡褏澧栨０鍕潔
   renderPhotoPreview() {
     const preview = document.getElementById('photo-preview');
     if (!preview) return;
@@ -974,7 +1008,7 @@ const App = {
     
     preview.innerHTML = html;
     
-    // 绑定删除事件
+    // 缂佹垵鐣鹃崚鐘绘珟娴滃娆?
     preview.querySelectorAll('.photo-remove').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const index = parseInt(e.currentTarget.dataset.index);
@@ -984,7 +1018,7 @@ const App = {
     });
   },
   
-  // 统计页面
+  // 缂佺喕顓告い鐢告桨
   loadStats() {
     const items = Storage.getAll();
     const favorites = Storage.getFavorites();
@@ -999,7 +1033,7 @@ const App = {
     
     const statusCount = {};
     items.forEach(item => {
-      statusCount[item.status || '在役'] = (statusCount[item.status || '在役'] || 0) + 1;
+      statusCount[item.status || '閸︺劌鐒?] = (statusCount[item.status || '閸︺劌鐒?] || 0) + 1;
     });
     
     const statuses = Object.entries(statusCount).map(([name, value]) => ({ name, value }));
@@ -1007,7 +1041,7 @@ const App = {
     document.getElementById('stat-total').textContent = total;
     document.getElementById('stat-categories').textContent = Object.keys(categoryCount).length;
     document.getElementById('stat-favorites').textContent = favorites.length;
-    document.getElementById('stat-active').textContent = statusCount['在役'] || 0;
+    document.getElementById('stat-active').textContent = statusCount['閸︺劌鐒?] || 0;
     
     this.renderCharts(categories, statuses);
   },
@@ -1042,7 +1076,7 @@ const App = {
     });
   },
   
-  // 导出功能
+  // 鐎电厧鍤崝鐔诲厴
   exportData() {
     const json = Storage.exportJSON();
     const blob = new Blob([json], { type: 'application/json' });
@@ -1050,16 +1084,16 @@ const App = {
     
     const a = document.createElement('a');
     a.href = url;
-    a.download = `万物手札备份_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `娑撳洨澧块幍瀣贡婢跺洣鍞${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     
-    this.showToast('导出成功');
+    this.showToast('鐎电厧鍤幋鎰');
   },
   
-  // 导入功能
+  // 鐎电厧鍙嗛崝鐔诲厴
   importData(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -1083,24 +1117,24 @@ const App = {
     e.target.value = '';
   },
   
-  // 密码保护
+  // 鐎靛棛鐖滄穱婵囧Б
   togglePasswordLock() {
     const hasPassword = Security.hasPassword();
     
     if (!hasPassword) {
-      PasswordUI.showModal('🔒 设置密码', '设置后数据将被加密存储', '输入 4-20 位密码', (password) => {
+      PasswordUI.showModal('棣冩晙 鐠佸墽鐤嗙€靛棛鐖?, '鐠佸墽鐤嗛崥搴㈡殶閹诡喖鐨㈢悮顐㈠鐎靛棗鐡ㄩ崒?, '鏉堟挸鍙?4-20 娴ｅ秴鐦戦惍?, (password) => {
         if (password.length < 4) {
-          PasswordUI.showError('密码至少 4 位');
+          PasswordUI.showError('鐎靛棛鐖滈懛鍐茬毌 4 娴?);
           return;
         }
         if (password.length > 20) {
-          PasswordUI.showError('密码最多 20 位');
+          PasswordUI.showError('鐎靛棛鐖滈張鈧径?20 娴?);
           return;
         }
         
-        PasswordUI.showModal('🔒 确认密码', '请再次输入密码', '再次输入密码', (confirmPwd) => {
+        PasswordUI.showModal('棣冩晙 绾喛顓荤€靛棛鐖?, '鐠囧嘲鍟€濞喡ょ翻閸忋儱鐦戦惍?, '閸愬秵顐兼潏鎾冲弳鐎靛棛鐖?, (confirmPwd) => {
           if (password !== confirmPwd) {
-            PasswordUI.showError('两次密码不一致');
+            PasswordUI.showError('娑撱倖顐肩€靛棛鐖滄稉宥勭閼?);
             return;
           }
           
@@ -1112,62 +1146,472 @@ const App = {
           window.__cachedItems = items;
           
           PasswordUI.hideModal();
-          this.showToast('密码设置成功');
+          this.showToast('鐎靛棛鐖滅拋鍓х枂閹存劕濮?);
         });
       });
     } else {
       if (Security.isLocked()) {
-        PasswordUI.showModal('🔓 关闭保护', '输入密码关闭数据加密', '输入当前密码', (password) => {
+        PasswordUI.showModal('棣冩晛 閸忔娊妫存穱婵囧Б', '鏉堟挸鍙嗙€靛棛鐖滈崗鎶芥４閺佺増宓侀崝鐘茬槕', '鏉堟挸鍙嗚ぐ鎾冲鐎靛棛鐖?, (password) => {
           if (Security.verifyPassword(password)) {
             const items = Security.decryptData(password);
             if (items) {
               Security.removePassword();
               Storage.save(items);
               PasswordUI.hideModal();
-              this.showToast('保护已关闭');
+              this.showToast('娣囨繃濮㈠鎻掑彠闂?);
             } else {
-              PasswordUI.showError('解密失败，请重试');
+              PasswordUI.showError('鐟欙絽鐦戞径杈Е閿涘矁顕柌宥堢槸');
             }
           } else {
-            PasswordUI.showError('密码错误');
+            PasswordUI.showError('鐎靛棛鐖滈柨娆掝嚖');
           }
         });
       } else {
-        PasswordUI.showModal('🔒 开启保护', '开启后数据将被加密', '输入密码', (password) => {
+        PasswordUI.showModal('棣冩晙 瀵偓閸氼垯绻氶幎?, '瀵偓閸氼垰鎮楅弫鐗堝祦鐏忓棜顫﹂崝鐘茬槕', '鏉堟挸鍙嗙€靛棛鐖?, (password) => {
           if (Security.verifyPassword(password)) {
             localStorage.setItem(Security.LOCK_KEY, 'true');
             PasswordUI.hideModal();
-            this.showToast('保护已开启');
+            this.showToast('娣囨繃濮㈠鎻掔磻閸?);
           } else {
-            PasswordUI.showError('密码错误');
+            PasswordUI.showError('鐎靛棛鐖滈柨娆掝嚖');
           }
         });
       }
     }
   },
   
-  // 关于页面
+  // 閸忓厖绨い鐢告桨
   showAbout() {
-    alert('万物手札 v1.0.0\n\n记录世间万物，收藏生活点滴\n\n设计哲学：无界原白 × 极简主义');
+    alert('娑撳洨澧块幍瀣贡 v1.0.0\n\n鐠佹澘缍嶆稉鏍？娑撳洨澧块敍灞炬暪閽樺繒鏁撳ú鑽ゅ仯濠婄⒍n\n鐠佹崘顓搁崫鎻掝劅閿涙碍妫ら悾灞藉斧閻?鑴?閺嬩胶鐣濇稉璁崇疅');
   },
   
-  // Toast 提示
-  showToast(message) {
-    const toast = document.getElementById('toast');
-    const toastMessage = document.getElementById('toast-message');
-    toastMessage.textContent = message;
-    toast.classList.add('show');
+  // ==================== 娴滄垹顏崥灞绢劄 ====================
+  
+  bindCloudEvents() {
+    // 閸氬本顒炵拋鍓х枂
+    document.getElementById('settings-cloud-config')?.addEventListener('click', () => {
+      this.showCloudConfig();
+    });
     
-    setTimeout(() => {
-      toast.classList.remove('show');
-    }, 2000);
+    // 娑撳﹣绱?
+    document.getElementById('settings-cloud-upload')?.addEventListener('click', () => {
+      this.cloudUpload();
+    });
+    
+    // 娑撳娴?
+    document.getElementById('settings-cloud-download')?.addEventListener('click', () => {
+      this.cloudDownload();
+    });
+    
+    // 閸欏苯鎮滈崥灞绢劄
+    document.getElementById('settings-cloud-sync')?.addEventListener('click', () => {
+      this.cloudSyncBidirectional();
+    });
+    
+    // 婢х偤鍣洪崥灞绢劄
+    document.getElementById('settings-cloud-upload-incremental')?.addEventListener('click', () => {
+      this.cloudUploadIncremental();
+    });
+    
+    // 閸氬本顒為崢鍡楀蕉
+    document.getElementById('settings-cloud-logs')?.addEventListener('click', () => {
+      this.showSyncLogs();
+    });
+    
+    // 闁板秶鐤嗗鍦崶 - 娣囨繂鐡?
+    document.getElementById('cloud-modal-save-btn')?.addEventListener('click', () => {
+      this.saveCloudConfig();
+    });
+    
+    // 闁板秶鐤嗗鍦崶 - 濞村鐦潻鐐村复
+    document.getElementById('cloud-modal-test-btn')?.addEventListener('click', () => {
+      this.testCloudConnection();
+    });
+    
+    // 闁板秶鐤嗗鍦崶 - 閸欐牗绉?
+    document.getElementById('cloud-modal-cancel-btn')?.addEventListener('click', () => {
+      document.getElementById('cloud-token-input').value = '';
+      document.getElementById('cloud-password-input').value = '';
+      document.getElementById('cloud-modal').style.display = 'none';
+    });
+    
+    // 閸愯尙鐛婂鍦崶 - 閸忋劑鍎存穱婵堟殌閺堫剙婀?
+    document.getElementById('conflict-keep-local-btn')?.addEventListener('click', () => {
+      CloudSync.config.conflictStrategy = 'local';
+      document.getElementById('conflict-modal').style.display = 'none';
+      this.showToast('瀹告煡鈧瀚ㄩ敍姘弿闁劋绻氶悾娆愭拱閸︽壆澧楅張?);
+    });
+    
+    // 閸愯尙鐛婂鍦崶 - 閸忋劑鍎存穱婵堟殌娴滄垹顏?
+    document.getElementById('conflict-keep-remote-btn')?.addEventListener('click', () => {
+      CloudSync.config.conflictStrategy = 'remote';
+      document.getElementById('conflict-modal').style.display = 'none';
+      this.showToast('瀹告煡鈧瀚ㄩ敍姘弿闁劋绻氶悾娆庣隘缁旑垳澧楅張?);
+    });
+    
+    // 閸愯尙鐛婂鍦崶 - 閹靛濮╅柅澶嬪
+    document.getElementById('conflict-resolve-btn')?.addEventListener('click', () => {
+      document.getElementById('conflict-modal').style.display = 'none';
+      this.showToast('鐠囧嘲婀稉濠冩煙閻ㄥ嫬鍟跨粣浣稿灙鐞涖劋鑵戦柅澶嬪濮ｅ繋閲滅拋鏉跨秿閻ㄥ嫮澧楅張?);
+    });
+    
+    // 閸氬本顒為弮銉ョ箶 - 閸忔娊妫?
+    document.getElementById('sync-log-close-btn')?.addEventListener('click', () => {
+      document.getElementById('sync-log-modal').style.display = 'none';
+    });
+    
+    // 閸氬本顒為弮銉ョ箶 - 濞撳懐鈹?
+    document.getElementById('sync-log-clear-btn')?.addEventListener('click', async () => {
+      if (confirm('绾喖鐣剧憰浣圭缁岀儤澧嶉張澶婃倱濮濄儲妫╄箛妤€鎮ч敍?)) {
+        await IDB.clearSyncLogs();
+        this.showSyncLogs();
+        this.showToast('閸氬本顒為弮銉ョ箶瀹稿弶绔荤粚?);
+      }
+    });
+  },
+  
+  updateCloudStatus() {
+    const statusText = document.getElementById('cloud-status-text');
+    if (statusText) {
+      statusText.textContent = CloudSync.getStatusText();
+    }
+  },
+  
+  showCloudConfig() {
+    const modal = document.getElementById('cloud-modal');
+    const tokenInput = document.getElementById('cloud-token-input');
+    const passwordInput = document.getElementById('cloud-password-input');
+    const testArea = document.getElementById('cloud-test-area');
+    const testResult = document.getElementById('cloud-test-result');
+    
+    // 婵夘偄鍘栧韫箽鐎涙娈戦柊宥囩枂
+    tokenInput.value = CloudSync.config.token || '';
+    passwordInput.value = '';
+    testArea.style.display = 'none';
+    testResult.className = 'test-result';
+    testResult.textContent = '';
+    
+    modal.style.display = 'flex';
+    setTimeout(() => tokenInput.focus(), 100);
+  },
+  
+  async saveCloudConfig() {
+    const token = document.getElementById('cloud-token-input').value.trim();
+    const password = document.getElementById('cloud-password-input').value;
+    
+    if (!token) {
+      this.showToast('鐠囩柉绶崗?GitHub Token');
+      return;
+    }
+    
+    if (password.length < 6) {
+      this.showToast('閸旂姴鐦戠€靛棛鐖滈懛鍐茬毌 6 娴?);
+      return;
+    }
+    
+    CloudSync.config.token = token;
+    CloudSync.config.password = password;
+    CloudSync.config.enabled = true;
+    CloudSync.saveConfig();
+    
+    document.getElementById('cloud-modal').style.display = 'none';
+    this.updateCloudStatus();
+    this.showToast('閴?閸氬本顒為柊宥囩枂瀹歌弓绻氱€?);
+  },
+  
+  async testCloudConnection() {
+    const token = document.getElementById('cloud-token-input').value.trim();
+    if (!token) {
+      this.showToast('鐠囧嘲鍘涙潏鎾冲弳 Token');
+      return;
+    }
+    
+    CloudSync.config.token = token;
+    const testArea = document.getElementById('cloud-test-area');
+    const testResult = document.getElementById('cloud-test-result');
+    
+    testArea.style.display = 'block';
+    testResult.className = 'test-result loading';
+    testResult.textContent = '濮濓絽婀ù瀣槸鏉╃偞甯?..';
+    
+    const result = await CloudSync.testConnection();
+    
+    if (result.success) {
+      testResult.className = 'test-result success';
+      testResult.textContent = `閴?${result.message}`;
+    } else {
+      testResult.className = 'test-result error';
+      testResult.textContent = `閴?${result.message}`;
+    }
+  },
+  
+  showSyncProgress(status) {
+    const modal = document.getElementById('sync-progress-modal');
+    const text = document.getElementById('sync-status-text');
+    text.textContent = status;
+    modal.style.display = 'flex';
+  },
+  
+  hideSyncProgress() {
+    document.getElementById('sync-progress-modal').style.display = 'none';
+  },
+  
+  async cloudUpload() {
+    if (!CloudSync.config.token) {
+      this.showToast('鐠囧嘲鍘涢柊宥囩枂閸氬本顒炵拋鍓х枂');
+      this.showCloudConfig();
+      return;
+    }
+    
+    PasswordUI.showModal('棣冩敿 閸旂姴鐦戠€靛棛鐖?, '鏉堟挸鍙嗛崝鐘茬槕鐎靛棛鐖滄禒銉ょ瑐娴肩姵鏆熼幑?, '鏉堟挸鍙嗙€靛棛鐖?, async (password) => {
+      this.showSyncProgress('濮濓絽婀崝鐘茬槕閺佺増宓?..');
+      
+      const items = this.items.length > 0 ? this.items : Storage.getAll();
+      const result = await CloudSync.upload(items, password);
+      
+      this.hideSyncProgress();
+      
+      if (result.success) {
+        this.updateCloudStatus();
+        this.showToast(`閴?${result.message}`);
+      } else {
+        this.showToast(`閴?${result.message}`);
+      }
+      
+      PasswordUI.hideModal();
+    });
+  },
+  
+  async cloudUploadIncremental() {
+    if (!CloudSync.config.token) {
+      this.showToast('鐠囧嘲鍘涢柊宥囩枂閸氬本顒炵拋鍓х枂');
+      this.showCloudConfig();
+      return;
+    }
+    
+    if (!window.IDB) {
+      this.showToast('瑜版挸澧犲ù蹇氼潔閸ｃ劋绗夐弨顖涘瘮 IndexedDB閿涘矁顕担璺ㄦ暏鐎瑰本鏆ｆ稉濠佺炊');
+      return;
+    }
+    
+    PasswordUI.showModal('棣冩敿 閸旂姴鐦戠€靛棛鐖?, '鏉堟挸鍙嗛崝鐘茬槕鐎靛棛鐖滄潻娑滎攽婢х偤鍣洪崥灞绢劄', '鏉堟挸鍙嗙€靛棛鐖?, async (password) => {
+      this.showSyncProgress('濮濓絽婀晶鐐哄櫤閸氬本顒?..');
+      
+      const result = await CloudSync.uploadIncremental(password);
+      
+      this.hideSyncProgress();
+      
+      if (result.success) {
+        this.updateCloudStatus();
+        this.showToast(`閴?${result.message}`);
+      } else {
+        this.showToast(`閴?${result.message}`);
+      }
+      
+      PasswordUI.hideModal();
+    });
+  },
+  
+  async cloudDownload() {
+    if (!CloudSync.config.token) {
+      this.showToast('鐠囧嘲鍘涢柊宥囩枂閸氬本顒炵拋鍓х枂');
+      this.showCloudConfig();
+      return;
+    }
+    
+    PasswordUI.showModal('棣冩晛 鐟欙絽鐦戠€靛棛鐖?, '鏉堟挸鍙嗙憴锝呯槕鐎靛棛鐖滄禒銉ょ瑓鏉炶姤鏆熼幑?, '鏉堟挸鍙嗙€靛棛鐖?, async (password) => {
+      this.showSyncProgress('濮濓絽婀禒搴濈隘缁旑垯绗呮潪?..');
+      
+      const localItems = this.items.length > 0 ? this.items : Storage.getAll();
+      const result = await CloudSync.download(localItems, password);
+      
+      this.hideSyncProgress();
+      
+      if (result.success) {
+        // 濡偓閺屻儲妲搁崥锔芥箒閸愯尙鐛?
+        if (result.conflicts && result.conflicts.length > 0) {
+          await this.showConflictResolution(result.conflicts);
+        }
+        
+        this.items = result.items;
+        Storage.save(result.items);
+        this.filterItems();
+        this.renderItems();
+        this.renderFavorites();
+        this.renderCategoryFilter();
+        this.updateCloudStatus();
+        this.showToast(`閴?${result.message}`);
+      } else {
+        this.showToast(`閴?${result.message}`);
+      }
+      
+      PasswordUI.hideModal();
+    });
+  },
+  
+  async cloudSyncBidirectional() {
+    if (!CloudSync.config.token) {
+      this.showToast('鐠囧嘲鍘涢柊宥囩枂閸氬本顒炵拋鍓х枂');
+      this.showCloudConfig();
+      return;
+    }
+    
+    PasswordUI.showModal('棣冩敡 閸氬本顒炵€靛棛鐖?, '鏉堟挸鍙嗙€靛棛鐖滄潻娑滎攽閸欏苯鎮滈崥灞绢劄', '鏉堟挸鍙嗙€靛棛鐖?, async (password) => {
+      this.showSyncProgress('濮濓絽婀崣灞芥倻閸氬本顒?..');
+      
+      const localItems = this.items.length > 0 ? this.items : Storage.getAll();
+      const result = await CloudSync.syncBidirectional(localItems, password);
+      
+      this.hideSyncProgress();
+      
+      if (result.success) {
+        // 濡偓閺屻儲妲搁崥锔芥箒閸愯尙鐛?
+        if (result.conflicts && result.conflicts.length > 0) {
+          await this.showConflictResolution(result.conflicts);
+        }
+        
+        this.items = result.items;
+        Storage.save(result.items);
+        this.filterItems();
+        this.renderItems();
+        this.renderFavorites();
+        this.renderCategoryFilter();
+        this.updateCloudStatus();
+        this.showToast(`閴?${result.message}`);
+      } else {
+        this.showToast(`閴?${result.message}`);
+      }
+      
+      PasswordUI.hideModal();
+    });
+  },
+  
+  async autoSync() {
+    if (!CloudSync.config.password) return;
+    try {
+      const localItems = Storage.getAll();
+      const result = await CloudSync.syncBidirectional(localItems, CloudSync.config.password);
+      if (result.success) {
+        this.items = result.items;
+        Storage.save(result.items);
+        this.filterItems();
+        this.renderItems();
+        this.renderFavorites();
+        this.renderCategoryFilter();
+        this.updateCloudStatus();
+      }
+    } catch (e) { console.warn('閼奉亜濮╅崥灞绢劄婢惰精瑙?', e); }
+  },
+  
+  // ==================== 閸愯尙鐛婄憴锝呭枀 ====================
+  
+  async showConflictResolution(conflicts) {
+    if (!conflicts || conflicts.length === 0) return;
+    
+    const modal = document.getElementById('conflict-modal');
+    const list = document.getElementById('conflict-list');
+    
+    list.innerHTML = conflicts.map((conflict, index) => `
+      <div class="conflict-item" data-id="${conflict.id}">
+        <div class="conflict-item-header">
+          <span class="conflict-item-name">${this.escapeHtml(conflict.name || '閺堫亜鎳￠崥?)}</span>
+          <span class="conflict-item-time">ID: ${conflict.id.substr(0, 8)}...</span>
+        </div>
+        <div class="conflict-item-versions">
+          <div class="conflict-version" data-choice="local" data-index="${index}">
+            <div class="conflict-version-label">棣冩懌 閺堫剙婀撮悧鍫熸拱</div>
+            <div class="conflict-version-date">${conflict.localModified}</div>
+          </div>
+          <div class="conflict-version" data-choice="remote" data-index="${index}">
+            <div class="conflict-version-label">閳戒緤绗?娴滄垹顏悧鍫熸拱</div>
+            <div class="conflict-version-date">${conflict.remoteModified}</div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+    
+    // 缂佹垵鐣鹃柅澶嬪娴滃娆?
+    list.querySelectorAll('.conflict-version').forEach(version => {
+      version.addEventListener('click', () => {
+        const item = version.closest('.conflict-item');
+        item.querySelectorAll('.conflict-version').forEach(v => v.classList.remove('selected'));
+        version.classList.add('selected');
+        item.dataset.choice = version.dataset.choice;
+      });
+    });
+    
+    modal.style.display = 'flex';
+  },
+  
+  resolveConflicts(conflicts, choices) {
+    const resolved = conflicts.map((conflict, index) => {
+      const choice = choices[index] || 'newer';
+      if (choice === 'local') return conflict.local;
+      if (choice === 'remote') return conflict.remote;
+      // newer: 閸欐牞绶濋弬鎵畱
+      return new Date(conflict.localModified) > new Date(conflict.remoteModified) ? conflict.local : conflict.remote;
+    });
+    return resolved;
+  },
+  
+  // ==================== 閸氬本顒為弮銉ョ箶 ====================
+  
+  async showSyncLogs() {
+    const modal = document.getElementById('sync-log-modal');
+    const list = document.getElementById('sync-log-list');
+    
+    list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-secondary)">閸旂姾娴囨稉?..</div>';
+    modal.style.display = 'flex';
+    
+    const logs = await CloudSync.getSyncHistory(50);
+    
+    if (logs.length === 0) {
+      list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-secondary)">閺嗗倹妫ら崥灞绢劄鐠佹澘缍?/div>';
+      return;
+    }
+    
+    list.innerHTML = logs.map(log => `
+      <div class="sync-log-item">
+        <div class="sync-log-icon ${log.success ? 'success' : 'error'}">
+          ${log.success ? '閴? : '閴?}
+        </div>
+        <div class="sync-log-content">
+          <div class="sync-log-type">${this.getSyncTypeLabel(log.type)}</div>
+          <div class="sync-log-message">${this.escapeHtml(log.message)}</div>
+        </div>
+        <div class="sync-log-time">
+          <div>${new Date(log.timestamp).toLocaleDateString('zh-CN')}</div>
+          <div>${new Date(log.timestamp).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'})}</div>
+          <div style="font-size:10px;color:var(--text-secondary)">${log.duration}ms</div>
+        </div>
+      </div>
+    `).join('');
+  },
+  
+  getSyncTypeLabel(type) {
+    const labels = {
+      'upload': '棣冩憶 娑撳﹣绱?,
+      'download': '棣冩憸 娑撳娴?,
+      'sync_bidirectional': '棣冩敡 閸欏苯鎮滈崥灞绢劄',
+      'upload_incremental': '閳?婢х偤鍣烘稉濠佺炊'
+    };
+    return labels[type] || type;
+  },
+  
+  escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 };
 
 // ===================================
-// 启动应用
+// 閸氼垰濮╂惔鏃傛暏
 // ===================================
 
 document.addEventListener('DOMContentLoaded', () => {
   App.init();
 });
+
+
