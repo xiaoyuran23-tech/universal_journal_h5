@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iOS 兼容性检测</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 20px;
+      background: #f5f5f7;
+      color: #1d1d1f;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 { font-size: 24px; margin-bottom: 8px; }
+    h2 { font-size: 18px; margin: 20px 0 12px; }
+    .status { 
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+    .status.ok { background: #34c759; color: white; }
+    .status.warn { background: #ff9500; color: white; }
+    .status.error { background: #ff3b30; color: white; }
+    .info { 
+      font-size: 14px;
+      color: #6e6e73;
+      margin: 8px 0;
+      line-height: 1.5;
+    }
+    .code {
+      background: #f5f5f7;
+      padding: 12px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 13px;
+      overflow-x: auto;
+      margin: 8px 0;
+    }
+    button {
+      background: #0071e3;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 8px 4px;
+    }
+    button:active { opacity: 0.8; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>iOS 兼容性检测</h1>
+    <p class="info">检测当前环境的兼容性问题</p>
+  </div>
+
+  <div class="card">
+    <h2>设备信息</h2>
+    <div id="device-info">检测中...</div>
+  </div>
+
+  <div class="card">
+    <h2>存储测试</h2>
+    <div id="storage-test">测试中...</div>
+    <button onclick="testStorage()">重新测试</button>
+  </div>
+
+  <div class="card">
+    <h2>IndexedDB 测试</h2>
+    <div id="idb-test">测试中...</div>
+    <button onclick="testIndexedDB()">重新测试</button>
+  </div>
+
+  <div class="card">
+    <h2>点击测试</h2>
+    <button id="click-test-btn" onclick="clickTest()">点击我</button>
+    <div id="click-result" style="margin-top: 12px;"></div>
+  </div>
+
+  <div class="card">
+    <h2>建议</h2>
+    <div id="suggestions" class="info"></div>
+  </div>
+
+  <script>
+    let clickCount = 0;
+    
+    function clickTest() {
+      clickCount++;
+      document.getElementById('click-result').innerHTML = 
+        `<span style="color: #34c759;">✅ 点击成功 ${clickCount} 次</span>`;
+    }
+
+    function testStorage() {
+      const result = document.getElementById('storage-test');
+      try {
+        localStorage.setItem('test', 'success');
+        const value = localStorage.getItem('test');
+        localStorage.removeItem('test');
+        
+        if (value === 'success') {
+          result.innerHTML = '<span class="status ok">正常</span> localStorage 可用';
+        } else {
+          result.innerHTML = '<span class="status warn">异常</span> localStorage 返回值错误';
+        }
+      } catch (e) {
+        result.innerHTML = `<span class="status error">失败</span> ${e.message}`;
+      }
+    }
+
+    function testIndexedDB() {
+      const result = document.getElementById('idb-test');
+      
+      if (!window.indexedDB) {
+        result.innerHTML = '<span class="status error">不支持</span> IndexedDB 不可用';
+        return;
+      }
+
+      const request = indexedDB.open('ios_test', 1);
+      
+      request.onerror = function() {
+        result.innerHTML = `<span class="status error">失败</span> ${request.error?.message}`;
+      };
+      
+      request.onsuccess = function() {
+        result.innerHTML = '<span class="status ok">正常</span> IndexedDB 可用';
+        request.result.close();
+      };
+      
+      request.onupgradeneeded = function(event) {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains('test')) {
+          db.createObjectStore('test', { keyPath: 'id' });
+        }
+      };
+      
+      setTimeout(() => {
+        if (result.innerHTML.includes('测试中')) {
+          result.innerHTML = '<span class="status warn">超时</span> IndexedDB 响应缓慢';
+        }
+      }, 5000);
+    }
+
+    // 设备检测
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isStandalone = window.navigator.standalone || false;
+    const iOSVersion = navigator.userAgent.match(/OS (\d+)_(\d+)_?(\d+)?/);
+    const versionStr = iOSVersion ? `iOS ${iOSVersion[1]}.${iOSVersion[2]}` : '未知 iOS 版本';
+
+    document.getElementById('device-info').innerHTML = `
+      <p><strong>设备:</strong> ${isIOS ? '✅ iOS 设备' : '❌ 非 iOS 设备'} 
+        <span class="status ${isIOS ? 'ok' : 'warn'}">${isIOS ? 'iOS' : '其他'}</span>
+      </p>
+      <p><strong>系统:</strong> ${versionStr}</p>
+      <p><strong>运行模式:</strong> 
+        ${isStandalone 
+          ? '<span class="status ok">独立 App 模式</span> (已添加到主屏幕)' 
+          : '<span class="status warn">Safari 浏览器</span> (未添加到主屏幕)'}
+      </p>
+      <p><strong>User Agent:</strong></p>
+      <div class="code">${navigator.userAgent}</div>
+    `;
+
+    // 运行测试
+    testStorage();
+    testIndexedDB();
+
+    // 生成建议
+    const suggestions = [];
+    if (isIOS && isStandalone) {
+      suggestions.push('• 检测到独立 App 模式，某些功能可能受限');
+      suggestions.push('• 如果遇到问题，尝试在 Safari 中打开');
+      suggestions.push('• 清除缓存：设置 → Safari → 清除历史记录');
+    }
+    if (!isIOS) {
+      suggestions.push('• 当前不是 iOS 设备，此检测仅供参考');
+    }
+    if (suggestions.length === 0) {
+      suggestions.push('• 未发现明显问题');
+    }
+
+    document.getElementById('suggestions').innerHTML = suggestions.join('<br>');
+  </script>
+</body>
+</html>

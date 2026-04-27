@@ -2,13 +2,58 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="format-detection" content="telephone=no">
+  <meta name="apple-mobile-web-app-title" content="万物手札">
+  <meta name="application-name" content="万物手札">
+  <meta name="theme-color" content="#ffffff">
   <title>万物手札 - 记录世间万物</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="animations.css">
+  
+  <!-- iOS 兼容性修复 -->
+  <script>
+    // 检测 iOS 独立 Web App 模式
+    window.isIOSStandalone = window.navigator.standalone || false;
+    
+    // iOS 存储兼容性修复
+    window.safeLocalStorage = {
+      setItem: function(key, value) {
+        try {
+          localStorage.setItem(key, value);
+        } catch (e) {
+          console.warn('localStorage 不可用，使用内存存储');
+          this.memoryStorage = this.memoryStorage || {};
+          this.memoryStorage[key] = value;
+        }
+      },
+      getItem: function(key) {
+        try {
+          return localStorage.getItem(key);
+        } catch (e) {
+          return this.memoryStorage ? this.memoryStorage[key] : null;
+        }
+      },
+      removeItem: function(key) {
+        try {
+          localStorage.removeItem(key);
+        } catch (e) {
+          if (this.memoryStorage) delete this.memoryStorage[key];
+        }
+      }
+    };
+    
+    // 重写 localStorage 调用
+    const originalLocalStorage = localStorage;
+    Object.defineProperty(window, 'localStorage', {
+      get: function() {
+        return window.safeLocalStorage;
+      }
+    });
+  </script>
+  
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
   <script src="js/idb.js"></script>
   <script src="js/cloud-sync.js"></script>
