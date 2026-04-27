@@ -145,7 +145,24 @@ const Storage = {
     if (window.__cachedItems) {
       return window.__cachedItems;
     }
-    return data ? JSON.parse(data) : [];
+    const items = data ? JSON.parse(data) : [];
+    
+    // 数据迁移：确保老数据兼容
+    items.forEach(item => {
+      // 老数据只有 category 字段，新数据有 mainCategory 和 category
+      if (!item.mainCategory && item.category) {
+        item.mainCategory = item.category;
+      }
+      if (!item.category && item.mainCategory) {
+        item.category = item.mainCategory;
+      }
+      // 确保必填字段存在
+      item.isFavorite = item.isFavorite || false;
+      item.photos = item.photos || [];
+      item.status = item.status || 'in-use';
+    });
+    
+    return items;
   },
   
   save(items) {
@@ -336,7 +353,8 @@ const ThemeManager = {
       option.addEventListener('click', (e) => {
         const themeId = e.currentTarget.dataset.theme;
         this.apply(themeId);
-        panel.classList.remove('show');
+        const panel = document.getElementById('theme-panel');
+        if (panel) panel.classList.remove('show');
       });
     });
   }
@@ -482,6 +500,8 @@ const App = {
     
     // 创建页按钮
     document.getElementById('create-cancel-btn')?.addEventListener('click', () => {
+      this.editingId = null;
+      this.resetForm();
       this.switchPage('home');
     });
     
@@ -514,6 +534,13 @@ const App = {
         const isFav = Storage.toggleFavorite(this.currentDetailId);
         this.updateFavoriteButton(isFav);
         this.showToast(isFav ? '已收藏' : '已取消收藏');
+      }
+    });
+    
+    // 详情编辑按钮
+    document.getElementById('detail-edit-btn')?.addEventListener('click', () => {
+      if (this.currentDetailId) {
+        this.editItem(this.currentDetailId);
       }
     });
     
@@ -820,6 +847,7 @@ const App = {
         </div>
         <div class="detail-meta">
           <div class="detail-meta-item">📂 品类：${item.mainCategory}</div>
+          ${item.date ? `<div class="detail-meta-item">📅 日期：${item.date}</div>` : ''}
           <div class="detail-meta-item">📅 录入时间：${item.createdAt}</div>
           <div class="detail-meta-item">⭐ 收藏：${isFav ? '已收藏' : '未收藏'}</div>
         </div>
@@ -829,8 +857,8 @@ const App = {
     `;
     
     // 绑定照片点击事件（全屏查看）
-    container.querySelectorAll('.detail-photo-item').forEach(item => {
-      item.addEventListener('click', (e) => {
+    container.querySelectorAll('.detail-photo-item').forEach(photoItem => {
+      photoItem.addEventListener('click', (e) => {
         const index = parseInt(e.currentTarget.dataset.index);
         this.showPhotoViewer(item.photos[index]);
       });
@@ -887,24 +915,35 @@ const App = {
     const status = document.getElementById('create-status').value;
     const notes = document.getElementById('create-notes').value.trim();
     const richContent = document.getElementById('create-rich-content').innerHTML;
+    const dateInput = document.getElementById('create-date');
+    const date = dateInput ? dateInput.value : null;
     
     const itemData = {
       name,
       mainCategory: category || '其他',
+      category: category || '其他', // 兼容老数据
       status,
       notes: notes || richContent,
-      isFavorite: false,
+      date: date || null,
       photos: this.currentPhotos || []
     };
     
     if (this.editingId) {
+      // 编辑时保留 isFavorite 和 createdAt
+      const existing = Storage.get(this.editingId);
+      if (existing) {
+        itemData.isFavorite = existing.isFavorite;
+        itemData.createdAt = existing.createdAt;
+      }
       Storage.update(this.editingId, itemData);
       this.showToast('保存成功');
     } else {
+      itemData.isFavorite = false;
       Storage.add(itemData);
       this.showToast('创建成功');
     }
     
+    this.editingId = null;
     this.loadItems();
     this.renderCategoryFilter();
     this.renderItems();
@@ -920,9 +959,40 @@ const App = {
     document.getElementById('create-status').value = 'in-use';
     document.getElementById('create-notes').value = '';
     document.getElementById('create-rich-content').innerHTML = '';
+    const dateInput = document.getElementById('create-date');
+    if (dateInput) dateInput.value = '';
     document.getElementById('create-title').textContent = '新建记录';
     this.currentPhotos = [];
     this.renderPhotoPreview();
+  },
+  
+  editItem(id) {
+    const item = Storage.get(id);
+    if (!item) return;
+    
+    this.editingId = id;
+    
+    // 填充表单
+    document.getElementById('create-name').value = item.name || '';
+    document.getElementById('create-category').value = item.category || item.mainCategory || '';
+    document.getElementById('create-status').value = item.status || 'in-use';
+    document.getElementById('create-notes').value = item.notes || '';
+    
+    // 填充日期（如果有）
+    const dateInput = document.getElementById('create-date');
+    if (dateInput && item.date) {
+      dateInput.value = item.date;
+    }
+    
+    // 加载照片
+    this.currentPhotos = item.photos || [];
+    this.renderPhotoPreview();
+    
+    // 更新标题
+    document.getElementById('create-title').textContent = '编辑记录';
+    
+    // 切换到创建页面
+    this.switchPage('create');
   },
   
   // 照片上传处理
