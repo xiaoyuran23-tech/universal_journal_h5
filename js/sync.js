@@ -65,7 +65,7 @@ const Sync = {
         items: Storage.getAll(),
         settings: Storage.getSettings(),
         syncTime: new Date().toISOString(),
-        version: '2.2.0'
+        version: '2.2.1'
       };
       
       const encrypted = await this.encrypt(JSON.stringify(data));

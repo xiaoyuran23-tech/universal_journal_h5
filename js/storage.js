@@ -162,7 +162,7 @@ const Storage = {
   // 导出数据
   exportData() {
     const data = {
-      version: '2.2.0',
+      version: '2.2.1',
       exportDate: new Date().toISOString(),
       items: this.getAll(),
       settings: this.getSettings()
