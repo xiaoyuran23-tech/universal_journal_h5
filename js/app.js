@@ -1,6 +1,7 @@
 /**
  * 万物手札 H5 - 主应用逻辑
  * 支持：IndexedDB、云端同步、冲突解决、分享功能
+ * 版本：v2.3.0
  */
 
 // ===================================
@@ -444,6 +445,11 @@ const App = {
     // 加载云同步配置
     CloudSync.loadConfig();
     this.updateCloudStatus();
+    
+    // 初始化基础同步模块
+    if (typeof Sync !== 'undefined') {
+      Sync.init();
+    }
     
     // 启动时自动同步
     if (CloudSync.isEnabled() && CloudSync.config.syncOnStart) {
@@ -1302,7 +1308,7 @@ const App = {
   },
   
   showAbout() {
-    alert('万物手札 v2.0.0\n\n记录世间万物，收藏生活点滴\n\n设计哲学：无界原白 × 极简主义');
+    alert('万物手札 v2.3.0\n\n记录世间万物，收藏生活点滴\n\n设计哲学：无界原白 × 极简主义 × 云同步');
   },
   
   showToast(message) {

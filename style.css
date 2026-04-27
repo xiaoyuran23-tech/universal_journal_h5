@@ -1,7 +1,7 @@
 /* ===================================
    万物手札 H5 - 主题系统
    设计理念：无界原生 x 模数框架 x 单色墨影 x 浮动焦点 x 暖光纸本
-   版本：v2.2.1
+   版本：v2.3.0
    =================================== */
 
 /* ===================================
@@ -930,4 +930,163 @@ a {
     grid-template-columns: repeat(2, 1fr);
     gap: var(--spacing-md);
   }
+}
+
+/* ===================================
+   Sync Modal
+   =================================== */
+.modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal.active {
+  display: flex;
+}
+
+.modal-content {
+  background: var(--bg, #fff);
+  border-radius: var(--border-radius-xl);
+  padding: 24px;
+  width: 90%;
+  max-width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text-main, #1a1a1a);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--text-muted, #999);
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sync-status {
+  padding: 12px;
+  border-radius: var(--border-radius);
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.sync-status.configured {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.sync-status.not-configured {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.sync-config-form .form-group {
+  margin-bottom: 12px;
+}
+
+.sync-config-form label {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 4px;
+  color: var(--text-secondary, #666);
+}
+
+.sync-config-form input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: var(--border-radius);
+  font-size: 14px;
+  box-sizing: border-box;
+  background: var(--bg, #fff);
+  color: var(--text-main, #1a1a1a);
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 12px;
+  background: var(--primary, #007AFF);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.btn-primary:active {
+  opacity: 0.8;
+}
+
+.sync-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.btn-sync {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid var(--primary, #007AFF);
+  background: var(--bg, #fff);
+  color: var(--primary, #007AFF);
+  border-radius: var(--border-radius);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn-sync:active {
+  opacity: 0.8;
+}
+
+.btn-sync:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sync-log {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--bg-alt, #f5f5f5);
+  border-radius: var(--border-radius);
+  font-size: 12px;
+  max-height: 120px;
+  overflow-y: auto;
+  font-family: var(--font-mono, monospace);
+}
+
+.sync-log-item {
+  margin-bottom: 4px;
+  color: var(--text-secondary, #666);
+}
+
+.sync-log-item.success {
+  color: #2e7d32;
+}
+
+.sync-log-item.error {
+  color: #c62828;
 }

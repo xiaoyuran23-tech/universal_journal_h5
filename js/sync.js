@@ -2,7 +2,7 @@
  * 万物手札 - 云同步模块
  * 负责与 GitHub Gist 的数据同步
  * 注意：当前使用 Base64 编码传输，非真正加密
- * 版本：v2.2.1
+ * 版本：v2.3.0
  */
 
 const Sync = {
@@ -170,22 +170,16 @@ const Sync = {
     try {
       // 先下载最新数据
       await this.download();
-      UI.showToast('下载完成');
       
       // 再上传本地数据
       await this.upload();
-      UI.showToast('上传完成');
       
-      UI.showToast('同步完成');
       return true;
     } catch (e) {
-      UI.showToast('同步失败: ' + e.message);
+      console.error('Sync.sync error:', e);
       throw e;
     }
   }
 };
 
-// 页面加载时初始化
-document.addEventListener('DOMContentLoaded', () => {
-  Sync.init();
-});
+// 注意：初始化由 App.init() 统一处理，避免重复初始化

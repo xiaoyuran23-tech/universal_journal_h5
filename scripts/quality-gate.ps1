@@ -29,14 +29,14 @@ if ($html -notmatch 'charset.*UTF-8' -and $html -notmatch 'charset.*utf-8') {
     Write-Host "  [OK] UTF-8 charset declared" -ForegroundColor Green
 }
 
-# 3. Version consistency - match v2.2.1 pattern specifically
+# 3. Version consistency - match v2.3.0 pattern specifically (in comments/headers only)
 $htmlVersion = if ($html -match 'v(\d+\.\d+\.\d+)') { $matches[1] } else { $null }
 $jsVersions = @()
 $jsFiles = Get-ChildItem "$root\js" -Filter "*.js"
 foreach ($js in $jsFiles) {
     $content = Get-Content $js.FullName -Raw
-    # Match "version: '2.2.1'" pattern in JS
-    if ($content -match "version:\s*'(\d+\.\d+\.\d+)'") {
+    # Match version in comment headers only (e.g., * 版本：v2.3.0)
+    if ($content -match '版本[：:]\s*v?(\d+\.\d+\.\d+)') {
         $jsVersions += $matches[1]
     }
 }

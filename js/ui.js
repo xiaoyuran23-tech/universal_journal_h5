@@ -1,7 +1,7 @@
 /**
  * 万物手札 - UI 管理模块
  * 负责页面切换、渲染、交互处理
- * 版本：v2.2.1
+ * 版本：v2.3.0
  */
 
 const UI = {
@@ -160,6 +160,56 @@ const UI = {
             this.showToast('导入失败：' + err.message);
           }
         }
+      });
+    }
+    
+    // 同步设置按钮
+    const syncBtn = document.getElementById('cloud-sync-btn');
+    if (syncBtn) {
+      syncBtn.addEventListener('click', () => {
+        this.openSyncModal();
+      });
+    }
+    
+    // 同步弹窗关闭
+    const syncModalClose = document.getElementById('sync-modal-close');
+    if (syncModalClose) {
+      syncModalClose.addEventListener('click', () => {
+        this.closeSyncModal();
+      });
+    }
+    
+    // 点击遮罩关闭同步弹窗
+    const syncModal = document.getElementById('sync-modal');
+    if (syncModal) {
+      syncModal.addEventListener('click', (e) => {
+        if (e.target === syncModal) {
+          this.closeSyncModal();
+        }
+      });
+    }
+    
+    // 保存同步配置
+    const syncSaveBtn = document.getElementById('sync-save-config');
+    if (syncSaveBtn) {
+      syncSaveBtn.addEventListener('click', () => {
+        this.saveSyncConfig();
+      });
+    }
+    
+    // 同步上传
+    const syncUploadBtn = document.getElementById('sync-upload');
+    if (syncUploadBtn) {
+      syncUploadBtn.addEventListener('click', () => {
+        this.uploadSync();
+      });
+    }
+    
+    // 同步下载
+    const syncDownloadBtn = document.getElementById('sync-download');
+    if (syncDownloadBtn) {
+      syncDownloadBtn.addEventListener('click', () => {
+        this.downloadSync();
       });
     }
   },
@@ -512,6 +562,116 @@ const UI = {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  },
+  
+  // ========== 同步功能 ==========
+  
+  openSyncModal() {
+    const modal = document.getElementById('sync-modal');
+    if (modal) {
+      modal.classList.add('active');
+      this.updateSyncStatus();
+    }
+  },
+  
+  closeSyncModal() {
+    const modal = document.getElementById('sync-modal');
+    if (modal) {
+      modal.classList.remove('active');
+    }
+  },
+  
+  updateSyncStatus() {
+    const statusEl = document.getElementById('sync-status');
+    const configForm = document.querySelector('.sync-config-form');
+    const actionsEl = document.getElementById('sync-actions');
+    
+    if (!statusEl || !configForm || !actionsEl) return;
+    
+    if (typeof Sync === 'undefined' || !Sync.isConfigured()) {
+      statusEl.className = 'sync-status not-configured';
+      statusEl.textContent = '未配置同步，请先设置 Gist 信息';
+      configForm.style.display = 'block';
+      actionsEl.style.display = 'none';
+    } else {
+      statusEl.className = 'sync-status configured';
+      const lastSync = Sync.config.lastSyncTime ? 
+        new Date(Sync.config.lastSyncTime).toLocaleString() : '从未同步';
+      statusEl.innerHTML = `已配置 · 最后同步：${lastSync}`;
+      configForm.style.display = 'none';
+      actionsEl.style.display = 'flex';
+    }
+  },
+  
+  saveSyncConfig() {
+    if (typeof Sync === 'undefined') {
+      this.showToast('同步模块未加载');
+      return;
+    }
+    
+    const gistId = document.getElementById('sync-gist-id').value.trim();
+    const token = document.getElementById('sync-token').value.trim();
+    const key = document.getElementById('sync-key').value.trim();
+    
+    if (!gistId || !token || !key) {
+      this.showToast('请填写所有字段');
+      return;
+    }
+    
+    Sync.setConfig(gistId, token, key);
+    this.updateSyncStatus();
+    this.showToast('同步配置已保存');
+    this.addSyncLog('配置保存成功', 'success');
+  },
+  
+  async uploadSync() {
+    if (typeof Sync === 'undefined') {
+      this.showToast('同步模块未加载');
+      return;
+    }
+    
+    this.addSyncLog('开始上传...', '');
+    
+    try {
+      await Sync.upload();
+      this.addSyncLog('上传成功', 'success');
+      this.showToast('同步上传成功');
+      this.updateSyncStatus();
+    } catch (e) {
+      this.addSyncLog('上传失败：' + e.message, 'error');
+      this.showToast('上传失败：' + e.message);
+    }
+  },
+  
+  async downloadSync() {
+    if (typeof Sync === 'undefined') {
+      this.showToast('同步模块未加载');
+      return;
+    }
+    
+    this.addSyncLog('开始下载...', '');
+    
+    try {
+      await Sync.download();
+      this.addSyncLog('下载成功', 'success');
+      this.showToast('同步下载成功');
+      this.updateSyncStatus();
+    } catch (e) {
+      this.addSyncLog('下载失败：' + e.message, 'error');
+      this.showToast('下载失败：' + e.message);
+    }
+  },
+  
+  addSyncLog(message, type) {
+    const logEl = document.getElementById('sync-log');
+    if (!logEl) return;
+    
+    const time = new Date().toLocaleTimeString();
+    const item = document.createElement('div');
+    item.className = 'sync-log-item ' + (type || '');
+    item.textContent = `[${time}] ${message}`;
+    logEl.appendChild(item);
+    logEl.scrollTop = logEl.scrollHeight;
   }
 };
 

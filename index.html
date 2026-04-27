@@ -15,9 +15,9 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     
-    <title>万物手札 v2.2.1 - 记录世间万物</title>
-    <link rel="stylesheet" href="style.css?v=2.2.1">
-    <link rel="stylesheet" href="animations.css?v=2.2.1">
+    <title>万物手札 v2.3.0 - 记录世间万物</title>
+    <link rel="stylesheet" href="style.css?v=2.3.0">
+    <link rel="stylesheet" href="animations.css?v=2.3.0">
     
     <!-- iOS 兼容性修复 -->
     <script>
@@ -189,14 +189,53 @@
                     <div class="settings-section">
                         <h3 class="settings-section-title">关于</h3>
                         <div class="settings-item about-item">
-                            <span>万物手札 v2.2.0</span>
-                            <span class="about-version">重构版</span>
+                            <span>万物手札 v2.3.0</span>
+                            <span class="about-version">同步增强版</span>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
-    </main>
+
+    <!-- 同步设置弹窗 -->
+    <div id="sync-modal" class="modal">
+        <div class="modal-content sync-modal">
+            <div class="modal-header">
+                <h3>云同步设置</h3>
+                <button class="modal-close" id="sync-modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <!-- 同步状态 -->
+                <div id="sync-status" class="sync-status"></div>
+                
+                <!-- 配置表单 -->
+                <div class="sync-config-form">
+                    <div class="form-group">
+                        <label for="sync-gist-id">Gist ID</label>
+                        <input type="text" id="sync-gist-id" placeholder="输入 Gist ID">
+                    </div>
+                    <div class="form-group">
+                        <label for="sync-token">Gist Token</label>
+                        <input type="password" id="sync-token" placeholder="输入 GitHub Token">
+                    </div>
+                    <div class="form-group">
+                        <label for="sync-key">加密密钥</label>
+                        <input type="password" id="sync-key" placeholder="设置加密密钥">
+                    </div>
+                    <button id="sync-save-config" class="btn-primary">保存配置</button>
+                </div>
+                
+                <!-- 同步操作 -->
+                <div id="sync-actions" class="sync-actions">
+                    <button id="sync-upload" class="btn-sync">上传</button>
+                    <button id="sync-download" class="btn-sync">下载</button>
+                </div>
+                
+                <!-- 同步日志 -->
+                <div id="sync-log" class="sync-log"></div>
+            </div>
+        </div>
+    </div>
 
     <!-- 详情页 -->
     <section id="page-detail" class="page detail-page">
@@ -288,9 +327,9 @@
     <div class="toast" id="toast"></div>
 
     <!-- JavaScript 模块 -->
-    <script src="js/storage.js?v=2.2.1"></script>
-    <script src="js/ui.js?v=2.2.1"></script>
-    <script src="js/sync.js?v=2.2.1"></script>
-    <script src="js/app.js?v=2.2.1"></script>
+    <script src="js/storage.js?v=2.3.0"></script>
+    <script src="js/ui.js?v=2.3.0"></script>
+    <script src="js/sync.js?v=2.3.0"></script>
+    <script src="js/app.js?v=2.3.0"></script>
 </body>
 </html>
