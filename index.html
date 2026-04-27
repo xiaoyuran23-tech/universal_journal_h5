@@ -9,9 +9,15 @@
   <meta name="apple-mobile-web-app-title" content="万物手札">
   <meta name="application-name" content="万物手札">
   <meta name="theme-color" content="#ffffff">
-  <title>万物手札 - 记录世间万物</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="animations.css">
+  
+  <!-- 防止浏览器缓存 -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  
+  <title>万物手札 v2.1.2 - 记录世间万物</title>
+  <link rel="stylesheet" href="style.css?v=2.1.2">
+  <link rel="stylesheet" href="animations.css?v=2.1.2">
   
   <!-- iOS 兼容性修复 -->
   <script>
@@ -55,9 +61,9 @@
   </script>
   
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-  <script src="js/idb.js"></script>
-  <script src="js/cloud-sync.js"></script>
-  <script src="js/enhanced.js"></script>
+  <script src="js/idb.js?v=2.1.2"></script>
+  <script src="js/cloud-sync.js?v=2.1.2"></script>
+  <script src="js/enhanced.js?v=2.1.2"></script>
 </head>
 <body>
   <!-- 应用容器 -->
@@ -699,6 +705,6 @@
     <div class="lock-hint" id="lock-hint"></div>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=2.1.2"></script>
 </body>
 </html>
