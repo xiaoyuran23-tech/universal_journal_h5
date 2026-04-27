@@ -1,7 +1,7 @@
 /* ===================================
    万物手札 H5 - 主题系统
    设计理念：无界原生 x 模数框架 x 单色墨影 x 浮动焦点 x 暖光纸本
-   版本：v2.3.0
+   版本：v2.4.0
    =================================== */
 
 /* ===================================
@@ -930,6 +930,178 @@ a {
     grid-template-columns: repeat(2, 1fr);
     gap: var(--spacing-md);
   }
+}
+
+/* ===================================
+   Photo Upload
+   =================================== */
+.photo-upload-area {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px;
+  border: 2px dashed var(--grid-line, #e8e8e8);
+  border-radius: var(--border-radius, 20px);
+  background: var(--bg-alt, #fafafa);
+  align-items: center;
+}
+
+.btn-photo-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--primary, #1a1a1a);
+  color: var(--bg, #fff);
+  border: none;
+  border-radius: var(--border-radius, 20px);
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-photo-add:active {
+  opacity: 0.8;
+}
+
+.photo-hint {
+  font-size: 12px;
+  color: var(--text-muted, #b8b8b8);
+  margin: 0;
+  text-align: center;
+}
+
+.photo-preview {
+  margin-top: 12px;
+}
+
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 12px;
+}
+
+.photo-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--border-radius-sm, 12px);
+  overflow: hidden;
+  border: 1px solid var(--grid-line, #e8e8e8);
+}
+
+.photo-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  padding: 0;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.photo-remove:hover {
+  background: rgba(255, 0, 0, 0.8);
+  transform: scale(1.1);
+}
+
+/* Detail page photos */
+.detail-photos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.detail-photo-item {
+  aspect-ratio: 1;
+  border-radius: var(--border-radius, 20px);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.3s;
+  border: 1px solid var(--grid-line, #e8e8e8);
+}
+
+.detail-photo-item:hover {
+  transform: scale(1.05);
+}
+
+.detail-photo-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Photo viewer (fullscreen) */
+.photo-viewer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.photo-viewer-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.photo-viewer-content {
+  position: relative;
+  z-index: 1;
+  max-width: 90vw;
+  max-height: 90vh;
+}
+
+.photo-viewer-content img {
+  max-width: 100%;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: var(--border-radius, 20px);
+}
+
+.photo-viewer-close {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.photo-viewer-close:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 /* ===================================

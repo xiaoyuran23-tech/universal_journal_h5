@@ -1,7 +1,7 @@
 /**
  * 万物手札 - UI 管理模块
  * 负责页面切换、渲染、交互处理
- * 版本：v2.3.0
+ * 版本：v2.4.0
  */
 
 const UI = {
@@ -43,6 +43,9 @@ const UI = {
   
   // 绑定事件
   bindEvents() {
+    // 初始化照片上传
+    this.initPhotoUpload();
+    
     // 标签栏切换
     document.querySelectorAll('.tab-item').forEach(tab => {
       tab.addEventListener('click', (e) => {
@@ -364,6 +367,9 @@ const UI = {
       other: '其他'
     };
     
+    // 渲染照片
+    const photosHtml = this.renderDetailPhotos(item.photos);
+    
     container.innerHTML = `
       <div class="detail-field">
         <div class="detail-label">名称</div>
@@ -381,6 +387,7 @@ const UI = {
         <div class="detail-label">备注</div>
         <div class="detail-value">${this.escapeHtml(item.notes || '暂无备注')}</div>
       </div>
+      ${photosHtml}
       <div class="detail-actions">
         <button class="detail-action-btn" onclick="UI.toggleFavorite('${item.id}')">
           <svg viewBox="0 0 24 24" fill="${item.favorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
@@ -397,6 +404,16 @@ const UI = {
         </button>
       </div>
     `;
+    
+    // 绑定照片点击事件
+    if (item.photos && item.photos.length > 0) {
+      container.querySelectorAll('.detail-photo-item').forEach(el => {
+        el.addEventListener('click', () => {
+          const index = parseInt(el.dataset.index);
+          this.showPhotoViewer(item.photos[index]);
+        });
+      });
+    }
     
     this.switchPage('detail');
   },
@@ -423,6 +440,10 @@ const UI = {
     document.getElementById('create-date').value = item.date || '';
     document.getElementById('create-notes').value = item.notes || '';
     
+    // 加载已有照片
+    this.currentPhotos = item.photos || [];
+    this.renderPhotoPreview();
+    
     this.switchPage('form');
   },
   
@@ -442,7 +463,8 @@ const UI = {
       name,
       category,
       date,
-      notes
+      notes,
+      photos: [...this.currentPhotos] // 复制照片数组
     };
     
     let result;
@@ -472,6 +494,7 @@ const UI = {
     document.getElementById('create-notes').value = '';
     document.getElementById('form-title').textContent = '新建记录';
     this.editingItemId = null;
+    this.clearPhotos();
   },
   
   // 切换收藏状态
@@ -562,6 +585,126 @@ const UI = {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  },
+  
+  // ========== 照片功能 ==========
+  
+  // 初始化照片上传
+  initPhotoUpload() {
+    const photoBtn = document.getElementById('create-photo-btn');
+    const photoInput = document.getElementById('create-photo-input');
+    
+    if (photoBtn && photoInput) {
+      photoBtn.addEventListener('click', () => {
+        photoInput.click();
+      });
+      
+      photoInput.addEventListener('change', (e) => {
+        this.handlePhotoUpload(e);
+      });
+    }
+  },
+  
+  // 处理照片上传
+  handlePhotoUpload(e) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    Array.from(files).forEach(file => {
+      if (!file.type.startsWith('image/')) return;
+      
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        this.currentPhotos.push(event.target.result);
+        this.renderPhotoPreview();
+      };
+      reader.readAsDataURL(file);
+    });
+    
+    // 清空 input，允许重复选择同一文件
+    e.target.value = '';
+  },
+  
+  // 渲染照片预览
+  renderPhotoPreview() {
+    const preview = document.getElementById('photo-preview');
+    if (!preview) return;
+    
+    if (this.currentPhotos.length === 0) {
+      preview.innerHTML = '';
+      return;
+    }
+    
+    let html = '<div class="photo-grid">';
+    this.currentPhotos.forEach((photo, index) => {
+      html += `
+        <div class="photo-item">
+          <img src="${photo}" alt="Photo ${index}" class="photo-thumb" />
+          <button type="button" class="photo-remove" data-index="${index}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      `;
+    });
+    html += '</div>';
+    
+    preview.innerHTML = html;
+    
+    // 绑定删除按钮事件
+    preview.querySelectorAll('.photo-remove').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const index = parseInt(e.currentTarget.dataset.index);
+        this.currentPhotos.splice(index, 1);
+        this.renderPhotoPreview();
+      });
+    });
+  },
+  
+  // 清空照片
+  clearPhotos() {
+    this.currentPhotos = [];
+    this.renderPhotoPreview();
+  },
+  
+  // 渲染详情页照片
+  renderDetailPhotos(photos) {
+    if (!photos || photos.length === 0) return '';
+    
+    let html = '<div class="detail-photos">';
+    photos.forEach((photo, index) => {
+      html += `
+        <div class="detail-photo-item" data-index="${index}">
+          <img src="${photo}" alt="Photo ${index}" />
+        </div>
+      `;
+    });
+    html += '</div>';
+    return html;
+  },
+  
+  // 显示照片全屏查看
+  showPhotoViewer(photoSrc) {
+    const viewer = document.createElement('div');
+    viewer.className = 'photo-viewer';
+    viewer.innerHTML = `
+      <div class="photo-viewer-overlay"></div>
+      <div class="photo-viewer-content">
+        <img src="${photoSrc}" alt="Full size photo" />
+        <button class="photo-viewer-close" aria-label="关闭">×</button>
+      </div>
+    `;
+    document.body.appendChild(viewer);
+    
+    const close = () => {
+      viewer.classList.add('fade-out');
+      setTimeout(() => viewer.remove(), 300);
+    };
+    
+    viewer.querySelector('.photo-viewer-close').addEventListener('click', close);
+    viewer.querySelector('.photo-viewer-overlay').addEventListener('click', close);
   },
   
   // ========== 同步功能 ==========

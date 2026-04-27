@@ -1,7 +1,7 @@
 /**
  * 万物手札 - 存储管理模块
  * 负责 localStorage 和 IndexedDB 的数据读写
- * 版本：v2.3.0
+ * 版本：v2.4.0
  */
 
 const Storage = {
@@ -57,6 +57,7 @@ const Storage = {
       mainCategory: itemData.category || 'general', // 兼容性字段
       date: itemData.date || new Date().toISOString().split('T')[0],
       notes: itemData.notes || '',
+      photos: itemData.photos || [], // 照片数组
       favorite: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -75,6 +76,11 @@ const Storage = {
     if (index === -1) {
       console.error('Item not found:', id);
       return null;
+    }
+    
+    // 保留原有照片（如果未提供新照片）
+    if (!updates.photos && items[index].photos) {
+      updates.photos = items[index].photos;
     }
     
     items[index] = {
