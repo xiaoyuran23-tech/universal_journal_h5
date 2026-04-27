@@ -1,710 +1,296 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="format-detection" content="telephone=no">
-  <meta name="apple-mobile-web-app-title" content="万物手札">
-  <meta name="application-name" content="万物手札">
-  <meta name="theme-color" content="#ffffff">
-  
-  <!-- 防止浏览器缓�?-->
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
-  
-  <title>万物手札 v2.1.3 - 记录世间万物</title>
-  <link rel="stylesheet" href="style.css?v=2.1.3">
-  <link rel="stylesheet" href="animations.css?v=2.1.3">
-  
-  <!-- iOS 兼容性修�?-->
-  <script>
-    // 检�?iOS 独立 Web App 模式
-    window.isIOSStandalone = window.navigator.standalone || false;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="apple-mobile-web-app-title" content="万物手札">
+    <meta name="application-name" content="万物手札">
+    <meta name="theme-color" content="#ffffff">
     
-    // iOS 存储兼容性修�?
-    window.safeLocalStorage = {
-      setItem: function(key, value) {
-        try {
-          localStorage.setItem(key, value);
-        } catch (e) {
-          console.warn('localStorage 不可用，使用内存存储');
-          this.memoryStorage = this.memoryStorage || {};
-          this.memoryStorage[key] = value;
-        }
-      },
-      getItem: function(key) {
-        try {
-          return localStorage.getItem(key);
-        } catch (e) {
-          return this.memoryStorage ? this.memoryStorage[key] : null;
-        }
-      },
-      removeItem: function(key) {
-        try {
-          localStorage.removeItem(key);
-        } catch (e) {
-          if (this.memoryStorage) delete this.memoryStorage[key];
-        }
-      }
-    };
+    <!-- 防止浏览器缓存 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     
-    // 重写 localStorage 调用
-    const originalLocalStorage = localStorage;
-    Object.defineProperty(window, 'localStorage', {
-      get: function() {
-        return window.safeLocalStorage;
-      }
-    });
-  </script>
-  
-  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-  <script src="js/idb.js?v=2.1.3"></script>
-  <script src="js/cloud-sync.js?v=2.1.3"></script>
-  <script src="js/enhanced.js?v=2.1.3"></script>
+    <title>万物手札 v2.2.0 - 记录世间万物</title>
+    <link rel="stylesheet" href="style.css?v=2.2.0">
+    <link rel="stylesheet" href="animations.css?v=2.2.0">
+    
+    <!-- iOS 兼容性修复 -->
+    <script>
+        // 检测 iOS 独立 Web App 模式
+        window.isIOSStandalone = window.navigator.standalone || false;
+        
+        // iOS 存储兼容性修复
+        window.safeLocalStorage = {
+            setItem: function(key, value) {
+                try {
+                    localStorage.setItem(key, value);
+                } catch (e) {
+                    console.warn('localStorage 写入失败:', e);
+                }
+            },
+            getItem: function(key) {
+                try {
+                    return localStorage.getItem(key);
+                } catch (e) {
+                    console.warn('localStorage 读取失败:', e);
+                    return null;
+                }
+            }
+        };
+    </script>
 </head>
 <body>
-  <!-- 应用容器 -->
-  <div id="app">
-    <!-- 底部 TabBar - 桌面端会显示为侧边栏 -->
+    <!-- 底部标签栏 -->
     <nav class="tab-bar">
-      <button class="tab-item active" data-page="home">
-        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path>
-        </svg>
-        <span class="tab-label">记录</span>
-      </button>
-      <button class="tab-item" data-page="favorites">
-        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-        </svg>
-        <span class="tab-label">收藏</span>
-      </button>
-      <button class="tab-item" data-page="profile">
-        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <circle cx="12" cy="8" r="4"></circle>
-          <path d="M20 21a8 8 0 1 0-16 0"></path>
-        </svg>
-        <span class="tab-label">�?/span>
-      </button>
+        <button class="tab-item active" data-page="home">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path>
+            </svg>
+            <span class="tab-label">记录</span>
+        </button>
+        <button class="tab-item" data-page="favorites">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            <span class="tab-label">收藏</span>
+        </button>
+        <button class="tab-item" data-page="profile">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="12" cy="8" r="4"></circle>
+                <path d="M20 21a8 8 0 1 0-16 0"></path>
+            </svg>
+            <span class="tab-label">我</span>
+        </button>
     </nav>
 
     <!-- 顶部导航 -->
     <header class="header">
-      <h1 class="header-title">万物手札</h1>
-      <p class="header-subtitle">记录世间万物，收藏生活点�?/p>
-      
-      <!-- 主题选择�?-->
-      <div class="theme-selector">
-        <div class="theme-toggle" id="theme-toggle">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="5"></circle>
-            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
-          </svg>
+        <h1 class="header-title">万物手札</h1>
+        <p class="header-subtitle">记录世间万物，收藏生活点滴</p>
+        
+        <!-- 主题选择器 -->
+        <div class="theme-selector">
+            <div class="theme-toggle" id="theme-toggle">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                </svg>
+            </div>
+            <div class="theme-panel" id="theme-panel">
+                <h4>选择主题</h4>
+                <div class="theme-options" id="theme-options">
+                    <!-- 动态生成主题选项 -->
+                </div>
+            </div>
         </div>
-        <div class="theme-panel" id="theme-panel">
-          <h4>选择主题</h4>
-          <div class="theme-options" id="theme-options">
-            <!-- 动态生成主题选项 -->
-          </div>
-        </div>
-      </div>
     </header>
 
     <!-- 主内容区 -->
     <main class="main-content">
-      <!-- 首页 - 记录列表 -->
-      <section id="page-home" class="page active">
-        <!-- 搜索�?-->
-        <div class="search-bar">
-          <div class="search-input-wrapper">
-            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8"></circle>
-              <path d="m21 21-4.35-4.35"></path>
-            </svg>
-            <input type="text" id="search-input" placeholder="搜索名称、备�?.." />
-          </div>
-        </div>
-
-        <!-- 分类筛�?-->
-        <div class="category-filter" id="category-filter">
-          <button class="category-item active" data-category="">全部</button>
-          <!-- 动态生成其他分�?-->
-        </div>
-
-        <!-- 物品列表 -->
-        <div class="items-list" id="items-list">
-          <!-- 动态生成物品卡�?-->
-        </div>
-
-        <!-- 空状�?-->
-        <div class="empty-state" id="empty-state" style="display: none;">
-          <img src="empty-box.svg" alt="空状�? class="empty-illustration" />
-          <p class="empty-text">暂无记录</p>
-          <p class="empty-subtext">添加你的第一条手札吧</p>
-          <button class="btn-primary" id="empty-add-btn">新建记录</button>
-        </div>
-      </section>
-
-      <!-- 收藏页面 -->
-      <section id="page-favorites" class="page">
-        <div class="favorites-header">
-          <h2>我的收藏</h2>
-          <div class="favorites-filter">
-            <select id="favorites-category-filter">
-              <option value="">全部品类</option>
-              <!-- 动态生�?-->
-            </select>
-          </div>
-        </div>
-        
-        <div class="favorites-grid" id="favorites-grid">
-          <!-- 动态生成收藏卡�?-->
-        </div>
-        
-        <div class="empty-state" id="favorites-empty" style="display: none;">
-          <img src="empty-favorites.svg" alt="空状�? class="empty-illustration" />
-          <p class="empty-text">暂无收藏</p>
-          <p class="empty-subtext">点击星标收藏心仪的物�?/p>
-        </div>
-      </section>
-
-      <!-- 个人中心 -->
-      <section id="page-profile" class="page">
-        <div class="profile-header">
-          <div class="profile-avatar">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <circle cx="12" cy="8" r="4"></circle>
-              <path d="M20 21a8 8 0 1 0-16 0"></path>
-            </svg>
-          </div>
-          <h2 class="profile-name">万物手札</h2>
-          <p class="profile-version">v1.0.0</p>
-        </div>
-        
-        <div class="settings-list">
-          <!-- 数据管理 -->
-          <div class="settings-group">
-            <div class="settings-group-title">数据管理</div>
-            <div class="settings-item" id="settings-export">
-              <div class="settings-item-icon">📦</div>
-              <div class="settings-item-content">
-                <div class="settings-item-label">导出数据</div>
-                <div class="settings-item-desc">备份�?JSON 文件</div>
-              </div>
-              <svg class="settings-item-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="m9 18 6-6-6-6"></path>
-              </svg>
-            </div>
-            
-            <div class="settings-item" id="settings-import">
-              <div class="settings-item-icon">📥</div>
-              <div class="settings-item-content">
-                <div class="settings-item-label">导入数据</div>
-                <div class="settings-item-desc">�?JSON 恢复</div>
-              </div>
-              <svg class="settings-item-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="m9 18 6-6-6-6"></path>
-              </svg>
-              <input type="file" id="import-file-input" accept=".json" style="display: none;" />
-            </div>
-            
-            <div class="settings-item" id="settings-clear">
-              <div class="settings-item-icon">⚠️</div>
-              <div class="settings-item-content">
-                <div class="settings-item-label">清空数据</div>
-                <div class="settings-item-desc">删除所有数�?/div>
-              </div>
-              <svg class="settings-item-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="m9 18 6-6-6-6"></path>
-              </svg>
-            </div>
-          </div>
-          
-          <!-- 云端同步 -->
-          <div class="settings-group">
-            <div class="settings-group-title">云端同步</div>
-            <div class="settings-item" id="settings-cloud-config">
-              <div class="settings-item-icon">☁️</div>
-              <div class="settings-item-content">
-                <div class="settings-item-label">同步设置</div>
-                <div class="settings-item-desc" id="cloud-status-text">未配�?/div>
-              </div>
-              <svg class="settings-item-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="m9 18 6-6-6-6"></path>
-              </svg>
-            </div>
-            
-            <div class="settings-item" id="settings-cloud-upload">
-              <div class="settings-item-icon">📤</div>
-              <div class="settings-item-content">
-                <div class="settings-item-label">上传到云�?/div>
-                <div class="settings-item-desc">将本地数据加密上�?/div>
-              </div>
-              <svg class="settings-item-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="m9 18 6-6-6-6"></path>
-              </svg>
-            </div>
-            
-            <div class="settings-item" id="settings-cloud-download">
-              <div class="settings-item-icon">📥</div>
-              <div class="settings-item-content">
-                <div class="settings-item-label">从云端下�?/div>
-                <div class="settings-item-desc">拉取云端数据并合�?/div>
-              </div>
-              <svg class="settings-item-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="m9 18 6-6-6-6"></path>
-              </svg>
-            </div>
-            
-            <div class="settings-item" id="settings-cloud-sync">
-              <div class="settings-item-icon">🔄</div>
-              <div class="settings-item-content">
-                <div class="settings-item-label">双向同步</div>
-                <div class="settings-item-desc">自动合并两端数据</div>
-              </div>
-              <svg class="settings-item-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="m9 18 6-6-6-6"></path>
-              </svg>
-            </div>
-            
-            <div class="settings-item" id="settings-cloud-upload-incremental">
-              <div class="settings-item-icon">�?/div>
-              <div class="settings-item-content">
-                <div class="settings-item-label">增量同步</div>
-                <div class="settings-item-desc">仅上传修改的记录</div>
-              </div>
-              <svg class="settings-item-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="m9 18 6-6-6-6"></path>
-              </svg>
-            </div>
-            
-            <div class="settings-item" id="settings-cloud-logs">
-              <div class="settings-item-icon">📋</div>
-              <div class="settings-item-content">
-                <div class="settings-item-label">同步历史</div>
-                <div class="settings-item-desc">查看同步记录</div>
-              </div>
-              <svg class="settings-item-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="m9 18 6-6-6-6"></path>
-              </svg>
-            </div>
-          </div>
-          
-          <!-- 隐私保护 -->
-          <div class="settings-group">
-            <div class="settings-group-title">隐私保护</div>
-            <div class="settings-item" id="settings-lock">
-              <div class="settings-item-icon">🔒</div>
-              <div class="settings-item-content">
-                <div class="settings-item-label">密码保护</div>
-                <div class="settings-item-desc" id="lock-status-text">未启�?/div>
-              </div>
-              <svg class="settings-item-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="m9 18 6-6-6-6"></path>
-              </svg>
-            </div>
-          </div>
-          
-          <!-- 外观设置 -->
-          <div class="settings-group">
-            <div class="settings-group-title">外观设置</div>
-            <div class="settings-item" id="settings-theme">
-              <div class="settings-item-icon">🎨</div>
-              <div class="settings-item-content">
-                <div class="settings-item-label">主题</div>
-                <div class="settings-item-desc" id="current-theme-name">无界原白</div>
-              </div>
-              <svg class="settings-item-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="m9 18 6-6-6-6"></path>
-              </svg>
-            </div>
-          </div>
-          
-          <!-- 统计 -->
-          <div class="settings-group">
-            <div class="settings-group-title">关于</div>
-            <div class="settings-item" id="settings-stats">
-              <div class="settings-item-icon">📊</div>
-              <div class="settings-item-content">
-                <div class="settings-item-label">统计面板</div>
-                <div class="settings-item-desc">查看数据概览</div>
-              </div>
-              <svg class="settings-item-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="m9 18 6-6-6-6"></path>
-              </svg>
-            </div>
-            
-            <div class="settings-item" id="settings-about">
-              <div class="settings-item-icon">ℹ️</div>
-              <div class="settings-item-content">
-                <div class="settings-item-label">关于手札</div>
-                <div class="settings-item-desc">版本信息</div>
-              </div>
-              <svg class="settings-item-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="m9 18 6-6-6-6"></path>
-              </svg>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 统计页面（从设置进入�?-->
-      <section id="page-stats" class="page">
-        <div class="page-header">
-          <button class="back-btn" id="stats-back-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="m15 18-6-6 6-6"></path>
-            </svg>
-          </button>
-          <h2>统计面板</h2>
-        </div>
-
-        <div class="stats-cards">
-          <div class="stat-card">
-            <div class="stat-value" id="stat-total">0</div>
-            <div class="stat-label">总记�?/div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value" id="stat-categories">0</div>
-            <div class="stat-label">品类�?/div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value" id="stat-favorites">0</div>
-            <div class="stat-label">收藏</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value" id="stat-active">0</div>
-            <div class="stat-label">在役</div>
-          </div>
-        </div>
-
-        <div class="charts-container">
-          <div class="chart-card">
-            <h3>品类分布</h3>
-            <div id="category-chart" class="chart"></div>
-          </div>
-          <div class="chart-card">
-            <h3>状态分�?/h3>
-            <div id="status-chart" class="chart"></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 详情页面 -->
-      <section id="page-detail" class="page">
-        <div class="page-header">
-          <button class="back-btn" id="detail-back-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="m15 18-6-6 6-6"></path>
-            </svg>
-          </button>
-          <h2>物品详情</h2>
-          <div class="header-actions">
-            <button class="header-action-btn" id="detail-edit-btn" title="编辑">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-              </svg>
-            </button>
-            <button class="header-action-btn" id="detail-share-btn" title="分享">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="18" cy="5" r="3"></circle>
-                <circle cx="6" cy="12" r="3"></circle>
-                <circle cx="18" cy="19" r="3"></circle>
-                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-              </svg>
-            </button>
-            <button class="header-action-btn" id="detail-favorite-btn">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <div class="detail-container" id="detail-container">
-          <!-- 动态加载详�?-->
-        </div>
-      </section>
-
-      <!-- 创建/编辑页面 -->
-      <section id="page-create" class="page">
-        <div class="create-header">
-          <button class="create-cancel-btn" id="create-cancel-btn">取消</button>
-          <h2 id="create-title">新建记录</h2>
-          <button class="create-save-btn" id="create-save-btn">完成</button>
-        </div>
-        
-        <div class="create-form">
-          <div class="form-group">
-            <label class="form-label">名称</label>
-            <input type="text" id="create-name" class="form-input" placeholder="给这个记录起个名�? />
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label">品类</label>
-            <input type="text" id="create-category" class="form-input" placeholder="例如：植物、书籍、光�? list="category-list" />
-            <datalist id="category-list">
-              <!-- 动态生�?-->
-            </datalist>
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label">状�?/label>
-            <select id="create-status" class="form-select">
-              <option value="in-use">在役</option>
-              <option value="idle">闲置</option>
-              <option value="consumed">已消�?/option>
-              <option value="lost">遗失</option>
-            </select>
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label">日期 <span class="form-optional">（选填�?/span></label>
-            <input type="date" id="create-date" class="form-input" />
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label">备注</label>
-            <textarea id="create-notes" class="form-textarea" placeholder="在这里记录你的万�?.."></textarea>
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label">照片</label>
-            <div class="photo-upload-area" id="photo-upload-area">
-              <input type="file" id="create-photo-input" accept="image/*" multiple style="display: none;" />
-              <button type="button" class="btn btn-secondary" id="create-photo-btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                  <polyline points="21 15 16 10 5 21"></polyline>
+        <!-- 首页 - 记录列表 -->
+        <section id="page-home" class="page active">
+            <!-- 搜索栏 -->
+            <div class="search-bar">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
                 </svg>
-                <span>添加照片</span>
-              </button>
-              <p class="photo-hint">支持多选，照片将保存在本地</p>
+                <input type="text" class="search-input" id="search-input" placeholder="搜索名称、备注...">
             </div>
-            <div class="photo-preview" id="photo-preview"></div>
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label">富文�?/label>
-            <div class="rich-toolbar">
-              <button type="button" class="toolbar-btn" data-command="bold">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path>
-                  <path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path>
-                </svg>
-              </button>
-              <button type="button" class="toolbar-btn" data-command="italic">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="19" y1="4" x2="10" y2="4"></line>
-                  <line x1="14" y1="20" x2="5" y2="20"></line>
-                  <line x1="15" y1="4" x2="9" y2="20"></line>
-                </svg>
-              </button>
-              <button type="button" class="toolbar-btn" data-command="insertUnorderedList">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="8" y1="6" x2="21" y2="6"></line>
-                  <line x1="8" y1="12" x2="21" y2="12"></line>
-                  <line x1="8" y1="18" x2="21" y2="18"></line>
-                  <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                  <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                  <line x1="3" y1="18" x2="3.01" y2="18"></line>
-                </svg>
-              </button>
-              <button type="button" class="toolbar-btn" data-command="insertOrderedList">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="10" y1="6" x2="21" y2="6"></line>
-                  <line x1="10" y1="12" x2="21" y2="12"></line>
-                  <line x1="10" y1="18" x2="21" y2="18"></line>
-                  <path d="M4 6h1v4"></path>
-                  <path d="M4 10h2"></path>
-                  <path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"></path>
-                </svg>
-              </button>
+            
+            <!-- 记录列表容器 -->
+            <div class="items-container" id="items-container">
+                <!-- 动态生成记录卡片 -->
             </div>
-            <div id="create-rich-content" class="rich-content" contenteditable="true" placeholder="在这里记录你的万�?.."></div>
-          </div>
-        </div>
-      </section>
+            
+            <!-- 空状态提示 -->
+            <div class="empty-state" id="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="12" y1="18" x2="12" y2="12"></line>
+                    <line x1="9" y1="15" x2="15" y2="15"></line>
+                </svg>
+                <p>还没有记录</p>
+                <p class="empty-state-hint">点击右下角按钮开始记录</p>
+            </div>
+        </section>
+
+        <!-- 收藏页 -->
+        <section id="page-favorites" class="page">
+            <div class="search-bar">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <input type="text" class="search-input" id="search-input-favorites" placeholder="搜索收藏记录...">
+            </div>
+            <div class="items-container" id="favorites-container">
+                <!-- 动态生成收藏卡片 -->
+            </div>
+            <div class="empty-state" id="empty-favorites">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+                <p>还没有收藏</p>
+                <p class="empty-state-hint">在记录页点击收藏按钮添加</p>
+            </div>
+        </section>
+
+        <!-- 个人页面 -->
+        <section id="page-profile" class="page">
+            <div class="profile-container">
+                <div class="profile-header">
+                    <div class="profile-avatar">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <circle cx="12" cy="8" r="4"></circle>
+                            <path d="M20 21a8 8 0 1 0-16 0"></path>
+                        </svg>
+                    </div>
+                    <h2 class="profile-name">用户</h2>
+                </div>
+                
+                <div class="settings-container">
+                    <div class="settings-section">
+                        <h3 class="settings-section-title">数据管理</h3>
+                        <button class="settings-item" id="export-data-btn">
+                            <span>导出数据</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                        </button>
+                        <button class="settings-item" id="import-data-btn">
+                            <span>导入数据</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <h3 class="settings-section-title">云同步</h3>
+                        <button class="settings-item" id="cloud-sync-btn">
+                            <span>同步设置</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 10h-4V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v4H2a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h4v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-4h4a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <h3 class="settings-section-title">关于</h3>
+                        <div class="settings-item about-item">
+                            <span>万物手札 v2.2.0</span>
+                            <span class="about-version">重构版</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
 
-    <!-- 悬浮添加按钮 -->
+    <!-- 详情页 -->
+    <section id="page-detail" class="page detail-page">
+        <div class="page-header">
+            <button class="back-btn" id="detail-back-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="m15 18-6-6 6-6"></path>
+                </svg>
+            </button>
+            <h2>详情</h2>
+            <button class="detail-action-btn" id="detail-edit-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="detail-content" id="detail-content">
+            <!-- 动态生成详情内容 -->
+        </div>
+    </section>
+
+    <!-- 编辑/新建表单页 -->
+    <section id="page-form" class="page form-page">
+        <div class="page-header">
+            <button class="back-btn" id="form-back-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="m15 18-6-6 6-6"></path>
+                </svg>
+            </button>
+            <h2 id="form-title">新建记录</h2>
+            <div class="form-actions">
+                <button class="form-action-btn" id="form-save-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                        <polyline points="7 3 7 8 15 8"></polyline>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="form-container">
+            <div class="form-group">
+                <label for="create-name">名称</label>
+                <input type="text" id="create-name" placeholder="输入名称" required>
+            </div>
+            <div class="form-group">
+                <label for="create-category">分类</label>
+                <select id="create-category">
+                    <option value="general">通用</option>
+                    <option value="tech">科技</option>
+                    <option value="life">生活</option>
+                    <option value="work">工作</option>
+                    <option value="study">学习</option>
+                    <option value="other">其他</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="create-date">日期（可选）</label>
+                <input type="date" id="create-date">
+            </div>
+            <div class="form-group">
+                <label for="create-notes">备注</label>
+                <textarea id="create-notes" placeholder="输入备注信息..."></textarea>
+            </div>
+        </div>
+    </section>
+
+    <!-- 悬浮操作按钮 (FAB) -->
     <button class="fab" id="fab-add">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M12 5v14M5 12h14"></path>
-      </svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"></path>
+        </svg>
     </button>
-  </div>
 
-  <!-- Toast 提示 -->
-  <div class="toast" id="toast">
-    <span class="toast-message" id="toast-message"></span>
-  </div>
-
-  <!-- 密码弹窗 -->
-  <div class="modal-overlay" id="password-modal" style="display: none;">
-    <div class="modal">
-      <div class="modal-header">
-        <h3 id="modal-title">🔒 输入密码</h3>
-      </div>
-      <div class="modal-body">
-        <div class="form-group" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;">
-          <input type="password" id="modal-password" class="form-input" placeholder="请输入密�? 
-                 style="font-size: 18px; letter-spacing: 4px; text-align: center; padding: 16px;" />
+    <!-- 主题面板 -->
+    <div class="theme-overlay" id="theme-overlay"></div>
+    <div class="theme-selector-panel" id="theme-selector-panel">
+        <h3>选择主题</h3>
+        <div class="theme-grid" id="theme-grid">
+            <!-- 动态生成主题选项 -->
         </div>
-        <p class="modal-hint" id="modal-hint"></p>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary btn-sm" id="modal-cancel-btn">取消</button>
-        <button class="btn btn-primary btn-sm" id="modal-confirm-btn">确认</button>
-      </div>
     </div>
-  </div>
 
-  <!-- 云端同步配置弹窗 -->
-  <div class="modal-overlay" id="cloud-modal" style="display: none;">
-    <div class="modal">
-      <div class="modal-header">
-        <h3 id="cloud-modal-title">�?云端同步设置</h3>
-      </div>
-      <div class="modal-body">
-        <div class="cloud-config-steps">
-          <div class="config-step">
-            <div class="step-number">1</div>
-            <div class="step-content">
-              <div class="step-title">获取 GitHub Token</div>
-              <div class="step-desc">
-                前往 
-                <a href="https://github.com/settings/tokens" target="_blank" class="config-link">
-                  GitHub Settings �?Developer settings �?Personal access tokens
-                </a>
-                创建 Token，勾�?<code>gist</code> 权限即可�?
-              </div>
-            </div>
-          </div>
-          
-          <div class="config-step">
-            <div class="step-number">2</div>
-            <div class="step-content">
-              <div class="step-title">输入 Token</div>
-              <input type="text" id="cloud-token-input" class="form-input" 
-                     placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" 
-                     style="font-family: monospace; font-size: 13px;" />
-            </div>
-          </div>
-          
-          <div class="config-step">
-            <div class="step-number">3</div>
-            <div class="step-content">
-              <div class="step-title">设置加密密码</div>
-              <div class="step-desc">用于加密你的数据，云端无法解密。请牢记�?/div>
-              <input type="password" id="cloud-password-input" class="form-input" 
-                     placeholder="至少 6 位密�? />
-            </div>
-          </div>
-        </div>
-        
-        <div class="cloud-test-area" id="cloud-test-area" style="display: none;">
-          <div class="test-result" id="cloud-test-result"></div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary btn-sm" id="cloud-modal-cancel-btn">取消</button>
-        <button class="btn btn-secondary btn-sm" id="cloud-modal-test-btn">测试连接</button>
-        <button class="btn btn-primary btn-sm" id="cloud-modal-save-btn">保存设置</button>
-      </div>
-    </div>
-  </div>
+    <!-- 导入文件输入 -->
+    <input type="file" id="import-file-input" accept=".json" style="display: none;">
 
-  <!-- 同步进度弹窗 -->
-  <div class="modal-overlay" id="sync-progress-modal" style="display: none;">
-    <div class="modal">
-      <div class="modal-header">
-        <h3>🔄 同步�?..</h3>
-      </div>
-      <div class="modal-body" style="text-align: center; padding: 32px 24px;">
-        <div class="sync-spinner"></div>
-        <p class="sync-status-text" id="sync-status-text">正在连接云端...</p>
-      </div>
-    </div>
-  </div>
+    <!-- 提示消息 -->
+    <div class="toast" id="toast"></div>
 
-  <!-- 冲突解决弹窗 -->
-  <div class="modal-overlay" id="conflict-modal" style="display: none;">
-    <div class="modal modal-large">
-      <div class="modal-header">
-        <h3>⚠️ 发现冲突</h3>
-      </div>
-      <div class="modal-body">
-        <p class="conflict-hint">以下记录在云端和本地都有修改，请选择保留哪个版本�?/p>
-        <div class="conflict-list" id="conflict-list"></div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary btn-sm" id="conflict-keep-local-btn">全部保留本地</button>
-        <button class="btn btn-secondary btn-sm" id="conflict-keep-remote-btn">全部保留云端</button>
-        <button class="btn btn-primary btn-sm" id="conflict-resolve-btn">手动选择</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 同步日志弹窗 -->
-  <div class="modal-overlay" id="sync-log-modal" style="display: none;">
-    <div class="modal modal-large">
-      <div class="modal-header">
-        <h3>📋 同步历史</h3>
-      </div>
-      <div class="modal-body">
-        <div class="sync-log-list" id="sync-log-list"></div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary btn-sm" id="sync-log-close-btn">关闭</button>
-        <button class="btn btn-secondary btn-sm" id="sync-log-clear-btn">清空日志</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 分享弹窗 -->
-  <div class="modal-overlay" id="share-modal" style="display: none;">
-    <div class="modal">
-      <div class="modal-header">
-        <h3>📤 分享记录</h3>
-      </div>
-      <div class="modal-body">
-        <div class="share-preview" id="share-preview"></div>
-        <div class="share-options">
-          <label class="share-option">
-            <input type="checkbox" id="share-include-photo" checked />
-            <span>包含照片</span>
-          </label>
-          <label class="share-option">
-            <input type="checkbox" id="share-include-qr" checked />
-            <span>包含二维�?/span>
-          </label>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary btn-sm" id="share-cancel-btn">取消</button>
-        <button class="btn btn-primary btn-sm" id="share-generate-btn">生成图片</button>
-        <button class="btn btn-primary btn-sm" id="share-download-btn" style="display: none;">保存图片</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 锁定遮罩 -->
-  <div class="lock-overlay" id="lock-overlay" style="display: none;">
-    <div class="lock-icon">🔒</div>
-    <div class="lock-title">数据已加密保�?/div>
-    <div class="lock-subtitle">请输入密码解�?/div>
-    <input type="password" class="lock-input" id="lock-password" placeholder="密码" />
-    <button class="btn btn-primary lock-btn" id="lock-unlock-btn">解锁</button>
-    <div class="lock-hint" id="lock-hint"></div>
-  </div>
-
-  <script src="app.js?v=2.1.3"></script>
+    <!-- JavaScript 模块 -->
+    <script src="js/storage.js?v=2.2.0"></script>
+    <script src="js/ui.js?v=2.2.0"></script>
+    <script src="js/sync.js?v=2.2.0"></script>
+    <script src="js/app.js?v=2.2.0"></script>
 </body>
 </html>
