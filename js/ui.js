@@ -1,16 +1,16 @@
 /**
  * 万物手札 - UI 管理模块
- * 负责页面切换、渲染、交互处理
- * 版本：v2.4.0
+ * 负责页面切换、渲染、交互处?
+ * 版本：v2.5.0
  */
 
 const UI = {
-  // 当前页面状态
+  // 当前页面状?
   currentPage: 'home',
   previousPage: 'home',
   editingItemId: null,
   
-  // 搜索防抖计时器
+  // 搜索防抖计时?
   searchDebounceTimer: null,
   
   // 防抖函数
@@ -29,24 +29,25 @@ const UI = {
     { id: 'ink', name: '墨影', color: '#F0F0F0', textColor: '#1A1A1A' }
   ],
   
-  // 初始化
+  // 初始?
   init() {
     console.log('UI module initialized');
-    // 创建防抖版本的渲染函数
+    // 创建防抖版本的渲染函?
     this.debouncedRenderItems = this.debounce((keyword) => this.renderItems(keyword), 300);
     this.debouncedRenderFavorites = this.debounce((keyword) => this.renderFavorites(keyword), 300);
     this.bindEvents();
     this.loadTheme();
+    this.renderCategorySelect(); // 初始化分类下拉框
     this.switchPage('home');
     this.renderItems();
   },
   
   // 绑定事件
   bindEvents() {
-    // 初始化照片上传
+    // 初始化照片上?
     this.initPhotoUpload();
     
-    // 标签栏切换
+    // 标签栏切?
     document.querySelectorAll('.tab-item').forEach(tab => {
       tab.addEventListener('click', (e) => {
         const page = e.currentTarget.dataset.page;
@@ -79,7 +80,50 @@ const UI = {
       });
     }
     
-    // 详情页返回按钮
+    // 分类下拉框变化监听（处理"新增分类"选项?
+    const categorySelect = document.getElementById('create-category');
+    if (categorySelect) {
+      categorySelect.addEventListener('change', (e) => {
+        if (e.target.value === '__add_new__') {
+          this.showAddCategoryModal();
+          // 不立即重置下拉框，等用户保存后自动选中新分类
+        }
+      });
+    }
+    
+    // 新增分类弹窗 - 保存按钮
+    const saveCategoryBtn = document.getElementById('save-category-btn');
+    if (saveCategoryBtn) {
+      saveCategoryBtn.addEventListener('click', () => {
+        this.saveNewCategory();
+      });
+    }
+    
+    // 新增分类弹窗 - 关闭按钮
+    const closeCategoryBtn = document.getElementById('close-category-modal');
+    if (closeCategoryBtn) {
+      closeCategoryBtn.addEventListener('click', () => {
+        this.closeAddCategoryModal();
+      });
+    }
+    
+    // 分类管理弹窗 - 关闭按钮
+    const closeCategoryManagerBtn = document.getElementById('close-category-manager');
+    if (closeCategoryManagerBtn) {
+      closeCategoryManagerBtn.addEventListener('click', () => {
+        this.closeCategoryManager();
+      });
+    }
+    
+    // 分类管理弹窗 - 管理分类按钮（个人页面）
+    const manageCategoriesBtn = document.getElementById('manage-categories-btn');
+    if (manageCategoriesBtn) {
+      manageCategoriesBtn.addEventListener('click', () => {
+        this.openCategoryManager();
+      });
+    }
+    
+    // 详情页返回按?
     const detailBackBtn = document.getElementById('detail-back-btn');
     if (detailBackBtn) {
       detailBackBtn.addEventListener('click', () => {
@@ -87,7 +131,7 @@ const UI = {
       });
     }
     
-    // 详情页编辑按钮
+    // 详情页编辑按?
     const detailEditBtn = document.getElementById('detail-edit-btn');
     if (detailEditBtn) {
       detailEditBtn.addEventListener('click', () => {
@@ -115,7 +159,7 @@ const UI = {
       }
     });
     
-    // 搜索输入（300ms 防抖）
+    // 搜索输入?00ms 防抖?
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
@@ -123,7 +167,7 @@ const UI = {
       });
     }
     
-    // 收藏页搜索（300ms 防抖）
+    // 收藏页搜索（300ms 防抖?
     const searchInputFavorites = document.getElementById('search-input-favorites');
     if (searchInputFavorites) {
       searchInputFavorites.addEventListener('input', (e) => {
@@ -136,7 +180,7 @@ const UI = {
     if (exportBtn) {
       exportBtn.addEventListener('click', () => {
         Storage.exportData();
-        this.showToast('数据已导出');
+        this.showToast('数据已导?);
       });
     }
     
@@ -160,7 +204,7 @@ const UI = {
             this.renderItems();
             this.renderFavorites();
           } catch (err) {
-            this.showToast('导入失败：' + err.message);
+            this.showToast('导入失败? + err.message);
           }
         }
       });
@@ -219,12 +263,12 @@ const UI = {
   
   // 切换页面
   switchPage(pageName) {
-    // 保存上一页（用于返回）
+    // 保存上一页（用于返回?
     if (this.currentPage !== pageName) {
       this.previousPage = this.currentPage;
     }
     
-    // 隐藏所有页面
+    // 隐藏所有页?
     document.querySelectorAll('.page').forEach(page => {
       page.classList.remove('active');
     });
@@ -235,10 +279,10 @@ const UI = {
       targetPage.classList.add('active');
     }
     
-    // 更新当前页面状态
+    // 更新当前页面状?
     this.currentPage = pageName;
     
-    // 更新标签栏状态
+    // 更新标签栏状?
     document.querySelectorAll('.tab-item').forEach(tab => {
       tab.classList.remove('active');
       if (tab.dataset.page === pageName) {
@@ -327,20 +371,13 @@ const UI = {
   
   // 创建记录卡片 HTML
   createItemCard(item, showFavoriteBadge = false) {
-    const categoryNames = {
-      general: '通用',
-      tech: '科技',
-      life: '生活',
-      work: '工作',
-      study: '学习',
-      other: '其他'
-    };
+    const categoryName = Storage.getCategoryName(item.category);
     
     return `
       <div class="item-card" data-id="${item.id}">
         <div class="item-card-header">
           <h3 class="item-card-title">${this.escapeHtml(item.name)}</h3>
-          <span class="item-card-category">${categoryNames[item.category] || item.category}</span>
+          <span class="item-card-category">${this.escapeHtml(categoryName)}</span>
         </div>
         <div class="item-card-date">${item.date || ''}</div>
         <p class="item-card-notes">${this.escapeHtml(item.notes || '暂无备注')}</p>
@@ -358,14 +395,7 @@ const UI = {
     const container = document.getElementById('detail-content');
     if (!container) return;
     
-    const categoryNames = {
-      general: '通用',
-      tech: '科技',
-      life: '生活',
-      work: '工作',
-      study: '学习',
-      other: '其他'
-    };
+    const categoryName = Storage.getCategoryName(item.category);
     
     // 渲染照片
     const photosHtml = this.renderDetailPhotos(item.photos);
@@ -377,11 +407,11 @@ const UI = {
       </div>
       <div class="detail-field">
         <div class="detail-label">分类</div>
-        <div class="detail-value">${categoryNames[item.category] || item.category}</div>
+        <div class="detail-value">${this.escapeHtml(categoryName)}</div>
       </div>
       <div class="detail-field">
         <div class="detail-label">日期</div>
-        <div class="detail-value">${item.date || '未设置'}</div>
+        <div class="detail-value">${item.date || '未设?}</div>
       </div>
       <div class="detail-field">
         <div class="detail-label">备注</div>
@@ -423,6 +453,7 @@ const UI = {
     this.editingItemId = null;
     document.getElementById('form-title').textContent = '新建记录';
     this.resetForm();
+    this.renderCategorySelect(); // 渲染分类下拉?
     this.switchPage('form');
   },
   
@@ -436,9 +467,11 @@ const UI = {
     
     // 填充表单
     document.getElementById('create-name').value = item.name;
-    document.getElementById('create-category').value = item.category;
     document.getElementById('create-date').value = item.date || '';
     document.getElementById('create-notes').value = item.notes || '';
+    
+    // 渲染分类下拉框并选中当前分类
+    this.renderCategorySelect(item.category);
     
     // 加载已有照片
     this.currentPhotos = item.photos || [];
@@ -455,7 +488,7 @@ const UI = {
     const notes = document.getElementById('create-notes').value.trim();
     
     if (!name) {
-      this.showToast('请输入名称');
+      this.showToast('请输入名?);
       return;
     }
     
@@ -489,7 +522,7 @@ const UI = {
   // 重置表单
   resetForm() {
     document.getElementById('create-name').value = '';
-    document.getElementById('create-category').value = 'general';
+    this.renderCategorySelect(); // 动态渲染分类下拉框
     document.getElementById('create-date').value = '';
     document.getElementById('create-notes').value = '';
     document.getElementById('form-title').textContent = '新建记录';
@@ -497,12 +530,142 @@ const UI = {
     this.clearPhotos();
   },
   
-  // 切换收藏状态
+  // 渲染分类下拉框（预设 + 自定义）
+  renderCategorySelect(selectedValue = 'general') {
+    const select = document.getElementById('create-category');
+    if (!select) return;
+    
+    const categories = Storage.getCategories();
+    
+    let html = '';
+    categories.forEach(cat => {
+      const isSelected = cat.id === selectedValue ? 'selected' : '';
+      html += `<option value="${cat.id}" ${isSelected}>${this.escapeHtml(cat.name)}</option>`;
+    });
+    
+    // 添加"新增分类"选项
+    html += '<option value="__add_new__">?新增分类</option>';
+    
+    select.innerHTML = html;
+  },
+  
+  // 显示新增分类弹窗
+  showAddCategoryModal() {
+    const modal = document.getElementById('category-modal');
+    if (modal) {
+      modal.classList.add('active');
+      const input = document.getElementById('category-name-input');
+      if (input) {
+        input.value = '';
+        input.focus();
+      }
+    }
+  },
+  
+  // 关闭新增分类弹窗
+  closeAddCategoryModal() {
+    const modal = document.getElementById('category-modal');
+    if (modal) {
+      modal.classList.remove('active');
+    }
+  },
+  
+  // 保存新分?
+  async saveNewCategory() {
+    const input = document.getElementById('category-name-input');
+    if (!input) return;
+    
+    const name = input.value.trim();
+    if (!name) {
+      this.showToast('请输入分类名?);
+      return;
+    }
+    
+    const success = Storage.addCategory(name);
+    if (success) {
+      this.showToast('分类已添?);
+      this.closeAddCategoryModal();
+      this.renderCategorySelect('custom_' + Storage.slugify(name)); // 自动选中新分?
+    } else {
+      this.showToast('分类已存?);
+    }
+  },
+  
+  // 打开分类管理弹窗
+  openCategoryManager() {
+    const modal = document.getElementById('category-manager-modal');
+    if (!modal) return;
+    
+    this.renderCategoryList();
+    modal.classList.add('active');
+  },
+  
+  // 关闭分类管理弹窗
+  closeCategoryManager() {
+    const modal = document.getElementById('category-manager-modal');
+    if (modal) {
+      modal.classList.remove('active');
+    }
+  },
+  
+  // 渲染分类列表（管理用?
+  renderCategoryList() {
+    const container = document.getElementById('category-list');
+    if (!container) return;
+    
+    const categories = Storage.getCategories();
+    const presetIds = ['general', 'tech', 'life', 'work', 'study', 'other'];
+    
+    let html = '<ul class="category-list">';
+    categories.forEach(cat => {
+      const isPreset = presetIds.includes(cat.id);
+      html += `
+        <li class="category-item ${isPreset ? 'preset' : 'custom'}">
+          <span class="category-name">${this.escapeHtml(cat.name)}</span>
+          ${isPreset ? '<span class="category-badge">预设</span>' : `
+            <button class="category-delete-btn" data-id="${cat.id}" title="删除">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
+          `}
+        </li>
+      `;
+    });
+    html += '</ul>';
+    
+    container.innerHTML = html;
+    
+    // 绑定删除按钮事件
+    container.querySelectorAll('.category-delete-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        this.deleteCategory(id);
+      });
+    });
+  },
+  
+  // 删除分类
+  deleteCategory(categoryId) {
+    if (confirm('删除此分类后，使用该分类的记录将保留但分类显示为原始值。确定要删除吗？')) {
+      const success = Storage.deleteCategory(categoryId);
+      if (success) {
+        this.showToast('分类已删?);
+        this.renderCategoryList(); // 刷新列表
+        this.renderCategorySelect(); // 刷新表单下拉?
+      } else {
+        this.showToast('删除失败');
+      }
+    }
+  },
+  
+  // 切换收藏状?
   toggleFavorite(id) {
     const item = Storage.toggleFavorite(id);
     if (item) {
-      this.showToast(item.favorite ? '已收藏' : '已取消收藏');
-      this.showDetail(id); // 刷新详情页
+      this.showToast(item.favorite ? '已收? : '已取消收?);
+      this.showDetail(id); // 刷新详情?
       this.renderItems();
       this.renderFavorites();
     }
@@ -510,9 +673,9 @@ const UI = {
   
   // 删除项目
   deleteItem(id) {
-    if (confirm('确定要删除这条记录吗？')) {
+    if (confirm('确定要删除这条记录吗?)) {
       Storage.deleteItem(id);
-      this.showToast('已删除');
+      this.showToast('已删?);
       this.switchPage('home');
       this.renderItems();
       this.renderFavorites();
@@ -589,7 +752,7 @@ const UI = {
   
   // ========== 照片功能 ==========
   
-  // 初始化照片上传
+  // 初始化照片上?
   initPhotoUpload() {
     const photoBtn = document.getElementById('create-photo-btn');
     const photoInput = document.getElementById('create-photo-input');
@@ -669,7 +832,7 @@ const UI = {
     this.renderPhotoPreview();
   },
   
-  // 渲染详情页照片
+  // 渲染详情页照?
   renderDetailPhotos(photos) {
     if (!photos || photos.length === 0) return '';
     
@@ -740,7 +903,7 @@ const UI = {
       statusEl.className = 'sync-status configured';
       const lastSync = Sync.config.lastSyncTime ? 
         new Date(Sync.config.lastSyncTime).toLocaleString() : '从未同步';
-      statusEl.innerHTML = `已配置 · 最后同步：${lastSync}`;
+      statusEl.innerHTML = `已配?· 最后同步：${lastSync}`;
       configForm.style.display = 'none';
       actionsEl.style.display = 'flex';
     }
@@ -748,7 +911,7 @@ const UI = {
   
   saveSyncConfig() {
     if (typeof Sync === 'undefined') {
-      this.showToast('同步模块未加载');
+      this.showToast('同步模块未加?);
       return;
     }
     
@@ -757,23 +920,23 @@ const UI = {
     const key = document.getElementById('sync-key').value.trim();
     
     if (!gistId || !token || !key) {
-      this.showToast('请填写所有字段');
+      this.showToast('请填写所有字?);
       return;
     }
     
     Sync.setConfig(gistId, token, key);
     this.updateSyncStatus();
-    this.showToast('同步配置已保存');
+    this.showToast('同步配置已保?);
     this.addSyncLog('配置保存成功', 'success');
   },
   
   async uploadSync() {
     if (typeof Sync === 'undefined') {
-      this.showToast('同步模块未加载');
+      this.showToast('同步模块未加?);
       return;
     }
     
-    this.addSyncLog('开始上传...', '');
+    this.addSyncLog('开始上?..', '');
     
     try {
       await Sync.upload();
@@ -781,18 +944,18 @@ const UI = {
       this.showToast('同步上传成功');
       this.updateSyncStatus();
     } catch (e) {
-      this.addSyncLog('上传失败：' + e.message, 'error');
-      this.showToast('上传失败：' + e.message);
+      this.addSyncLog('上传失败? + e.message, 'error');
+      this.showToast('上传失败? + e.message);
     }
   },
   
   async downloadSync() {
     if (typeof Sync === 'undefined') {
-      this.showToast('同步模块未加载');
+      this.showToast('同步模块未加?);
       return;
     }
     
-    this.addSyncLog('开始下载...', '');
+    this.addSyncLog('开始下?..', '');
     
     try {
       await Sync.download();
@@ -800,8 +963,8 @@ const UI = {
       this.showToast('同步下载成功');
       this.updateSyncStatus();
     } catch (e) {
-      this.addSyncLog('下载失败：' + e.message, 'error');
-      this.showToast('下载失败：' + e.message);
+      this.addSyncLog('下载失败? + e.message, 'error');
+      this.showToast('下载失败? + e.message);
     }
   },
   

@@ -1,6 +1,6 @@
 /**
  * 万物手札 H5 - 主应用逻辑
- * 支持：IndexedDB、云端同步、冲突解决、分享功能
+ * 支持：IndexedDB、云端同步、冲突解决、分享功?
  * 版本：v2.4.0
  */
 
@@ -135,7 +135,7 @@ const Security = {
 };
 
 // ===================================
-// 存储模块（支持 localStorage 和 IndexedDB）
+// 存储模块（支?localStorage ?IndexedDB?
 // ===================================
 
 const Storage = {
@@ -147,7 +147,7 @@ const Storage = {
       return window.__cachedItems || [];
     }
     
-    // 降级到 localStorage
+    // 降级?localStorage
     const data = localStorage.getItem(this.KEY);
     if (window.__cachedItems) {
       return window.__cachedItems;
@@ -204,7 +204,7 @@ const Storage = {
     items[index] = { ...items[index], ...updates };
     this.save(items);
     
-    // 标记为修改
+    // 标记为修?
     if (window.IDB) IDB.markAsModified(id);
     
     return items[index];
@@ -215,7 +215,7 @@ const Storage = {
     const filtered = items.filter(item => item._id !== id);
     this.save(filtered);
     
-    // 标记为删除
+    // 标记为删?
     if (window.IDB) IDB.markAsDeleted(id);
   },
   
@@ -259,7 +259,7 @@ const Storage = {
     try {
       const data = JSON.parse(jsonString);
       if (!data.items || !Array.isArray(data.items)) {
-        return { success: false, message: '无效的数据格式' };
+        return { success: false, message: '无效的数据格? };
       }
       
       const existing = this.getAll();
@@ -281,7 +281,7 @@ const Storage = {
       this.save(existing);
       return {
         success: true,
-        message: `导入成功：新增 ${imported} 条，跳过 ${skipped} 条重复`,
+        message: `导入成功：新?${imported} 条，跳过 ${skipped} 条重复`,
         imported,
         skipped
       };
@@ -365,7 +365,7 @@ const PasswordUI = {
     if (titleEl) titleEl.textContent = title;
     if (hintEl) hintEl.textContent = hint || '';
     if (input) {
-      input.placeholder = placeholder || '请输入密码';
+      input.placeholder = placeholder || '请输入密?;
       input.value = '';
     }
     if (modal) modal.style.display = 'flex';
@@ -422,12 +422,12 @@ const App = {
   currentDetailId: null,
   
   async init() {
-    // 初始化 IndexedDB
+    // 初始?IndexedDB
     if (window.IDB) {
       await IDB.init();
       const migration = await IDB.migrateFromLocalStorage();
       if (migration.migrated > 0) {
-        console.log(`📦 从 localStorage 迁移 ${migration.migrated} 条记录到 IndexedDB`);
+        console.log(`📦 ?localStorage 迁移 ${migration.migrated} 条记录到 IndexedDB`);
       }
     }
     
@@ -437,12 +437,12 @@ const App = {
     this.bindPasswordEvents();
     this.bindSettingsEvents();
     
-    // 初始化增强功能
+    // 初始化增强功?
     if (window.EnhancedFeatures) {
       EnhancedFeatures.init();
     }
     
-    // 加载云同步配置
+    // 加载云同步配?
     CloudSync.loadConfig();
     this.updateCloudStatus();
     
@@ -451,7 +451,7 @@ const App = {
       Sync.init();
     }
     
-    // 启动时自动同步
+    // 启动时自动同?
     if (CloudSync.isEnabled() && CloudSync.config.syncOnStart) {
       this.autoSync();
     }
@@ -464,7 +464,7 @@ const App = {
       this.renderItems();
     }
     
-    console.log('📦 万物手札 H5 已启动');
+    console.log('📦 万物手札 H5 已启?);
   },
   
   bindEvents() {
@@ -502,7 +502,7 @@ const App = {
       });
     }
     
-    // 空状态添加按钮
+    // 空状态添加按?
     const emptyBtn = document.getElementById('empty-add-btn');
     if (emptyBtn) {
       emptyBtn.addEventListener('click', () => {
@@ -536,7 +536,7 @@ const App = {
       });
     }
     
-    // 分类筛选
+    // 分类筛?
     const categoryFilter = document.getElementById('category-filter');
     if (categoryFilter) {
       categoryFilter.addEventListener('click', (e) => {
@@ -565,7 +565,7 @@ const App = {
       });
     }
     
-    // 创建页按钮
+    // 创建页按?
     const createCancel = document.getElementById('create-cancel-btn');
     const createSave = document.getElementById('create-save-btn');
     
@@ -612,7 +612,7 @@ const App = {
         if (this.currentDetailId) {
           const isFav = Storage.toggleFavorite(this.currentDetailId);
           this.updateFavoriteButton(isFav);
-          this.showToast(isFav ? '已收藏' : '已取消收藏');
+          this.showToast(isFav ? '已收? : '已取消收?);
         }
       });
     }
@@ -638,7 +638,7 @@ const App = {
       });
     }
     
-    // 收藏页筛选
+    // 收藏页筛?
     const favFilter = document.getElementById('favorites-category-filter');
     if (favFilter) {
       favFilter.addEventListener('change', () => {
@@ -674,8 +674,8 @@ const App = {
     const clearBtn = document.getElementById('settings-clear');
     if (clearBtn) {
       clearBtn.addEventListener('click', () => {
-        if (confirm('⚠️ 确定要删除所有数据吗？此操作不可恢复！')) {
-          if (confirm('再次确认：真的要清空所有物品数据吗？')) {
+        if (confirm('⚠️ 确定要删除所有数据吗？此操作不可恢复?)) {
+          if (confirm('再次确认：真的要清空所有物品数据吗?)) {
             localStorage.removeItem('universal_journal_items');
             localStorage.removeItem(Security.DATA_KEY);
             if (window.IDB) IDB.clear();
@@ -683,7 +683,7 @@ const App = {
             this.filteredItems = [];
             this.renderItems();
             this.renderFavorites();
-            this.showToast('数据已清空');
+            this.showToast('数据已清?);
           }
         }
       });
@@ -816,7 +816,7 @@ const App = {
       confirmBtn.addEventListener('click', () => {
         const password = passwordInput ? passwordInput.value : '';
         if (!password) {
-          PasswordUI.showError('请输入密码');
+          PasswordUI.showError('请输入密?);
           return;
         }
         if (this.currentCallback) {
@@ -845,7 +845,7 @@ const App = {
         if (!password) {
           const hint = document.getElementById('lock-hint');
           if (hint) {
-            hint.textContent = '请输入密码';
+            hint.textContent = '请输入密?;
             hint.className = 'lock-hint error';
           }
           return;
@@ -886,7 +886,7 @@ const App = {
     if (page === 'favorites') {
       this.renderFavorites();
     } else if (page === 'profile') {
-      // 更新状态
+      // 更新状?
       this.updateCloudStatus();
     }
   },
@@ -919,7 +919,7 @@ const App = {
     if (this.filteredItems.length === 0) {
       container.innerHTML = `
         <div class="empty-state">
-          <img src="empty-box.svg" alt="空状态" class="empty-image" />
+          <img src="empty-box.svg" alt="空状? class="empty-image" />
           <p class="empty-title">暂无记录</p>
           <p class="empty-desc">添加你的第一条手札吧</p>
           <button class="btn btn-primary" id="empty-list-add-btn">新建记录</button>
@@ -945,12 +945,12 @@ const App = {
           </div>
         ` : ''}
         <div class="item-content">
-          <h3 class="item-name">${this.escapeHtml(item.name || '未命名')}</h3>
-          <p class="item-category">${this.escapeHtml(item.category || '未分类')}</p>
+          <h3 class="item-name">${this.escapeHtml(item.name || '未命?)}</h3>
+          <p class="item-category">${this.escapeHtml(item.category || '未分?)}</p>
           <p class="item-notes">${this.escapeHtml(item.notes || '')}</p>
           <div class="item-meta">
             <span class="item-date">${item.createdAt}</span>
-            ${item.isFavorite ? '<span class="item-favorite">⭐</span>' : ''}
+            ${item.isFavorite ? '<span class="item-favorite">?/span>' : ''}
           </div>
         </div>
       </div>
@@ -981,12 +981,12 @@ const App = {
           </div>
         ` : ''}
         
-        <h1 class="detail-name">${this.escapeHtml(item.name || '未命名')}</h1>
+        <h1 class="detail-name">${this.escapeHtml(item.name || '未命?)}</h1>
         <div class="detail-meta">
-          <span class="detail-category">${this.escapeHtml(item.category || '未分类')}</span>
+          <span class="detail-category">${this.escapeHtml(item.category || '未分?)}</span>
           <span class="detail-status">${this.getStatusText(item.status)}</span>
           ${item.date ? `<span class="detail-date">📅 ${item.date}</span>` : ''}
-          <span class="detail-date">创建：${item.createdAt}</span>
+          <span class="detail-date">创建?{item.createdAt}</span>
         </div>
         
         ${item.notes ? `
@@ -1029,7 +1029,7 @@ const App = {
     const map = {
       'in-use': '在役',
       'idle': '闲置',
-      'consumed': '已消耗',
+      'consumed': '已消?,
       'lost': '遗失'
     };
     return map[status] || status;
@@ -1103,7 +1103,7 @@ const App = {
     const date = document.getElementById('create-date').value;
     
     if (!name) {
-      this.showToast('请输入名称');
+      this.showToast('请输入名?);
       return;
     }
     
@@ -1111,10 +1111,10 @@ const App = {
     
     if (this.editingId) {
       Storage.update(this.editingId, { name, category, notes, status, date, photos });
-      this.showToast('✅ 已更新');
+      this.showToast('?已更?);
     } else {
       Storage.add({ name, category, notes, status, date, photos });
-      this.showToast('✅ 已创建');
+      this.showToast('?已创?);
     }
     
     // 重置标题
@@ -1173,9 +1173,9 @@ const App = {
     if (favorites.length === 0) {
       container.innerHTML = `
         <div class="empty-state">
-          <img src="empty-favorites.svg" alt="空状态" class="empty-image" />
+          <img src="empty-favorites.svg" alt="空状? class="empty-image" />
           <p class="empty-title">暂无收藏</p>
-          <p class="empty-desc">收藏你喜欢的记录吧</p>
+          <p class="empty-desc">收藏你喜欢的记录?/p>
         </div>
       `;
       return;
@@ -1189,11 +1189,11 @@ const App = {
           </div>
         ` : ''}
         <div class="item-content">
-          <h3 class="item-name">${this.escapeHtml(item.name || '未命名')}</h3>
-          <p class="item-category">${this.escapeHtml(item.category || '未分类')}</p>
+          <h3 class="item-name">${this.escapeHtml(item.name || '未命?)}</h3>
+          <p class="item-category">${this.escapeHtml(item.category || '未分?)}</p>
           <div class="item-meta">
             <span class="item-date">${item.createdAt}</span>
-            <span class="item-favorite">⭐</span>
+            <span class="item-favorite">?/span>
           </div>
         </div>
       </div>
@@ -1210,7 +1210,7 @@ const App = {
     const total = this.items.length;
     const favorites = this.items.filter(i => i.isFavorite).length;
     const byCategory = this.items.reduce((acc, item) => {
-      acc[item.category || '未分类'] = (acc[item.category || '未分类'] || 0) + 1;
+      acc[item.category || '未分?] = (acc[item.category || '未分?] || 0) + 1;
       return acc;
     }, {});
     
@@ -1248,7 +1248,7 @@ const App = {
     a.download = `万物手札备份_${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    this.showToast('✅ 导出成功');
+    this.showToast('?导出成功');
   },
   
   importData(e) {
@@ -1262,9 +1262,9 @@ const App = {
         this.loadItems();
         this.renderCategoryFilter();
         this.renderItems();
-        this.showToast(`✅ ${result.message}`);
+        this.showToast(`?${result.message}`);
       } else {
-        this.showToast(`❌ ${result.message}`);
+        this.showToast(`?${result.message}`);
       }
     };
     reader.readAsText(file);
@@ -1280,7 +1280,7 @@ const App = {
             Security.removePassword();
             Storage.save(items);
             PasswordUI.hideModal();
-            this.showToast('保护已关闭');
+            this.showToast('保护已关?);
           } else {
             PasswordUI.showError('解密失败，请重试');
           }
@@ -1290,9 +1290,9 @@ const App = {
       });
     } else {
       PasswordUI.showModal('🔒 设置密码', '设置密码保护数据', '输入密码', (password) => {
-        PasswordUI.showModal('🔒 确认密码', '请再次输入密码', '再次输入密码', (confirmPwd) => {
+        PasswordUI.showModal('🔒 确认密码', '请再次输入密?, '再次输入密码', (confirmPwd) => {
           if (password !== confirmPwd) {
-            PasswordUI.showError('两次密码不一致');
+            PasswordUI.showError('两次密码不一?);
             return;
           }
           Security.setPassword(password);
@@ -1308,7 +1308,7 @@ const App = {
   },
   
   showAbout() {
-    alert('万物手札 v2.4.0\n\n记录世间万物，收藏生活点滴\n\n设计哲学：无界原白 × 极简主义 × 云同步 × 影像记录');
+    alert('万物手札 v2.5.0\n\n记录世间万物，收藏生活点滴\n\n设计哲学：无界原白 × 极简主义 × 云同步 × 影像记录 × 自定义分类');
   },
   
   showToast(message) {
@@ -1359,12 +1359,12 @@ const App = {
     const password = document.getElementById('cloud-password-input')?.value || '';
     
     if (!token) {
-      this.showToast('请输入 GitHub Token');
+      this.showToast('请输?GitHub Token');
       return;
     }
     
     if (password.length < 6) {
-      this.showToast('加密密码至少 6 位');
+      this.showToast('加密密码至少 6 ?);
       return;
     }
     
@@ -1377,7 +1377,7 @@ const App = {
     if (modal) modal.style.display = 'none';
     
     this.updateCloudStatus();
-    this.showToast('✅ 同步配置已保存');
+    this.showToast('?同步配置已保?);
   },
   
   async testCloudConnection() {
@@ -1402,10 +1402,10 @@ const App = {
     if (testResult) {
       if (result.success) {
         testResult.className = 'test-result success';
-        testResult.textContent = `✅ ${result.message}`;
+        testResult.textContent = `?${result.message}`;
       } else {
         testResult.className = 'test-result error';
-        testResult.textContent = `❌ ${result.message}`;
+        testResult.textContent = `?${result.message}`;
       }
     }
   },
@@ -1417,7 +1417,7 @@ const App = {
       return;
     }
     
-    PasswordUI.showModal('🔐 加密密码', '输入加密密码以上传数据', '输入密码', async (password) => {
+    PasswordUI.showModal('🔐 加密密码', '输入加密密码以上传数?, '输入密码', async (password) => {
       this.showSyncProgress('正在加密数据...');
       
       const items = this.items.length > 0 ? this.items : Storage.getAll();
@@ -1427,9 +1427,9 @@ const App = {
       
       if (result.success) {
         this.updateCloudStatus();
-        this.showToast(`✅ ${result.message}`);
+        this.showToast(`?${result.message}`);
       } else {
-        this.showToast(`❌ ${result.message}`);
+        this.showToast(`?${result.message}`);
       }
       
       PasswordUI.hideModal();
@@ -1443,8 +1443,8 @@ const App = {
       return;
     }
     
-    PasswordUI.showModal('🔓 解密密码', '输入解密密码以下载数据', '输入密码', async (password) => {
-      this.showSyncProgress('正在从云端下载...');
+    PasswordUI.showModal('🔓 解密密码', '输入解密密码以下载数?, '输入密码', async (password) => {
+      this.showSyncProgress('正在从云端下?..');
       
       const localItems = Storage.getAll();
       const result = await CloudSync.download(localItems, password);
@@ -1459,9 +1459,9 @@ const App = {
         this.renderFavorites();
         this.renderCategoryFilter();
         this.updateCloudStatus();
-        this.showToast(`✅ ${result.message}`);
+        this.showToast(`?${result.message}`);
       } else {
-        this.showToast(`❌ ${result.message}`);
+        this.showToast(`?${result.message}`);
       }
       
       PasswordUI.hideModal();
@@ -1491,9 +1491,9 @@ const App = {
         this.renderFavorites();
         this.renderCategoryFilter();
         this.updateCloudStatus();
-        this.showToast(`✅ ${result.message}`);
+        this.showToast(`?${result.message}`);
       } else {
-        this.showToast(`❌ ${result.message}`);
+        this.showToast(`?${result.message}`);
       }
       
       PasswordUI.hideModal();
@@ -1507,7 +1507,7 @@ const App = {
       return;
     }
     
-    PasswordUI.showModal('🔐 加密密码', '输入加密密码以增量上传', '输入密码', async (password) => {
+    PasswordUI.showModal('🔐 加密密码', '输入加密密码以增量上?, '输入密码', async (password) => {
       this.showSyncProgress('正在增量上传...');
       
       const localItems = Storage.getAll();
@@ -1517,9 +1517,9 @@ const App = {
       
       if (result.success) {
         this.updateCloudStatus();
-        this.showToast(`✅ ${result.message}`);
+        this.showToast(`?${result.message}`);
       } else {
-        this.showToast(`❌ ${result.message}`);
+        this.showToast(`?${result.message}`);
       }
       
       PasswordUI.hideModal();

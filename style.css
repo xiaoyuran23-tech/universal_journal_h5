@@ -1,7 +1,7 @@
 /* ===================================
    万物手札 H5 - 主题系统
    设计理念：无界原生 x 模数框架 x 单色墨影 x 浮动焦点 x 暖光纸本
-   版本：v2.4.0
+   版本：v2.5.0
    =================================== */
 
 /* ===================================
@@ -1102,6 +1102,77 @@ a {
 
 .photo-viewer-close:hover {
   background: rgba(255, 255, 255, 0.3);
+}
+
+/* ===================================
+   Category Management
+   =================================== */
+.category-modal,
+.category-manager-modal {
+  max-width: 450px;
+}
+
+.category-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.category-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--grid-line, #e8e8e8);
+  transition: background 0.2s;
+}
+
+.category-item:last-child {
+  border-bottom: none;
+}
+
+.category-item:hover {
+  background: var(--bg-alt, #fafafa);
+}
+
+.category-item.preset {
+  background: var(--bg-alt, #fafafa);
+  opacity: 0.7;
+}
+
+.category-name {
+  font-size: 14px;
+  color: var(--text-main, #1a1a1a);
+  flex: 1;
+}
+
+.category-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: var(--text-muted, #b8b8b8);
+  color: #fff;
+  border-radius: 12px;
+  margin-left: 8px;
+}
+
+.category-delete-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+  color: var(--text-muted, #999);
+  padding: 0;
+}
+
+.category-delete-btn:hover {
+  background: rgba(255, 0, 0, 0.1);
+  color: #ff4444;
 }
 
 /* ===================================
