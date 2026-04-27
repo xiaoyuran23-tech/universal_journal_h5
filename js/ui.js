@@ -1,13 +1,25 @@
 /**
  * 万物手札 - UI 管理模块
  * 负责页面切换、渲染、交互处理
- * 版本：v2.2.0 (重构版)
+ * 版本：v2.2.1
  */
 
 const UI = {
   // 当前页面状态
   currentPage: 'home',
+  previousPage: 'home',
   editingItemId: null,
+  
+  // 搜索防抖计时器
+  searchDebounceTimer: null,
+  
+  // 防抖函数
+  debounce(fn, delay) {
+    return function(...args) {
+      clearTimeout(this.searchDebounceTimer);
+      this.searchDebounceTimer = setTimeout(() => fn.apply(this, args), delay);
+    }.bind(this);
+  },
   
   // 主题配置
   themes: [
@@ -20,6 +32,9 @@ const UI = {
   // 初始化
   init() {
     console.log('UI module initialized');
+    // 创建防抖版本的渲染函数
+    this.debouncedRenderItems = this.debounce((keyword) => this.renderItems(keyword), 300);
+    this.debouncedRenderFavorites = this.debounce((keyword) => this.renderFavorites(keyword), 300);
     this.bindEvents();
     this.loadTheme();
     this.switchPage('home');
@@ -48,7 +63,7 @@ const UI = {
     const formBackBtn = document.getElementById('form-back-btn');
     if (formBackBtn) {
       formBackBtn.addEventListener('click', () => {
-        this.switchPage(this.currentPage);
+        this.switchPage(this.previousPage || 'home');
         this.resetForm();
       });
     }
@@ -65,7 +80,7 @@ const UI = {
     const detailBackBtn = document.getElementById('detail-back-btn');
     if (detailBackBtn) {
       detailBackBtn.addEventListener('click', () => {
-        this.switchPage(this.currentPage);
+        this.switchPage(this.previousPage || 'home');
       });
     }
     
@@ -97,19 +112,19 @@ const UI = {
       }
     });
     
-    // 搜索输入
+    // 搜索输入（300ms 防抖）
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
-        this.renderItems(e.target.value);
+        this.debouncedRenderItems(e.target.value);
       });
     }
     
-    // 收藏页搜索
+    // 收藏页搜索（300ms 防抖）
     const searchInputFavorites = document.getElementById('search-input-favorites');
     if (searchInputFavorites) {
       searchInputFavorites.addEventListener('input', (e) => {
-        this.renderFavorites(e.target.value);
+        this.debouncedRenderFavorites(e.target.value);
       });
     }
     
@@ -151,6 +166,11 @@ const UI = {
   
   // 切换页面
   switchPage(pageName) {
+    // 保存上一页（用于返回）
+    if (this.currentPage !== pageName) {
+      this.previousPage = this.currentPage;
+    }
+    
     // 隐藏所有页面
     document.querySelectorAll('.page').forEach(page => {
       page.classList.remove('active');
@@ -161,6 +181,9 @@ const UI = {
     if (targetPage) {
       targetPage.classList.add('active');
     }
+    
+    // 更新当前页面状态
+    this.currentPage = pageName;
     
     // 更新标签栏状态
     document.querySelectorAll('.tab-item').forEach(tab => {
@@ -175,9 +198,6 @@ const UI = {
     if (fab) {
       fab.style.display = (pageName === 'home') ? 'flex' : 'none';
     }
-    
-    // 更新当前页面
-    this.currentPage = pageName;
     
     // 根据页面渲染内容
     if (pageName === 'home') {

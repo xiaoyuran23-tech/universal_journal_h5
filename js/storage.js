@@ -1,7 +1,7 @@
 /**
  * 万物手札 - 存储管理模块
  * 负责 localStorage 和 IndexedDB 的数据读写
- * 版本：v2.2.0 (重构版)
+ * 版本：v2.2.1
  */
 
 const Storage = {

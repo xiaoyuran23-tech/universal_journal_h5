@@ -1,7 +1,8 @@
 /**
  * 万物手札 - 云同步模块
- * 负责与 GitHub Gist 的加密同步
- * 版本：v2.2.0 (重构版)
+ * 负责与 GitHub Gist 的数据同步
+ * 注意：当前使用 Base64 编码传输，非真正加密
+ * 版本：v2.2.1
  */
 
 const Sync = {
@@ -145,17 +146,16 @@ const Sync = {
     }
   },
   
-  // 简单加密（实际应使用更安全的算法）
+  // Base64 编码（注意：非真正加密，仅简单编码）
+  // TODO: 后续应升级为 Web Crypto API (AES-GCM) 实现真正的加密
   async encrypt(text) {
-    // 简化版加密 - 实际生产环境应使用 AES-GCM
     const encoder = new TextEncoder();
     const data = encoder.encode(text);
     return btoa(String.fromCharCode(...data));
   },
   
-  // 简单解密
+  // Base64 解码
   async decrypt(encrypted) {
-    // 简化版解密
     const binary = atob(encrypted);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) {
