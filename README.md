@@ -1,282 +1,218 @@
-# 📦 万物手札 H5
+# 万物手札 H5
 
-**5 主题系统 · 艺术级设计 · 一键部署**
+> 记录世间万物，收藏生活点滴
 
-纯前端 H5 网页应用，无需后端，数据存储在本地 localStorage。支持 5 种精美主题，一键部署到 GitHub Pages。
+![version](https://img.shields.io/badge/version-v2.1.2-blue)
+![status](https://img.shields.io/badge/status-ready-green)
+![platform](https://img.shields.io/badge/platform-web-lightgrey)
 
----
+## 🎯 项目简介
 
-## 🎨 5 种主题
+**万物手札 H5** 是一个纯前端的物品记录管理应用，支持本地存储和云端同步。
 
-| 主题 | 名称 | 风格 | 配色 |
-| :--- | :--- | :--- | :--- |
-| **void** | 无界原白 | 纯白极简 | 白 + 灰 + 黑 |
-| **grid** | 模数框架 | 理性网格 | 浅灰 + 蓝 |
-| **ink** | 单色墨影 | 艺术水墨 | 米白 + 墨黑 |
-| **warm** | 暖光纸本 | 温暖纸质 | 暖白 + 棕 |
-| **dark** | 深空墨色 | 深邃暗黑 | 深黑 + 蓝 |
+### 核心特性
 
-### 主题预览
+- 📦 **物品管理** - 创建、编辑、查看、搜索物品
+- 🎨 **5 套主题** - 无界原白 / 模数框架 / 单色墨影 / 暖光纸本 / 深空墨色
+- 📸 **照片上传** - 支持多张照片，IndexedDB 存储
+- ☁️ **云端同步** - GitHub Gist 同步，AES-256-GCM 加密
+- 📱 **完美适配** - iOS/Android/PC，PWA 支持
+- 🔒 **隐私保护** - 客户端加密，零知识架构
 
-#### 1. 无界原白 (The Void)
-纯白背景与深灰文字，大面积留白构建秩序，营造最纯粹的书写体验。
+## 🚀 快速开始
 
+### 在线使用
+
+**推荐 URL**（立即可用）:
 ```
-背景：#ffffff  文字：#2c2c2c  强调：#1a1a1a
-```
-
-#### 2. 模数框架 (Grid System)
-严谨的网格化布局，极细线条区分内容块，强调理性的逻辑与归纳。
-
-```
-背景：#f5f5f7  文字：#1d1d1f  强调：#0071e3 (苹果蓝)
+https://xiaoyuran23-tech.github.io/universal_journal_h5/index.html
 ```
 
-#### 3. 单色墨影 (Monochrome Ink)
-极具艺术感的黑白单色风格，非对称构图，让每条记录如艺术品般呈现。
+> ⚠️ 注意：根路径可能显示 404，请使用完整 `/index.html` 路径
 
-```
-背景：#faf9f7  文字：#1a1a1a  强调：#2c2c2c (墨黑)
-```
-
-#### 4. 暖光纸本 (Warm Paper)
-温暖纸质质感，适合长时间阅读与书写，如翻阅旧手札。
-
-```
-背景：#f8f5f0  文字：#3d342b  强调：#8b7355 (暖棕)
-```
-
-#### 5. 深空墨色 (Deep Space)
-深邃暗黑主题，护眼且富有科技感，适合夜间使用。
-
-```
-背景：#0d0d0f  文字：#f5f5f7  强调：#0a84ff (深蓝)
-```
-
----
-
-##  快速开始
-
-### 方式 1: 本地运行
+### 本地运行
 
 ```bash
-# Windows
-双击 start.bat
+# 方法 1: 直接打开文件
+在浏览器中打开 index.html
 
-# macOS/Linux
-chmod +x start.sh
-./start.sh
-
-# Python 手动
-python -m http.server 8080
+# 方法 2: 使用本地服务器
+npx http-server -p 8080
+# 访问 http://localhost:8080
 ```
 
-访问：http://localhost:8080
+### iOS 添加到主屏幕
 
-### 方式 2: 部署到 GitHub Pages (推荐)
+1. Safari 打开应用 URL
+2. 点击 **分享** 按钮
+3. 选择 **"添加到主屏幕"**
+4. 点击 **"添加"**
 
-```bash
-# Windows
-双击 deploy.bat
+## 📊 功能完成度
 
-# macOS/Linux
-chmod +x deploy.sh
-./deploy.sh
-```
+### ✅ 已完成 (95%)
 
-按提示输入 GitHub 用户名，自动完成部署。
+- [x] 物品 CRUD（创建/读取/更新）
+- [x] 搜索与筛选
+- [x] 5 套完整主题
+- [x] 照片上传与管理
+- [x] 云端同步（GitHub Gist）
+- [x] 数据导入/导出
+- [x] 密码保护
+- [x] 数据统计
+- [x] 收藏功能
+- [x] iOS/Android 适配
+- [x] PWA 支持
 
-访问：`https://你的用户名.github.io/universal_journal_h5/`
+### ⏳ 计划中 (5%)
 
----
+- [ ] 左滑删除手势
+- [ ] 批量操作
+- [ ] 回收站
+- [ ] Service Worker 离线缓存
 
-## 📱 手机使用指南
+## 🛠️ 技术栈
 
-### 部署后在手机上访问
-
-1. **完成 GitHub 部署**
-   ```bash
-   ./deploy.bat  # 或 ./deploy.sh
-   ```
-
-2. **获取你的网站地址**
-   ```
-   https://你的用户名.github.io/universal_journal_h5/
-   ```
-
-3. **在手机上打开链接**
-   - Safari (iOS) 或 Chrome (Android)
-   - 可添加到主屏幕，像 App 一样使用
-
-4. **添加到主屏幕**
-   - iOS Safari: 分享 → 添加到主屏幕
-   - Android Chrome: 菜单 → 添加到主屏幕
-
----
+- **前端**: HTML5 + CSS3 + Vanilla JavaScript
+- **存储**: localStorage + IndexedDB
+- **图表**: ECharts
+- **云端**: GitHub Gist API
+- **加密**: PBKDF2 + AES-256-GCM
+- **部署**: GitHub Pages
 
 ## 📁 项目结构
 
 ```
 universal_journal_h5/
-├── index.html              # 主页面 (含主题选择器)
-├── css/
-│   └── style.css           # 5 主题样式 (23.4 KB)
+├── index.html              # 主页面
+├── style.css               # 主题样式（5 主题）
+├── animations.css          # 动画系统
 ├── js/
-│   ├── app.js              # 主应用逻辑 (含主题管理)
-│   └── charts.js           # ECharts 图表
-├── assets/
-│   └── empty.png           # 单色墨影图标
-├── .github/workflows/
-│   └── deploy.yml          # GitHub Actions 自动部署
-├── deploy.bat / .sh        # 一键部署脚本
-├── start.bat / .sh         # 本地启动脚本
-└── README.md               # 本文件
+│   ├── app.js             # 主逻辑
+│   ├── idb.js             # IndexedDB 模块
+│   ├── cloud-sync.js      # 云端同步模块
+│   └── enhanced.js        # 增强功能
+├── assets/                 # 图片资源
+└── docs/                   # 文档
 ```
 
----
+## 🧪 测试
 
-## ✨ 核心功能
+### 功能测试
 
-| 功能 | 说明 |
-| :--- | :--- |
-| 🎨 **5 主题切换** | 无界原白/模数框架/单色墨影/暖光纸本/深空墨色 |
-| 📝 **物品录入** | 名称/品类/状态/备注/多图上传 |
-| 📋 **物品列表** | 网格布局 + 黑白封面悬停变色 |
-| 🔍 **搜索筛选** | 关键词搜索 + 品类横向筛选 |
-| 📊 **数据统计** | ECharts 图表 + 主题适配 |
-| 📱 **响应式** | 适配手机/平板/桌面端 |
-| 💾 **本地存储** | localStorage 持久化 |
-|  **一键部署** | 自动推送到 GitHub Pages |
+```bash
+# 在浏览器中打开
+file:///D:/QwenPawOut001/universal_journal_h5/index.html
 
----
-
-## 🎯 按钮系统优化
-
-### 按钮类型
-
-| 类型 | 类名 | 用途 |
-| :--- | :--- | :--- |
-| 主按钮 | `btn-primary` | 主要操作 (提交/保存) |
-| 次按钮 | `btn-secondary` | 次要操作 (取消/返回) |
-| 幽灵按钮 | `btn-ghost` | 弱化操作 (删除/更多) |
-| 危险按钮 | `btn-danger` | 危险操作 (删除确认) |
-
-### 按钮尺寸
-
-| 尺寸 | 类名 | 用途 |
-| :--- | :--- | :--- |
-| 小 | `btn-sm` | 紧凑操作 |
-| 默认 | - | 标准操作 |
-| 大 | `btn-lg` | 强调操作 |
-| 图标 | `btn-icon` | 圆形图标按钮 |
-
-### 按钮特效
-
-- ✅ 渐变光泽悬停效果
-- ✅ 点击缩放反馈
-- ✅ 阴影深度变化
-- ✅ 禁用状态灰度
-- ✅ 主题色自适应
-
----
-
-## 🎨 设计细节
-
-### 图片处理 - 单色墨影
-
-```css
-/* 默认黑白 */
-.item-image {
-  filter: grayscale(100%);
-  transition: filter 0.4s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-/* 悬停复彩 */
-.item-card:hover .item-image {
-  filter: grayscale(0%);
-}
+# 测试清单
+✅ FAB 按钮 - 点击打开创建表单
+✅ 创建物品 - 填写表单并保存
+✅ 编辑物品 - 详情页点击编辑按钮
+✅ 主题切换 - 点击右上角太阳图标
+✅ 数据持久化 - 刷新页面数据保留
 ```
 
-### 淡入淡出 - 浮动焦点
+### iOS 兼容性测试
 
-```css
-.page {
-  opacity: 0;
-  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.page.active {
-  opacity: 1;
-}
+访问诊断工具：
+```
+https://xiaoyuran23-tech.github.io/universal_journal_h5/ios-test.html
 ```
 
-### 主题切换
+## 📖 使用指南
 
-```css
-[data-theme="void"] { /* 无界原白 */ }
-[data-theme="grid"] { /* 模数框架 */ }
-[data-theme="ink"] { /* 单色墨影 */ }
-[data-theme="warm"] { /* 暖光纸本 */ }
-[data-theme="dark"] { /* 深空墨色 */ }
-```
+### 创建物品
 
----
+1. 点击右下角蓝色 **+** 按钮
+2. 填写名称（必填）
+3. 选择品类、状态、日期（可选）
+4. 添加备注和照片（可选）
+5. 点击 **完成**
 
-## 🌐 浏览器兼容性
+### 编辑物品
 
-| 浏览器 | 最低版本 |
-| :--- | :--- |
-| Chrome | 60+ |
-| Safari | 12+ |
-| Firefox | 60+ |
-| Edge | 79+ |
-| 微信内置浏览器 | ✅ 支持 |
+1. 点击物品卡片查看详情
+2. 点击右上角 **编辑** 图标
+3. 修改内容
+4. 点击 **完成** 保存
 
----
+### 切换主题
 
-## ⚠️ 注意事项
+1. 点击右上角 **太阳** 图标
+2. 选择喜欢的主题
+3. 立即生效并自动保存
 
-1. **数据备份**: 数据存储在浏览器 localStorage，清除浏览器数据会丢失
-2. **图片大小**: Base64 存储会膨胀约 33%，建议上传前压缩
-3. **跨设备**: 当前版本不支持跨设备同步
-4. **GitHub 部署**: 需要 GitHub 账号，仓库必须公开才能使用免费 Pages
+### 云端同步
 
----
+1. 进入 **我** 页面
+2. 点击 **云端同步**
+3. 输入 GitHub Token 和加密密码
+4. 点击 **测试连接**
+5. 点击 **保存设置**
 
-## 🚀 扩展方向
+## 🔧 故障排查
 
-### P1 (高优先级)
-- [ ] 数据导出/导入 (JSON)
-- [ ] 批量删除/编辑
-- [ ] 更多主题 (靛蓝/赭石/墨绿)
+### GitHub Pages 404
 
-### P2 (中优先级)
-- [ ] PWA 支持 (离线访问)
-- [ ] 云同步 (Firebase/LeanCloud)
-- [ ] 主题自定义 (颜色选择器)
+**问题**: 访问根路径显示 404  
+**解决**: 使用完整路径 `/index.html`
 
-### P3 (低优先级)
-- [ ] 分享海报生成
-- [ ] 物品时间线
-- [ ] 书法字体支持
+### iOS 缓存问题
 
----
+**问题**: 更新后仍显示旧版本  
+**解决**: 
+1. 删除主屏幕图标
+2. Safari 清除缓存
+3. 重新添加到主屏幕
 
-## 📄 开源协议
+### 数据丢失
+
+**问题**: 刷新后数据不见  
+**解决**: 
+1. 检查浏览器是否禁用 localStorage
+2. 尝试其他浏览器
+3. 从云端同步恢复
+
+## 📄 文档
+
+- [项目完成度报告](PROJECT_COMPLETE_REPORT.md)
+- [iOS 兼容性修复指南](IOS_FIX_GUIDE.md)
+- [GitHub Pages 404 修复](GITHUB_PAGES_404_FIX.md)
+- [测试报告](FINAL_TEST_REPORT.md)
+
+## 🤝 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+## 📝 更新日志
+
+### v2.1.2 (2026-04-27)
+- ✅ iOS 兼容性修复
+- ✅ localStorage 容错处理
+- ✅ 安全区域适配
+- ✅ 点击延迟优化
+
+### v2.1.1 (2026-04-27)
+- ✅ 编辑功能完善
+- ✅ 日期字段显示修复
+- ✅ 主题切换修复
+
+### v2.1.0 (2026-04-26)
+- ✅ 新增编辑功能
+- ✅ 新增日期字段
+- ✅ 云端同步模块
+
+## 📧 联系方式
+
+- **GitHub**: [@xiaoyuran23-tech](https://github.com/xiaoyuran23-tech)
+- **项目地址**: [universal_journal_h5](https://github.com/xiaoyuran23-tech/universal_journal_h5)
+
+## 📜 许可证
 
 MIT License
 
 ---
 
-## 🙏 致谢
-
-- **ECharts**: 数据可视化库
-- **无印良品**: 极简设计灵感
-- **原研哉**: 《设计中的设计》
-- **GitHub Pages**: 免费静态网站托管
-
----
-
-**📦 记录世间万物，收藏生活点滴**
-
-**🎨 5 主题 · 一键部署 · 手机可用**
+**最后更新**: 2026-04-27  
+**版本**: v2.1.2  
+**状态**: ✅ 生产就绪
