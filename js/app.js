@@ -108,7 +108,6 @@ const StorageBackend = {
 
 const App = {
   currentPage: 'home',
-  currentCategory: '',
   currentTag: '',
   currentDateFilter: null,
   searchKey: '',
@@ -154,8 +153,7 @@ const App = {
       PasswordUI.showLockScreen();
     } else {
       await this.loadItems();
-      this.renderCategoryFilter();
-      this.renderTagFilter();
+        this.renderTagFilter();
       this.renderItems();
     }
     
@@ -706,8 +704,7 @@ const App = {
           window.__cachedItems = Security.decryptData(password);
           PasswordUI.hideLockScreen();
           await this.loadItems();
-          this.renderCategoryFilter();
-          this.renderItems();
+                this.renderItems();
         } else {
           const hint = document.getElementById('lock-hint');
           if (hint) {
@@ -744,8 +741,7 @@ const App = {
     } else if (page === 'trash' && window.TrashManager) {
       TrashManager.renderTrashList('trash-container');
     } else if (page === 'form') {
-      this.populateCategorySelect();
-      if (window.TemplateManager) TemplateManager.hideTemplateSelector();
+        if (window.TemplateManager) TemplateManager.hideTemplateSelector();
     } else if (page === 'calendar' && window.CalendarView) {
       CalendarView.update(this.items);
     } else if (page === 'timeline' && window.TimelineManager) {
@@ -754,21 +750,6 @@ const App = {
       TemplateManager.showTemplateManager();
       TemplateManager.bindTemplateManagerEvents();
     }
-  },
-  
-  populateCategorySelect() {
-    const select = document.getElementById('create-category');
-    if (!select) return;
-    
-    const categories = [...new Set(this.items.map(item => item.category).filter(Boolean))];
-    const currentValue = select.value;
-    
-    select.innerHTML = `
-      <option value="">选择分类</option>
-      ${categories.map(cat => `<option value="${this.escapeHtml(cat)}">${this.escapeHtml(cat)}</option>`).join('')}
-    `;
-    
-    if (currentValue) select.value = currentValue;
   },
   
   async loadItems() {
@@ -787,8 +768,7 @@ const App = {
     const dateStr = this.currentDateFilter ? this.currentDateFilter.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }) : null;
     
     this.filteredItems = this.items.filter(item => {
-      const matchCategory = !this.currentCategory || item.category === this.currentCategory;
-      const matchTag = !this.currentTag || (item.tags && item.tags.includes(this.currentTag));
+        const matchTag = !this.currentTag || (item.tags && item.tags.includes(this.currentTag));
       const matchDate = !dateStr || (item.createdAt && item.createdAt.includes(dateStr));
       const matchSearch = !this.searchKey || 
         (item.name && item.name.toLowerCase().includes(this.searchKey.toLowerCase())) ||
@@ -857,7 +837,7 @@ const App = {
               ${item.tags.map(tag => `<span class="tag-small">#${this.escapeHtml(tag)}</span>`).join('')}
             </div>
           ` : ''}
-          <p class="item-notes">${this.escapeHtml(item.notes || '')}</p>
+          <p class="item-notes">${this.stripHtml(item.notes) || ''}</p>
         </div>
       </div>
     `).join('');
@@ -922,7 +902,7 @@ const App = {
               ${item.tags.map(tag => `<span class="tag-small">#${this.escapeHtml(tag)}</span>`).join('')}
             </div>
           ` : ''}
-          <p class="item-notes">${this.escapeHtml(item.notes || '')}</p>
+          <p class="item-notes">${this.stripHtml(item.notes) || ''}</p>
           <div class="item-meta">
             <span class="item-date">${item.createdAt ? new Date(item.createdAt).toLocaleDateString('zh-CN') : '未知日期'}</span>
             ${item.favorite ? '<span class="item-favorite">⭐</span>' : ''}
@@ -970,7 +950,7 @@ const App = {
         ${item.notes ? `
           <div class="detail-section">
             <h3 class="detail-section-title">备注</h3>
-            <div class="detail-notes">${this.escapeHtml(item.notes)}</div>
+            <div class="detail-notes">${item.notes}</div>
           </div>
         ` : ''}
       </div>
@@ -1009,9 +989,7 @@ const App = {
     const nameEl = document.getElementById('create-name');
     if (nameEl) nameEl.value = '';
     
-    const categoryEl = document.getElementById('create-category');
-    if (categoryEl) categoryEl.value = '';
-    
+    const categoryEl = document.getElementById('create-category');    
     const notesEl = document.getElementById('create-notes');
     if (notesEl) notesEl.value = '';
     
@@ -1066,9 +1044,7 @@ const App = {
     const statusSelect = document.getElementById('create-status');
     const dateInput = document.getElementById('create-date');
     
-    if (nameInput) nameInput.value = item.name || '';
-    if (categoryInput) categoryInput.value = item.category || '';
-    if (notesInput) notesInput.value = item.notes || '';
+    if (nameInput) nameInput.value = item.name || '';    if (notesInput) notesInput.value = item.notes || '';
     if (statusSelect) statusSelect.value = item.status || 'in-use';
     if (dateInput && item.date) dateInput.value = item.date;
     
@@ -1132,9 +1108,7 @@ const App = {
     if (this.editingId) {
       const item = await this.getItem(this.editingId);
       if (item) {
-        item.name = name;
-        item.category = category;
-        item.notes = notes;
+        item.name = name;        item.notes = notes;
         item.tags = tags;
         item.status = status;
         item.date = date;
@@ -1146,9 +1120,7 @@ const App = {
     } else {
       const newItem = {
         id: Date.now().toString(36) + Math.random().toString(36).substr(2),
-        name,
-        category,
-        notes,
+        name,        notes,
         tags,
         status,
         date,
@@ -1168,7 +1140,6 @@ const App = {
     if (window.DraftManager) DraftManager.clearDraft();
     
     await this.loadItems();
-    this.renderCategoryFilter();
     this.renderTagFilter();
     this.renderItems();
     this.switchPage('home');
@@ -1261,20 +1232,6 @@ const App = {
     
     // 清空文件输入
     e.target.value = '';
-  },
-  
-  renderCategoryFilter() {
-    const container = document.getElementById('category-filter');
-    if (!container) return;
-    
-    const categories = [...new Set(this.items.map(item => item.category).filter(Boolean))];
-    
-    container.innerHTML = `
-      <button class="category-item active" data-category="">全部</button>
-      ${categories.map(cat => `
-        <button class="category-item" data-category="${this.escapeHtml(cat)}">${this.escapeHtml(cat)}</button>
-      `).join('')}
-    `;
   },
   
   renderTagFilter() {
@@ -1430,8 +1387,7 @@ const App = {
         
         await StorageBackend.save(existing);
         await this.loadItems();
-        this.renderCategoryFilter();
-        this.renderTagFilter();
+            this.renderTagFilter();
         this.renderItems();
         this.showToast(`✅ 导入成功：新增 ${imported} 条，跳过 ${skipped} 条重复`);
       } catch (err) {
@@ -1482,7 +1438,35 @@ const App = {
     alert('万物手札 v3.1.0\n\n记录世间万物，收藏生活点滴\n\n新特性：草稿自动保存、回收站、批量操作');
   },
   
+  async migrateLegacyData() {
+    console.log('开始执行 v3.4.0 数据迁移...');
+    let changed = false;
+    for (let item of this.items) {
+      if (item.category && item.category.trim() !== '') {
+        if (!Array.isArray(item.tags)) item.tags = [];
+        if (!item.tags.includes(item.category)) {
+          item.tags.push(item.category);
+          console.log(`迁移分类 "${item.category}" 到标签列表`);
+        }
+        delete item.category;
+        changed = true;
+      }
+    }
+    if (changed) {
+      await StorageBackend.save(this.items);
+      console.log('数据迁移完成');
+    }
+  },
+
+  stripHtml(html) {
+    if (!html) return '';
+    let tmp = document.createElement('DIV');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
+  },
+
   showToast(message) {
+
     const toast = document.getElementById('toast');
     const toastMessage = document.getElementById('toast-message');
     if (toast && toastMessage) {
@@ -1624,8 +1608,7 @@ const App = {
         await this.loadItems();
         this.renderItems();
         this.renderFavorites();
-        this.renderCategoryFilter();
-        this.updateCloudStatus();
+            this.updateCloudStatus();
         this.showToast(`✅ ${result.message}`);
       } else {
         this.showToast(`❌ ${result.message}`);
@@ -1655,8 +1638,7 @@ const App = {
         await this.loadItems();
         this.renderItems();
         this.renderFavorites();
-        this.renderCategoryFilter();
-        this.updateCloudStatus();
+            this.updateCloudStatus();
         this.showToast(`✅ ${result.message}`);
       } else {
         this.showToast(`❌ ${result.message}`);
@@ -1678,8 +1660,7 @@ const App = {
         await this.loadItems();
         this.renderItems();
         this.renderFavorites();
-        this.renderCategoryFilter();
-        this.updateCloudStatus();
+            this.updateCloudStatus();
       }
     } catch (e) {
       console.warn('自动同步失败:', e);
@@ -1718,7 +1699,35 @@ const App = {
   
   // ==================== UI 工具方法 ====================
   
+  async migrateLegacyData() {
+    console.log('开始执行 v3.4.0 数据迁移...');
+    let changed = false;
+    for (let item of this.items) {
+      if (item.category && item.category.trim() !== '') {
+        if (!Array.isArray(item.tags)) item.tags = [];
+        if (!item.tags.includes(item.category)) {
+          item.tags.push(item.category);
+          console.log(`迁移分类 "${item.category}" 到标签列表`);
+        }
+        delete item.category;
+        changed = true;
+      }
+    }
+    if (changed) {
+      await StorageBackend.save(this.items);
+      console.log('数据迁移完成');
+    }
+  },
+
+  stripHtml(html) {
+    if (!html) return '';
+    let tmp = document.createElement('DIV');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
+  },
+
   showToast(message) {
+
     let toast = document.getElementById('toast-notification');
     if (!toast) {
       toast = document.createElement('div');
@@ -1740,175 +1749,6 @@ const App = {
     if (modal) modal.style.display = 'none';
   },
   
-  // ==================== 分类管理 ====================
-  
-  openCategoryManager() {
-    const modal = document.getElementById('category-manager-modal');
-    if (modal) {
-      modal.style.display = 'flex';
-      this.renderCategoryList();
-    }
-  },
-  
-  renderCategoryList() {
-    const listEl = document.getElementById('category-list');
-    if (!listEl) return;
-    
-    const customCats = JSON.parse(localStorage.getItem('universal_journal_categories') || '[]');
-    const usedCats = [...new Set(this.items.map(i => i.category).filter(Boolean))];
-    const allCats = [...new Set([...customCats, ...usedCats])];
-    
-    let html = '<div class="category-manager-list">';
-    
-    if (allCats.length === 0) {
-      html += '<p class="empty-hint">暂无分类</p>';
-    } else {
-      html += allCats.map(cat => `
-          <div class="category-manager-item">
-            <span class="category-name">${this.escapeHtml(cat)}</span>
-            <div class="category-actions">
-              <button class="btn-sm btn-edit" data-action="edit-category" data-name="${this.escapeHtml(cat)}">编辑</button>
-              <button class="btn-sm btn-danger-outline" data-action="delete-category" data-name="${this.escapeHtml(cat)}">删除</button>
-            </div>
-          </div>
-        `).join('');
-    }
-    
-    html += '</div>';
-    listEl.innerHTML = html;
-    
-    // 事件委托处理编辑和删除
-    listEl.addEventListener('click', (e) => {
-      const editBtn = e.target.closest('[data-action="edit-category"]');
-      if (editBtn) {
-        this.openCategoryModal(editBtn.dataset.name);
-        return;
-      }
-      
-      const delBtn = e.target.closest('[data-action="delete-category"]');
-      if (delBtn) {
-        const name = delBtn.dataset.name;
-        if (confirm(`确定删除分类"${name}"吗？相关记录将变为"未分类"。`)) {
-          this.deleteCategory(name);
-        }
-      }
-    });
-  },
-  
-  saveCategory() {
-    const input = document.getElementById('category-name-input');
-    if (!input) return;
-    
-    const name = input.value.trim();
-    if (!name) {
-      this.showToast('请输入分类名称');
-      return;
-    }
-    
-    const customCats = JSON.parse(localStorage.getItem('universal_journal_categories') || '[]');
-    
-    // 检查是新增还是编辑
-    if (this.editingCategoryName) {
-      // 编辑模式：更新名称
-      const index = customCats.indexOf(this.editingCategoryName);
-      if (index > -1) {
-        // 检查新名称是否与其他分类冲突
-        if (customCats.includes(name) && name !== this.editingCategoryName) {
-          this.showToast('分类名称已存在');
-          return;
-        }
-        customCats[index] = name;
-        // 更新记录中的分类名称
-        this.updateCategoryInItems(this.editingCategoryName, name);
-      }
-    } else {
-      // 新增模式
-      if (customCats.includes(name)) {
-        this.showToast('分类已存在');
-        return;
-      }
-      customCats.push(name);
-    }
-    
-    localStorage.setItem('universal_journal_categories', JSON.stringify(customCats));
-    
-    input.value = '';
-    this.closeCategoryModal();
-    this.showToast(this.editingCategoryName ? '分类已更新' : '分类已添加');
-    this.editingCategoryName = null;
-    
-    // 刷新列表如果管理器是打开的
-    if (document.getElementById('category-manager-modal').style.display === 'flex') {
-      this.renderCategoryList();
-    }
-    
-    // 刷新表单下拉框和筛选器
-    this.populateCategorySelect();
-    this.renderCategoryFilter();
-  },
-  
-  deleteCategory(name) {
-    const customCats = JSON.parse(localStorage.getItem('universal_journal_categories') || '[]');
-    const filtered = customCats.filter(c => c !== name);
-    localStorage.setItem('universal_journal_categories', JSON.stringify(filtered));
-    
-    // 更新记录中的分类
-    this.updateCategoryInItems(name, '');
-    
-    this.renderCategoryList();
-    this.populateCategorySelect();
-    this.renderCategoryFilter();
-    this.showToast('分类已删除');
-  },
-
-  updateCategoryInItems(oldName, newName) {
-    // 异步更新 IndexedDB 或 localStorage 中的记录
-    StorageBackend.getAll().then(items => {
-      let changed = false;
-      items.forEach(item => {
-        if (item.category === oldName) {
-          item.category = newName;
-          changed = true;
-        }
-      });
-      if (changed) {
-        StorageBackend.save(items);
-        this.items = items;
-        this.renderItems();
-      }
-    });
-  },
-  
-  openCategoryModal(editingName = null) {
-    const modal = document.getElementById('category-modal');
-    const titleEl = document.getElementById('category-modal-title');
-    const input = document.getElementById('category-name-input');
-    
-    if (modal) {
-      modal.style.display = 'flex';
-      if (editingName) {
-        if (titleEl) titleEl.textContent = '编辑分类';
-        if (input) input.value = editingName;
-        this.editingCategoryName = editingName;
-      } else {
-        if (titleEl) titleEl.textContent = '新增分类';
-        if (input) input.value = '';
-        this.editingCategoryName = null;
-      }
-      setTimeout(() => { if (input) input.focus(); }, 100);
-    }
-  },
-
-  closeCategoryModal() {
-    this.closeModal('category-modal');
-  },
-
-  closeModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-      modal.style.display = 'none';
-    }
-  }
 };
 
 // ===================================

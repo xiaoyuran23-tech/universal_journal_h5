@@ -10,51 +10,56 @@
     <meta name="application-name" content="万物手札">
     <meta name="theme-color" content="#ffffff">
     
+    <!-- PWA 配置 -->
+    <link rel="manifest" href="manifest.json">
+    
     <!-- 防止浏览器缓存 -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     
-    <title>万物手札 v3.3.0 - 记录世间万物</title>
-    <link rel="stylesheet" href="style.css?v=3.3.0">
-    <link rel="stylesheet" href="animations.css?v=3.3.0">
+    <title>万物手札 v3.4.0 - 记录世间万物</title>
+    <link rel="stylesheet" href="style.css?v=3.4.0">
+    <link rel="stylesheet" href="animations.css?v=3.4.0">
     
     <!-- ECharts CDN -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    
+    <!-- v4.0 核心基础设施 -->
+    <script src="js/dom-ids.js?v=4.0.0"></script>
     
     <!-- iOS 兼容性修复 -->
     <script>
         window.onerror = function(msg, url, lineNo, columnNo, error) {
             console.error('Error: ' + msg + '\nURL: ' + url + '\nLine: ' + lineNo + '\nColumn: ' + columnNo + '\nStack: ' + (error && error.stack));
             window.__lastError = msg + ' (Line ' + lineNo + ')';
-            document.body.innerHTML = '<div style="padding:20px;color:red;font-family:monospace;">FATAL ERROR:<br>' + msg + '<br>Line: ' + lineNo + '</div>';
             return false;
         };
         window.addEventListener('unhandledrejection', function(event) {
             console.error('Unhandled Rejection: ' + event.reason);
             window.__lastError = 'Unhandled Rejection: ' + event.reason;
         });
-        // 检测 iOS 独立 Web App 模式
         window.isIOSStandalone = window.navigator.standalone || false;
         
-        // iOS 存储兼容性修复
         window.safeLocalStorage = {
             setItem: function(key, value) {
-                try {
-                    localStorage.setItem(key, value);
-                } catch (e) {
-                    console.warn('localStorage 写入失败:', e);
-                }
+                try { localStorage.setItem(key, value); } catch (e) { console.warn('localStorage 写入失败:', e); }
             },
             getItem: function(key) {
-                try {
-                    return localStorage.getItem(key);
-                } catch (e) {
-                    console.warn('localStorage 读取失败:', e);
-                    return null;
-                }
+                try { return localStorage.getItem(key); } catch (e) { console.warn('localStorage 读取失败:', e); return null; }
             }
         };
+
+        // PWA Service Worker 注册
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then(reg => {
+                    console.log('SW registered: ', reg);
+                }).catch(err => {
+                    console.log('SW registration failed: ', err);
+                });
+            });
+        }
     </script>
 </head>
 <body>
@@ -132,12 +137,7 @@
                 <input type="text" class="search-input" id="search-input" placeholder="搜索名称、备注、标签...">
             </div>
             
-            <!-- 分类筛选 -->
-            <div class="category-filter" id="category-filter">
-                <button class="category-item active" data-category="">全部</button>
-            </div>
-            
-            <!-- 标签筛选 -->
+            <!-- 标签筛选 (纯标签化架构) -->
             <div class="tag-filter" id="tag-filter">
                 <!-- 动态生成标签 -->
             </div>
@@ -244,19 +244,10 @@
                         </button>
                     </div>
                     
-                    <div class="settings-section">
-                        <h3 class="settings-section-title">分类管理</h3>
-                        <button class="settings-item" id="manage-categories-btn">
-                            <span>自定义分类</span>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                            </svg>
-                        </button>
-                    </div>
+                    <!-- [已移除] 分类管理模块 -->
                     
                     <div class="settings-section">
-                        <h3 class="settings-section-title">模板管理</h3>
+                        <h3 class="settings-section-title">模板库</h3>
                         <button class="settings-item" id="manage-templates-btn">
                             <span>我的模板</span>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -281,15 +272,15 @@
                     <div class="settings-section">
                         <h3 class="settings-section-title">关于</h3>
                         <div class="settings-item about-item">
-                            <span>万物手札 v3.3.0</span>
-                            <span class="about-version">自定义分类版</span>
+                            <span>万物手札 v3.4.0</span>
+                            <span class="about-version">纯标签化架构</span>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- 模板管理页 -->
+        <!-- 模板管理页 (保留作为完整管理入口，新建页将使用底部抽屉) -->
         <section id="page-template-manager" class="page">
             <div class="template-manager-header">
                 <button class="tm-back-btn" id="tm-back-btn">
@@ -306,107 +297,109 @@
             </div>
         </section>
 
-        <!-- 新建/编辑记录页 -->
+        <!-- 新建/编辑记录页 (Sticky Header + Footer) -->
         <section id="page-form" class="page">
-            <div class="form-header">
-                <button class="form-back-btn" id="create-back-btn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M19 12H5M12 19l-7-7 7-7"></path>
-                    </svg>
-                    取消
-                </button>
-                <h2 class="form-title" id="create-title">新建记录</h2>
-                <button class="form-save-btn" id="create-save-btn">保存</button>
-            </div>
-            
-            <div class="form-body">
-                <!-- 模板选择器 -->
-                <div class="template-selector" id="template-selector" style="display:none;">
-                    <!-- 动态渲染模板 -->
-                </div>
-                <button class="btn-use-template" id="btn-use-template">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="12" y1="8" x2="12" y2="16"></line>
-                        <line x1="8" y1="12" x2="16" y2="12"></line>
-                    </svg>
-                    使用模板快速创建
-                </button>
-                <button class="btn-save-template" id="btn-save-template">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
-                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                        <polyline points="7 3 7 8 15 8"></polyline>
-                    </svg>
-                    保存为模板
-                </button>
-                
-                <div class="form-group">
-                    <label for="create-name">名称</label>
-                    <input type="text" id="create-name" placeholder="给这条记录起个名字" maxlength="100" autocomplete="off">
-                </div>
-                
-                <div class="form-group">
-                    <label for="create-category">分类</label>
-                    <select id="create-category">
-                        <option value="">选择分类</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label>标签</label>
-                    <div class="tag-input-wrapper" id="tag-input-wrapper">
-                        <input type="text" class="tag-input-field" id="create-tags" placeholder="输入标签，按回车或逗号添加" autocomplete="off">
-                    </div>
-                    <p class="form-hint">按回车、逗号或空格分隔标签，重复标签会自动忽略</p>
-                    <div class="tag-suggestions" id="tag-suggestions"></div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="create-rich-content">备注</label>
-                    <div class="rich-editor" id="create-rich-content" contenteditable="true" placeholder="写下你的想法..."></div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="create-status">状态</label>
-                    <select id="create-status">
-                        <option value="in-use">使用中</option>
-                        <option value="idle">闲置</option>
-                        <option value="lost">遗失</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="create-date">日期</label>
-                    <input type="date" id="create-date">
-                </div>
-                
-                <div class="form-group">
-                    <label>照片</label>
-                    <div class="photo-upload-progress" id="photo-upload-progress">
-                        <div class="progress-header">
-                            <span id="photo-progress-text">正在压缩...</span>
-                            <span id="photo-progress-percent">0%</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="photo-progress-fill"></div>
-                        </div>
-                    </div>
-                    <div class="photo-preview" id="photo-preview"></div>
-                    <div class="photo-summary" id="photo-summary" style="display: none;">
-                        <span>📸 已添加 <span class="summary-count">0</span> 张照片</span>
-                        <span class="summary-total">共节省 <span class="summary-saved">0 KB</span></span>
-                    </div>
-                    <input type="file" id="create-photo-input" accept="image/*" multiple style="display:none;">
-                    <button type="button" id="create-photo-btn" class="btn-photo-add">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                            <polyline points="21 15 16 10 5 21"></polyline>
+            <div class="form-layout">
+                <!-- 顶部固定标题栏 -->
+                <header class="form-header-sticky">
+                    <button class="form-back-btn" id="create-back-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 12H5M12 19l-7-7 7-7"></path>
                         </svg>
-                        添加照片
+                        取消
                     </button>
+                    <h2 class="form-title" id="create-title">新建记录</h2>
+                    <div class="header-spacer"></div>
+                </header>
+                
+                <!-- 中间滚动内容区 -->
+                <div class="form-scroll">
+                    <!-- 模板快捷入口 -->
+                    <button class="btn-use-template" id="btn-use-template">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="12" y1="8" x2="12" y2="16"></line>
+                            <line x1="8" y1="12" x2="16" y2="12"></line>
+                        </svg>
+                        使用模板快速创建
+                    </button>
+                    
+                    <button class="btn-save-template" id="btn-save-template">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                            <polyline points="7 3 7 8 15 8"></polyline>
+                        </svg>
+                        保存当前内容为模板
+                    </button>
+                    
+                    <div class="form-group">
+                        <label for="create-name">名称</label>
+                        <input type="text" id="create-name" placeholder="给这条记录起个名字" maxlength="100" autocomplete="off">
+                    </div>
+                    
+                    <!-- [已移除] 分类选择器 -->
+                    
+                    <div class="form-group">
+                        <label>标签</label>
+                        <div class="tag-input-wrapper" id="tag-input-wrapper">
+                            <input type="text" class="tag-input-field" id="create-tags" placeholder="输入标签，按回车或逗号添加" autocomplete="off">
+                        </div>
+                        <p class="form-hint">按回车、逗号或空格分隔标签，重复标签自动忽略</p>
+                        <div class="tag-suggestions" id="tag-suggestions"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="create-rich-content">备注 (支持富文本)</label>
+                        <div class="rich-editor" id="create-rich-content" contenteditable="true" placeholder="写下你的想法..."></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="create-status">状态</label>
+                        <select id="create-status">
+                            <option value="in-use">使用中</option>
+                            <option value="idle">闲置</option>
+                            <option value="lost">遗失</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="create-date">日期</label>
+                        <input type="date" id="create-date">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>照片</label>
+                        <div class="photo-upload-progress" id="photo-upload-progress">
+                            <div class="progress-header">
+                                <span id="photo-progress-text">正在压缩...</span>
+                                <span id="photo-progress-percent">0%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="photo-progress-fill"></div>
+                            </div>
+                        </div>
+                        <div class="photo-preview" id="photo-preview"></div>
+                        <div class="photo-summary" id="photo-summary" style="display: none;">
+                            <span>📸 已添加 <span class="summary-count">0</span> 张照片</span>
+                            <span class="summary-total">共节省 <span class="summary-saved">0 KB</span></span>
+                        </div>
+                        <input type="file" id="create-photo-input" accept="image/*" multiple style="display:none;">
+                        <button type="button" id="create-photo-btn" class="btn-photo-add">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                <polyline points="21 15 16 10 5 21"></polyline>
+                            </svg>
+                            添加照片
+                        </button>
+                    </div>
                 </div>
+                
+                <!-- 底部固定操作栏 -->
+                <footer class="form-footer-sticky">
+                    <button class="form-save-btn" id="create-save-btn">保存记录</button>
+                </footer>
             </div>
         </section>
 
@@ -465,56 +458,20 @@
                 <!-- 动态生成统计内容 -->
             </div>
         </section>
+    </main>
 
-    <!-- 新增分类弹窗 -->
-    <div id="category-modal" class="modal">
-        <div class="modal-content category-modal">
-            <div class="modal-header">
-                <h3>新增分类</h3>
-                <button class="modal-close" id="close-category-modal">×</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="category-name-input">分类名称</label>
-                    <input type="text" id="category-name-input" placeholder="输入分类名称，如：旅行、美食..." maxlength="20">
-                </div>
-                <button id="save-category-btn" class="btn-primary">保存</button>
-            </div>
-        </div>
-    </div>
+    <!-- [已移除] 分类管理相关模态框 (category-modal, category-manager-modal) -->
 
-    <!-- 分类管理弹窗 -->
-    <div id="category-manager-modal" class="modal">
-        <div class="modal-content category-manager-modal">
-            <div class="modal-header">
-                <h3>管理分类</h3>
-                <button class="modal-close" id="close-category-manager">×</button>
+    <!-- 模板底部抽屉 (Bottom Sheet) - v3.4.0 新增 -->
+    <div id="template-bottom-sheet" class="bottom-sheet-overlay">
+        <div class="bottom-sheet-content">
+            <div class="bottom-sheet-header">
+                <h3>选择模板</h3>
+                <button class="bottom-sheet-close" id="close-template-sheet">×</button>
             </div>
-            <div class="modal-body">
-                <button class="btn-add-category" id="btn-add-category">+ 新增分类</button>
-                <div id="category-list" class="category-manager-list">
-                    <!-- 动态渲染分类列表 -->
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 新增/编辑分类弹窗 -->
-    <div id="category-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="category-modal-title">新增分类</h3>
-                <button class="modal-close" id="close-category-modal">×</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="category-name-input">分类名称</label>
-                    <input type="text" id="category-name-input" placeholder="输入分类名称">
-                </div>
-                <div class="modal-actions">
-                    <button class="btn btn-secondary" id="category-cancel-btn">取消</button>
-                    <button class="btn btn-primary" id="save-category-btn">保存</button>
-                </div>
+            <div class="bottom-sheet-body" id="template-sheet-list">
+                <!-- 动态渲染快捷模板列表 -->
+                <p class="empty-hint">暂无模板，请在“我的模板”中添加</p>
             </div>
         </div>
     </div>
@@ -527,10 +484,7 @@
                 <button class="modal-close" id="cloud-modal-close">×</button>
             </div>
             <div class="modal-body">
-                <!-- 同步状态 -->
                 <div id="sync-status" class="sync-status"></div>
-                
-                <!-- 配置表单 -->
                 <div class="sync-config-form">
                     <div class="form-group">
                         <label for="sync-gist-id">Gist ID</label>
@@ -546,14 +500,10 @@
                     </div>
                     <button id="sync-save-config" class="btn-primary">保存配置</button>
                 </div>
-                
-                <!-- 同步操作 -->
                 <div id="sync-actions" class="sync-actions">
                     <button id="sync-upload" class="btn-sync">上传</button>
                     <button id="sync-download" class="btn-sync">下载</button>
                 </div>
-                
-                <!-- 同步日志 -->
                 <div id="sync-log" class="sync-log"></div>
             </div>
         </div>
@@ -574,25 +524,23 @@
     <!-- 提示消息 -->
     <div class="toast" id="toast"></div>
 
-    <!-- JavaScript 模块 (v3.3.0 重构版) -->
-    <!-- 基础模块 -->
-    <script src="js/security.js?v=3.3.0"></script>
-    <script src="js/theme.js?v=3.3.0"></script>
-    <script src="js/tag-manager.js?v=3.3.0"></script>
-    <script src="js/batch.js?v=3.3.0"></script>
-    <!-- 核心数据层 -->
-    <script src="js/idb.js?v=3.3.0"></script>
-    <script src="js/draft.js?v=3.3.0"></script>
-    <script src="js/trash.js?v=3.3.0"></script>
-    <!-- 功能模块 -->
-    <script src="js/calendar.js?v=3.3.0"></script>
-    <script src="js/template.js?v=3.3.0"></script>
-    <script src="js/timeline.js?v=3.3.0"></script>
-    <script src="js/visuals.js?v=3.3.0"></script>
-    <script src="js/image-processor.js?v=3.3.0"></script>
-    <script src="js/cloud-sync.js?v=3.3.0"></script>
+    <!-- JavaScript 模块 (v3.4.0 重构版) -->
+    <script src="js/security.js?v=3.4.0"></script>
+    <script src="js/theme.js?v=3.4.0"></script>
+    <script src="js/tag-manager.js?v=3.4.0"></script>
+    <script src="js/batch.js?v=3.4.0"></script>
+    <script src="js/idb.js?v=3.4.0"></script>
+    <script src="js/draft.js?v=3.4.0"></script>
+    <script src="js/trash.js?v=3.4.0"></script>
+    <script src="js/calendar.js?v=3.4.0"></script>
+    <script src="js/template.js?v=3.4.0"></script>
+    <script src="js/timeline.js?v=3.4.0"></script>
+    <script src="js/visuals.js?v=3.4.0"></script>
+    <script src="js/cloud-sync-v2.js?v=4.0.0"></script>
+    <script src="js/image-processor-v2.js?v=4.0.0"></script>
+    
     <!-- 主应用控制器 -->
-    <script src="js/app.js?v=3.3.0"></script>
+    <script src="js/app.js?v=4.1.0"></script>
     
     <!-- 全局悬浮新建按钮 (FAB) -->
     <button class="fab" id="fab-add" aria-label="新建记录">

@@ -91,7 +91,7 @@ const TrashManager = {
     const restoredItem = {
       id: item.id,
       name: item.name,
-      category: item.originalCategory || item.category,
+      category: '已废弃', // 兼容旧字段
       notes: item.notes,
       tags: item.originalTags || item.tags || [],
       status: item.status,

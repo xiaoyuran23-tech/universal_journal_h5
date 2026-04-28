@@ -23,7 +23,7 @@ const DraftManager = {
    * 绑定自动保存事件
    */
   bindAutoSave() {
-    const formInputs = ['create-name', 'create-category', 'create-notes', 'create-tags', 'create-status', 'create-date'];
+    const formInputs = ['create-name', 'create-notes', 'create-tags', 'create-status', 'create-date'];
     
     formInputs.forEach(id => {
       const el = document.getElementById(id);
@@ -59,8 +59,7 @@ const DraftManager = {
   saveDraft() {
     const draft = {
       name: document.getElementById('create-name')?.value || '',
-      category: document.getElementById('create-category')?.value || '',
-      notes: document.getElementById('create-notes')?.value || '',
+            notes: document.getElementById('create-notes')?.value || '',
       tags: document.getElementById('create-tags')?.value || '',
       status: document.getElementById('create-status')?.value || 'in-use',
       date: document.getElementById('create-date')?.value || '',
@@ -121,8 +120,7 @@ const DraftManager = {
     
     // 填充表单
     if (document.getElementById('create-name')) document.getElementById('create-name').value = draft.name || '';
-    if (document.getElementById('create-category')) document.getElementById('create-category').value = draft.category || '';
-    if (document.getElementById('create-notes')) document.getElementById('create-notes').value = draft.notes || '';
+        if (document.getElementById('create-notes')) document.getElementById('create-notes').value = draft.notes || '';
     if (document.getElementById('create-tags')) document.getElementById('create-tags').value = draft.tags || '';
     if (document.getElementById('create-status')) document.getElementById('create-status').value = draft.status || 'in-use';
     if (document.getElementById('create-date')) document.getElementById('create-date').value = draft.date || '';

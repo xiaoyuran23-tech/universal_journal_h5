@@ -176,19 +176,10 @@ const TemplateManager = {
     const template = this.getTemplate(id);
     if (!template) return;
     
-    // 设置分类
+    // 将分类转为标签 (兼容旧模板)
     if (template.category) {
-      const categorySelect = document.getElementById('create-category');
-      if (categorySelect) {
-        // 如果分类不存在，先添加
-        const exists = [...categorySelect.options].some(opt => opt.value === template.category);
-        if (!exists) {
-          const option = document.createElement('option');
-          option.value = template.category;
-          option.textContent = template.category;
-          categorySelect.appendChild(option);
-        }
-        categorySelect.value = template.category;
+      if (window.TagManager) {
+        TagManager.addTag(template.category);
       }
     }
     
@@ -431,6 +422,94 @@ const TemplateManager = {
   /**
    * 绑定模板管理页面事件
    */
+
+  /**
+   * 渲染模板快捷列表 (Bottom Sheet)
+   */
+  renderTemplateSheet() {
+    const container = document.getElementById('template-sheet-list');
+    if (!container) return;
+    
+    const templates = this.getAllTemplates();
+    if (templates.length === 0) {
+      container.innerHTML = '<p class="empty-hint" style="text-align:center;color:#999;padding:20px;">暂无模板</p>';
+      return;
+    }
+    
+    container.innerHTML = templates.map(t => `
+      <div class="template-sheet-item" data-id="${t.id}">
+        <h4>${t.icon || '📝'} ${this._escapeHtml(t.name)}</h4>
+        <p>${this._escapeHtml(t.description || '')}</p>
+      </div>
+    `).join('');
+    
+    // 绑定点击事件
+    container.querySelectorAll('.template-sheet-item').forEach(el => {
+      el.addEventListener('click', () => {
+        this.applyTemplate(el.dataset.id);
+        this.closeTemplateSheet();
+      });
+    });
+  },
+
+  /**
+   * 打开模板抽屉
+   */
+  openTemplateSheet() {
+    this.renderTemplateSheet();
+    const sheet = document.getElementById('template-bottom-sheet');
+    if (sheet) sheet.classList.add('active');
+  },
+
+  /**
+   * 关闭模板抽屉
+   */
+  closeTemplateSheet() {
+    const sheet = document.getElementById('template-bottom-sheet');
+    if (sheet) sheet.classList.remove('active');
+  },
+
+  /**
+   * 保存当前表单为模板
+   */
+  saveCurrentAsTemplateWrapper() {
+    // 从表单获取名称和备注
+    const name = document.getElementById('create-name')?.value || '未命名';
+    const richEditor = document.getElementById('create-rich-content');
+    if (!richEditor || !richEditor.innerHTML.trim()) {
+        if (window.App) App.showToast('请先填写备注内容');
+        return;
+    }
+    
+    const tplName = prompt('模板名称:', name);
+    if (!tplName) return;
+    
+    const tplIcon = prompt('模板图标 (Emoji):', '📝') || '📝';
+    
+    // 构建字段
+    const fields = [];
+    const paragraphs = richEditor.querySelectorAll('p');
+    paragraphs.forEach(p => {
+        const strong = p.querySelector('strong');
+        if (strong) {
+            fields.push({
+                label: strong.textContent.replace(':', ''),
+                type: 'text',
+                value: strong.nextSibling ? strong.nextSibling.textContent.trim() : ''
+            });
+        }
+    });
+
+    this.addCustomTemplate({
+        name: tplName,
+        icon: tplIcon,
+        description: '自定义',
+        fields: fields.length > 0 ? fields : [{label: '内容', type: 'textarea', value: richEditor.innerHTML}]
+    });
+    
+    if (window.App) App.showToast('✅ 模板已保存');
+  }
+
   bindTemplateManagerEvents() {
     const container = document.getElementById('template-manager-container');
     if (!container) return;
@@ -521,6 +600,94 @@ const TemplateManager = {
   /**
    * 绑定模板管理页事件
    */
+
+  /**
+   * 渲染模板快捷列表 (Bottom Sheet)
+   */
+  renderTemplateSheet() {
+    const container = document.getElementById('template-sheet-list');
+    if (!container) return;
+    
+    const templates = this.getAllTemplates();
+    if (templates.length === 0) {
+      container.innerHTML = '<p class="empty-hint" style="text-align:center;color:#999;padding:20px;">暂无模板</p>';
+      return;
+    }
+    
+    container.innerHTML = templates.map(t => `
+      <div class="template-sheet-item" data-id="${t.id}">
+        <h4>${t.icon || '📝'} ${this._escapeHtml(t.name)}</h4>
+        <p>${this._escapeHtml(t.description || '')}</p>
+      </div>
+    `).join('');
+    
+    // 绑定点击事件
+    container.querySelectorAll('.template-sheet-item').forEach(el => {
+      el.addEventListener('click', () => {
+        this.applyTemplate(el.dataset.id);
+        this.closeTemplateSheet();
+      });
+    });
+  },
+
+  /**
+   * 打开模板抽屉
+   */
+  openTemplateSheet() {
+    this.renderTemplateSheet();
+    const sheet = document.getElementById('template-bottom-sheet');
+    if (sheet) sheet.classList.add('active');
+  },
+
+  /**
+   * 关闭模板抽屉
+   */
+  closeTemplateSheet() {
+    const sheet = document.getElementById('template-bottom-sheet');
+    if (sheet) sheet.classList.remove('active');
+  },
+
+  /**
+   * 保存当前表单为模板
+   */
+  saveCurrentAsTemplateWrapper() {
+    // 从表单获取名称和备注
+    const name = document.getElementById('create-name')?.value || '未命名';
+    const richEditor = document.getElementById('create-rich-content');
+    if (!richEditor || !richEditor.innerHTML.trim()) {
+        if (window.App) App.showToast('请先填写备注内容');
+        return;
+    }
+    
+    const tplName = prompt('模板名称:', name);
+    if (!tplName) return;
+    
+    const tplIcon = prompt('模板图标 (Emoji):', '📝') || '📝';
+    
+    // 构建字段
+    const fields = [];
+    const paragraphs = richEditor.querySelectorAll('p');
+    paragraphs.forEach(p => {
+        const strong = p.querySelector('strong');
+        if (strong) {
+            fields.push({
+                label: strong.textContent.replace(':', ''),
+                type: 'text',
+                value: strong.nextSibling ? strong.nextSibling.textContent.trim() : ''
+            });
+        }
+    });
+
+    this.addCustomTemplate({
+        name: tplName,
+        icon: tplIcon,
+        description: '自定义',
+        fields: fields.length > 0 ? fields : [{label: '内容', type: 'textarea', value: richEditor.innerHTML}]
+    });
+    
+    if (window.App) App.showToast('✅ 模板已保存');
+  }
+
   bindTemplateManagerEvents() {
     // 使用全局事件委托，避免重复绑定
     if (this._managerEventsBound) return;
