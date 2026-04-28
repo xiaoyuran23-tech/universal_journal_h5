@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -16,8 +16,8 @@
     <meta http-equiv="Expires" content="0">
     
     <title>万物手札 v2.5.0 - 记录世间万物</title>
-    <link rel="stylesheet" href="style.css?v=2.5.0">
-    <link rel="stylesheet" href="animations.css?v=2.5.0">
+    <link rel="stylesheet" href="style.css?v=2.7.0">
+    <link rel="stylesheet" href="animations.css?v=2.7.0">
     
     <!-- iOS 兼容性修复 -->
     <script>
@@ -106,18 +106,6 @@
             <!-- 记录列表容器 -->
             <div class="items-container" id="items-container">
                 <!-- 动态生成记录卡片 -->
-            </div>
-            
-            <!-- 空状态提示 -->
-            <div class="empty-state" id="empty-state">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="12" y1="18" x2="12" y2="12"></line>
-                    <line x1="9" y1="15" x2="15" y2="15"></line>
-                </svg>
-                <p>还没有记录</p>
-                <p class="empty-state-hint">点击右下角按钮开始记录</p>
             </div>
         </section>
 
@@ -304,14 +292,14 @@
     <!-- 编辑/新建表单页 -->
     <section id="page-form" class="page form-page">
         <div class="page-header">
-            <button class="back-btn" id="form-back-btn">
+            <button class="back-btn" id="create-back-btn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="m15 18-6-6 6-6"></path>
                 </svg>
             </button>
-            <h2 id="form-title">新建记录</h2>
+            <h2 id="create-title">新建记录</h2>
             <div class="form-actions">
-                <button class="form-action-btn" id="form-save-btn">
+                <button class="form-action-btn" id="create-save-btn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
                         <polyline points="17 21 17 13 7 13 7 21"></polyline>
@@ -381,9 +369,9 @@
     <div class="toast" id="toast"></div>
 
     <!-- JavaScript 模块 -->
-    <script src="js/storage.js?v=2.5.0"></script>
-    <script src="js/ui.js?v=2.5.0"></script>
-    <script src="js/sync.js?v=2.5.0"></script>
-    <script src="js/app.js?v=2.5.0"></script>
+    <script src="js/storage.js?v=2.7.0"></script>
+    <script src="js/ui.js?v=2.7.0"></script>
+    <script src="js/sync.js?v=2.7.0"></script>
+    <script src="js/app.js?v=2.7.0"></script>
 </body>
 </html>

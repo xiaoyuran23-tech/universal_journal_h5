@@ -981,7 +981,10 @@ const UI = {
   }
 };
 
-// 页面加载时初始化
-document.addEventListener('DOMContentLoaded', () => {
-  UI.init();
-});
+// 页面加载时初始化 (已禁用，由 app.js 统一管理)
+// document.addEventListener('DOMContentLoaded', () => {
+//   UI.init();
+// });
+
+// 禁用 UI 模块的事件绑定，避免与 app.js 冲突
+// UI.bindEvents = function() {};

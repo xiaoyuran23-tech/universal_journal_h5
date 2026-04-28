@@ -267,7 +267,7 @@ a {
   min-width: 200px;
 }
 
-.theme-panel.active {
+.theme-panel.show {
   display: block;
 }
 
