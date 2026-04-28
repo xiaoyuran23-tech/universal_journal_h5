@@ -714,11 +714,47 @@ a {
   margin-bottom: var(--spacing-sm);
   width: 100%;
   text-align: left;
-  transition: background-color 0.3s var(--ease-out);
+  cursor: pointer;
+  transition: all 0.2s var(--ease-out);
+  position: relative;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .settings-item:hover {
   background: var(--bg-alt);
+  transform: translateX(4px);
+  border-color: var(--primary);
+}
+
+.settings-item:active {
+  transform: scale(0.98) translateX(2px);
+  background: var(--primary-light);
+  transition: all 0.1s ease;
+}
+
+/* 点击涟漪效果 */
+.settings-item::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: var(--primary);
+  border-radius: 50%;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  transition: width 0.4s ease, height 0.4s ease, opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.settings-item:active::after {
+  width: 300px;
+  height: 300px;
+  opacity: 0.1;
+  transition: 0s;
 }
 
 .settings-item svg {
@@ -1210,10 +1246,13 @@ a {
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .modal.active {
   display: flex;
+  opacity: 1;
 }
 
 .modal-content {
@@ -1222,6 +1261,13 @@ a {
   padding: 24px;
   width: 90%;
   max-width: 400px;
+  transform: scale(0.9);
+  transition: transform 0.3s var(--ease-spring);
+}
+
+.modal.active .modal-content {
+  transform: scale(1);
+}
   max-height: 80vh;
   overflow-y: auto;
 }
@@ -3193,13 +3239,47 @@ body:has(.page-detail.active) .fab {
   transform: scale(0.95);
 }
 
-/* 按钮通用改进 - 增大点击区域 */
+/* 按钮通用改进 - 增大点击区域并增强反馈 */
 button,
 [role="button"],
 .clickable {
   min-height: 44px;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 按钮按下效果 */
+button:active,
+[role="button"]:active {
+  transform: scale(0.97);
+  transition: transform 0.1s ease;
+}
+
+/* 涟漪效果容器 */
+button::before,
+.settings-item::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: currentColor;
+  border-radius: 50%;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  transition: width 0.4s ease, height 0.4s ease, opacity 0.3s ease;
+  pointer-events: none;
+}
+
+button:active::before,
+.settings-item:active::before {
+  width: 200px;
+  height: 200px;
+  opacity: 0.1;
+  transition: 0s;
 }
 
 /* 设置项改进 */

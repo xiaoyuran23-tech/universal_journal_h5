@@ -474,14 +474,15 @@ const App = {
   },
   
   bindSettingsEvents() {
-    const exportBtn = document.getElementById('settings-export');
+    // 修复 ID 匹配问题：HTML 中使用的是 export-data-btn / import-data-btn
+    const exportBtn = document.getElementById('export-data-btn');
     if (exportBtn) {
       exportBtn.addEventListener('click', () => {
         this.exportData();
       });
     }
     
-    const importBtn = document.getElementById('settings-import');
+    const importBtn = document.getElementById('import-data-btn');
     const importInput = document.getElementById('import-file-input');
     
     if (importBtn && importInput) {
@@ -624,50 +625,25 @@ const App = {
       });
     }
     
-    const uploadBtn = document.getElementById('settings-cloud-upload');
+    const uploadBtn = document.getElementById('sync-upload');
     if (uploadBtn) {
       uploadBtn.addEventListener('click', () => {
         this.cloudUpload();
       });
     }
     
-    const downloadBtn = document.getElementById('settings-cloud-download');
+    const downloadBtn = document.getElementById('sync-download');
     if (downloadBtn) {
       downloadBtn.addEventListener('click', () => {
         this.cloudDownload();
       });
     }
     
-    const syncBtn = document.getElementById('settings-cloud-sync');
-    if (syncBtn) {
-      syncBtn.addEventListener('click', () => {
-        this.cloudSyncBidirectional();
-      });
-    }
-    
-    const saveBtn = document.getElementById('cloud-modal-save-btn');
+    // 保存配置按钮
+    const saveBtn = document.getElementById('sync-save-config');
     if (saveBtn) {
       saveBtn.addEventListener('click', () => {
         this.saveCloudConfig();
-      });
-    }
-    
-    const testBtn = document.getElementById('cloud-modal-test-btn');
-    if (testBtn) {
-      testBtn.addEventListener('click', () => {
-        this.testCloudConnection();
-      });
-    }
-    
-    const cancelBtn = document.getElementById('cloud-modal-cancel-btn');
-    if (cancelBtn) {
-      cancelBtn.addEventListener('click', () => {
-        const tokenInput = document.getElementById('cloud-token-input');
-        const passInput = document.getElementById('cloud-password-input');
-        if (tokenInput) tokenInput.value = '';
-        if (passInput) passInput.value = '';
-        const modal = document.getElementById('cloud-modal');
-        if (modal) modal.style.display = 'none';
       });
     }
     
@@ -675,7 +651,7 @@ const App = {
     if (closeBtn) {
       closeBtn.addEventListener('click', () => {
         const modal = document.getElementById('cloud-modal');
-        if (modal) modal.style.display = 'none';
+        if (modal) modal.classList.remove('active');
       });
     }
   },
@@ -1532,44 +1508,41 @@ const App = {
   
   showCloudConfig() {
     const modal = document.getElementById('cloud-modal');
-    const tokenInput = document.getElementById('cloud-token-input');
-    const passInput = document.getElementById('cloud-password-input');
-    const testArea = document.getElementById('cloud-test-area');
-    const testResult = document.getElementById('cloud-test-result');
+    const gistInput = document.getElementById('sync-gist-id');
+    const tokenInput = document.getElementById('sync-token');
+    const keyInput = document.getElementById('sync-key');
     
+    if (gistInput) gistInput.value = CloudSync.config.gistId || '';
     if (tokenInput) tokenInput.value = CloudSync.config.token || '';
-    if (passInput) passInput.value = '';
-    if (testArea) testArea.style.display = 'none';
-    if (testResult) {
-      testResult.className = 'test-result';
-      testResult.textContent = '';
-    }
-    if (modal) modal.style.display = 'flex';
+    if (keyInput) keyInput.value = '';
+    if (modal) modal.classList.add('active');
     
     setTimeout(() => { if (tokenInput) tokenInput.focus(); }, 100);
   },
   
   async saveCloudConfig() {
-    const token = document.getElementById('cloud-token-input')?.value.trim() || '';
-    const password = document.getElementById('cloud-password-input')?.value || '';
+    const gistId = document.getElementById('sync-gist-id')?.value.trim() || '';
+    const token = document.getElementById('sync-token')?.value.trim() || '';
+    const key = document.getElementById('sync-key')?.value || '';
     
     if (!token) {
       this.showToast('请输入 GitHub Token');
       return;
     }
     
-    if (password.length < 6) {
-      this.showToast('加密密码至少 6 位');
+    if (key.length < 6) {
+      this.showToast('加密密钥至少 6 位');
       return;
     }
     
+    CloudSync.config.gistId = gistId;
     CloudSync.config.token = token;
-    CloudSync.config.password = password;
+    CloudSync.config.password = key;
     CloudSync.config.enabled = true;
     CloudSync.saveConfig();
     
     const modal = document.getElementById('cloud-modal');
-    if (modal) modal.style.display = 'none';
+    if (modal) modal.classList.remove('active');
     
     this.updateCloudStatus();
     this.showToast('✅ 同步配置已保存');
