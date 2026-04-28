@@ -1,7 +1,6 @@
 /**
- * 万物手札 H5 - 主应用逻辑 v3.2.1
- * 支持：IndexedDB、标签系统、图片压缩、草稿保存、回收站、批量操作
- * P2 功能：日历视图、模板系统、时间线/故事、数据可视化
+ * 万物手札 H5 - 主应用逻辑 v3.2.1-hotfix.1
+ * 修复：空状态图标、事件委托、模板管理功能
  */
 
 // ===================================
@@ -878,6 +877,45 @@ const App = {
   },
   
   bindEvents() {
+    // 全局事件委托：处理动态生成的按钮和元素
+    document.addEventListener('click', (e) => {
+      // 1. 空状态"新建记录"按钮
+      const emptyAddBtn = e.target.closest('.empty-add-btn');
+      if (emptyAddBtn) {
+        this.editingId = null;
+        this.resetForm();
+        this.switchPage('form');
+        return;
+      }
+      
+      // 2. 收藏页空状态"去记录"按钮
+      const favEmptyBtn = e.target.closest('.empty-fav-btn');
+      if (favEmptyBtn) {
+        this.switchPage('home');
+        return;
+      }
+      
+      // 3. 模板选择器中的"保存为模板"按钮
+      const saveTemplateBtn = e.target.closest('.btn-save-template');
+      if (saveTemplateBtn) {
+        if (window.TemplateManager) {
+          TemplateManager.showSaveTemplateModal();
+        }
+        return;
+      }
+      
+      // 4. 模板管理中的删除按钮
+      const deleteTemplateBtn = e.target.closest('.btn-delete-template');
+      if (deleteTemplateBtn) {
+        const id = deleteTemplateBtn.dataset.id;
+        if (id && window.TemplateManager) {
+          TemplateManager.deleteTemplate(id);
+        }
+        return;
+      }
+    });
+    
+    // 原有事件绑定
     const itemsContainer = document.getElementById('items-container');
     if (itemsContainer) {
       itemsContainer.addEventListener('click', (e) => {
@@ -1225,6 +1263,26 @@ const App = {
       });
     }
     
+    // 模板管理入口
+    const templateBtn = document.getElementById('manage-templates-btn');
+    if (templateBtn) {
+      templateBtn.addEventListener('click', () => {
+        this.switchPage('template-manager');
+        if (window.TemplateManager) {
+          TemplateManager.showTemplateManager();
+          TemplateManager.bindTemplateManagerEvents();
+        }
+      });
+    }
+    
+    // 模板管理返回按钮
+    const tmBackBtn = document.getElementById('tm-back-btn');
+    if (tmBackBtn) {
+      tmBackBtn.addEventListener('click', () => {
+        this.switchPage('profile');
+      });
+    }
+    
     if (window.CloudSync) {
       this.bindCloudEvents();
     }
@@ -1380,6 +1438,9 @@ const App = {
       CalendarView.update(this.items);
     } else if (page === 'timeline' && window.TimelineManager) {
       TimelineManager.render(this.items);
+    } else if (page === 'template-manager' && window.TemplateManager) {
+      TemplateManager.showTemplateManager();
+      TemplateManager.bindTemplateManagerEvents();
     }
   },
   
@@ -1519,21 +1580,18 @@ const App = {
     if (this.filteredItems.length === 0) {
       container.innerHTML = `
         <div class="empty-state">
-          <img src="empty-box.svg" alt="空状态" class="empty-image" />
+          <svg class="empty-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
           <p class="empty-title">暂无记录</p>
           <p class="empty-desc">添加你的第一条手札吧</p>
-          <button class="btn btn-primary" id="empty-list-add-btn">新建记录</button>
+          <button class="btn btn-primary empty-add-btn">新建记录</button>
         </div>
       `;
-      
-      const addBtn = document.getElementById('empty-list-add-btn');
-      if (addBtn) {
-        addBtn.addEventListener('click', () => {
-          this.editingId = null;
-          this.resetForm();
-          this.switchPage('form');
-        });
-      }
       return;
     }
     

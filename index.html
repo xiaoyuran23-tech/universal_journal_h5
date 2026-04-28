@@ -15,9 +15,9 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     
-    <title>万物手札 v3.2.1 - 记录世间万物</title>
-    <link rel="stylesheet" href="style.css?v=3.2.1">
-    <link rel="stylesheet" href="animations.css?v=3.2.1">
+    <title>万物手札 v3.2.1-hotfix.1 - 记录世间万物</title>
+    <link rel="stylesheet" href="style.css?v=3.2.1-hotfix.1">
+    <link rel="stylesheet" href="animations.css?v=3.2.1-hotfix.1">
     
     <!-- iOS 兼容性修复 -->
     <script>
@@ -253,6 +253,19 @@
                     </div>
                     
                     <div class="settings-section">
+                        <h3 class="settings-section-title">模板管理</h3>
+                        <button class="settings-item" id="manage-templates-btn">
+                            <span>我的模板</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div class="settings-section">
                         <h3 class="settings-section-title">云同步</h3>
                         <button class="settings-item" id="cloud-sync-btn">
                             <span>同步设置</span>
@@ -265,11 +278,28 @@
                     <div class="settings-section">
                         <h3 class="settings-section-title">关于</h3>
                         <div class="settings-item about-item">
-                            <span>万物手札 v3.2.1</span>
+                            <span>万物手札 v3.2.1-hotfix.1</span>
                             <span class="about-version">自定义分类版</span>
                         </div>
                     </div>
                 </div>
+            </div>
+        </section>
+
+        <!-- 模板管理页 -->
+        <section id="page-template-manager" class="page">
+            <div class="template-manager-header">
+                <button class="tm-back-btn" id="tm-back-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                        <path d="M19 12H5M12 19l-7-7 7-7"></path>
+                    </svg>
+                    返回
+                </button>
+                <h2 class="tm-title">模板管理</h2>
+                <div></div>
+            </div>
+            <div class="template-manager-content" id="template-manager-container">
+                <!-- 动态渲染模板列表 -->
             </div>
         </section>
 
@@ -298,6 +328,14 @@
                         <line x1="8" y1="12" x2="16" y2="12"></line>
                     </svg>
                     使用模板快速创建
+                </button>
+                <button class="btn-save-template" id="btn-save-template">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                        <polyline points="7 3 7 8 15 8"></polyline>
+                    </svg>
+                    保存为模板
                 </button>
                 
                 <div class="form-group">
@@ -523,14 +561,14 @@
     <!-- <script src="js/storage.js?v=2.7.5"></script> --> <!-- 已禁用：与 app.js 中的 Storage 冲突 -->
     <!-- <script src="js/ui.js?v=2.7.5"></script> --> <!-- 已禁用：功能已整合至 app.js，避免冗余加载 -->
     <script src="js/sync.js?v=2.7.5"></script>
-    <script src="js/idb.js?v=3.2.1"></script>
-    <script src="js/draft.js?v=3.2.1"></script>
-    <script src="js/trash.js?v=3.2.1"></script>
-    <script src="js/calendar.js?v=3.2.1"></script>
-    <script src="js/template.js?v=3.2.1"></script>
-    <script src="js/timeline.js?v=3.2.1"></script>
-    <script src="js/visuals.js?v=3.2.1"></script>
-    <script src="js/image-processor.js?v=3.2.1"></script>
-    <script src="js/app.js?v=3.2.1"></script>
+    <script src="js/idb.js?v=3.2.1-hotfix.1"></script>
+    <script src="js/draft.js?v=3.2.1-hotfix.1"></script>
+    <script src="js/trash.js?v=3.2.1-hotfix.1"></script>
+    <script src="js/calendar.js?v=3.2.1-hotfix.1"></script>
+    <script src="js/template.js?v=3.2.1-hotfix.1"></script>
+    <script src="js/timeline.js?v=3.2.1-hotfix.1"></script>
+    <script src="js/visuals.js?v=3.2.1-hotfix.1"></script>
+    <script src="js/image-processor.js?v=3.2.1-hotfix.1"></script>
+    <script src="js/app.js?v=3.2.1-hotfix.1"></script>
 </body>
 </html>

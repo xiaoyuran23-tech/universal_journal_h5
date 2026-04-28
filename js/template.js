@@ -6,6 +6,8 @@
 
 const TemplateManager = {
   STORAGE_KEY: 'journal_templates',
+  _eventsBound: false,
+  _templatesChanged: false, // 标记模板是否被修改过
   
   // 内置默认模板
   DEFAULT_TEMPLATES: [
@@ -348,6 +350,137 @@ const TemplateManager = {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  },
+  
+  // ==================== 模板管理功能 ====================
+  
+  /**
+   * 显示模板管理页面
+   */
+  showTemplateManager() {
+    const container = document.getElementById('template-manager-container');
+    if (!container) return;
+    
+    const templates = this.getAllTemplates();
+    
+    if (templates.length === 0) {
+      container.innerHTML = `
+        <div class="template-manager-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+          </svg>
+          <p>暂无模板</p>
+          <p class="hint">在表单页使用"保存为模板"创建您的第一个模板</p>
+        </div>
+      `;
+      return;
+    }
+    
+    container.innerHTML = `
+      <div class="template-manager-list">
+        ${templates.map(t => {
+          const isDefault = t.id.startsWith('tpl_');
+          return `
+          <div class="template-manager-card" data-id="${t.id}">
+            <div class="template-card-header">
+              <span class="template-icon">${t.icon || ''}</span>
+              <div class="template-card-info">
+                <span class="template-name">${this._escapeHtml(t.name)}</span>
+                <span class="template-category">${this._escapeHtml(t.category || '未分类')}</span>
+              </div>
+            </div>
+            <p class="template-desc">${this._escapeHtml(t.description || '')}</p>
+            <div class="template-card-actions">
+              <button class="btn-sm btn-use" data-action="use" data-id="${t.id}">使用</button>
+              ${!isDefault ? `<button class="btn-sm btn-delete" data-action="delete" data-id="${t.id}">删除</button>` : ''}
+            </div>
+          </div>
+        `}).join('')}
+      </div>
+    `;
+  },
+  
+  /**
+   * 删除模板
+   */
+  deleteTemplate(id) {
+    if (!confirm('确定要删除这个模板吗？')) return;
+    
+    const custom = this.getCustomTemplates();
+    const filtered = custom.filter(t => t.id !== id);
+    
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filtered));
+      this._templatesChanged = true;
+      
+      // 刷新管理页面
+      this.showTemplateManager();
+      
+      if (window.App) {
+        App.showToast('模板已删除');
+      }
+    } catch (e) {
+      console.error('删除模板失败:', e);
+      if (window.App) {
+        App.showToast('删除失败');
+      }
+    }
+  },
+  
+  /**
+   * 绑定模板管理页面事件
+   */
+  bindTemplateManagerEvents() {
+    const container = document.getElementById('template-manager-container');
+    if (!container) return;
+    
+    container.addEventListener('click', (e) => {
+      const useBtn = e.target.closest('[data-action="use"]');
+      const deleteBtn = e.target.closest('[data-action="delete"]');
+      
+      if (useBtn) {
+        const id = useBtn.dataset.id;
+        this.applyTemplate(id);
+        if (window.App) {
+          App.switchPage('form');
+        }
+        return;
+      }
+      
+      if (deleteBtn) {
+        const id = deleteBtn.dataset.id;
+        this.deleteTemplate(id);
+        return;
+      }
+    });
+  },
+  
+  /**
+   * 显示保存模板对话框
+   */
+  showSaveTemplateModal() {
+    const richEditor = document.getElementById('create-rich-content');
+    const nameEl = document.getElementById('create-name');
+    
+    if (!richEditor || !richEditor.innerHTML.trim()) {
+      if (window.App) {
+        App.showToast('请先填写备注内容再保存为模板');
+      }
+      return;
+    }
+    
+    const name = prompt('请输入模板名称:', nameEl?.value || '我的模板');
+    if (!name) return;
+    
+    const icon = prompt('请输入模板图标 (emoji):', '') || '📝';
+    const category = prompt('请输入模板分类:', '自定义') || '自定义';
+    
+    this.saveCurrentAsTemplate(name, icon, category);
+    
+    if (window.App) {
+      App.showToast('模板已保存');
+    }
   }
 };
 
