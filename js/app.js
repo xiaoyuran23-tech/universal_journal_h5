@@ -504,6 +504,18 @@ const App = {
   },
   
   bindEvents() {
+    // 事件委托：处理列表项点击
+    const itemsContainer = document.getElementById('items-container');
+    if (itemsContainer) {
+      itemsContainer.addEventListener('click', (e) => {
+        const card = e.target.closest('.item-card');
+        if (card && card.dataset.id) {
+          console.log('Delegated click on card:', card.dataset.id);
+          this.showDetail(card.dataset.id);
+        }
+      });
+    }
+    
     // 主题切换
     const toggle = document.getElementById('theme-toggle');
     const panel = document.getElementById('theme-panel');
@@ -519,6 +531,17 @@ const App = {
         panel.classList.remove('show');
       }
     });
+    
+    // 事件委托：处理收藏页列表项点击
+    const favContainer = document.getElementById('favorites-container');
+    if (favContainer) {
+      favContainer.addEventListener('click', (e) => {
+        const card = e.target.closest('.item-card');
+        if (card && card.dataset.id) {
+          this.showDetail(card.dataset.id);
+        }
+      });
+    }
     
     // TabBar 切换
     document.querySelectorAll('.tab-item').forEach(tab => {
@@ -1028,16 +1051,16 @@ const App = {
       </div>
     `).join('');
     
-    container.querySelectorAll('.item-card').forEach(card => {
-      card.addEventListener('click', () => {
-        this.showDetail(card.dataset.id);
-      });
-    });
+    // 移除直接绑定，改用 bindEvents 中的事件委托
   },
   
   showDetail(id) {
+    console.log('showDetail called for ID:', id);
     const item = Storage.get(id);
-    if (!item) return;
+    if (!item) {
+      console.warn('Item not found for ID:', id);
+      return;
+    }
     
     this.currentDetailId = id;
     const container = document.getElementById('detail-content');
@@ -1278,11 +1301,7 @@ const App = {
       </div>
     `).join('');
     
-    container.querySelectorAll('.item-card').forEach(card => {
-      card.addEventListener('click', () => {
-        this.showDetail(card.dataset.id);
-      });
-    });
+    // 移除直接绑定，改用 bindEvents 中的事件委托
   },
   
   loadStats() {
