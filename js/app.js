@@ -500,7 +500,7 @@ const App = {
     // 确保初始页面和 FAB 状态正确
     this.switchPage('home');
     
-    console.log(' 万物手札 H5 已启动 v=2.7.8');
+    console.log(' 万物手札 H5 已启动 v=2.9.1');
   },
   
   bindEvents() {
@@ -760,20 +760,21 @@ const App = {
     }
     
     // 清空数据
-    const clearBtn = document.getElementById('settings-clear');
+    const clearBtn = document.getElementById('clear-all-data-btn');
     if (clearBtn) {
       clearBtn.addEventListener('click', () => {
         if (confirm('⚠️ 确定要删除所有数据吗？此操作不可恢复！')) {
-          if (confirm('再次确认：真的要清空所有物品数据吗？')) {
-            localStorage.removeItem('universal_journal_items');
-            localStorage.removeItem(Security.DATA_KEY);
-            if (window.IDB) IDB.clear();
-            this.items = [];
-            this.filteredItems = [];
-            this.renderItems();
-            this.renderFavorites();
-            this.showToast('数据已清空');
-          }
+          // 执行清空
+          localStorage.removeItem('universal_journal_items');
+          localStorage.removeItem(Security.DATA_KEY);
+          if (window.IDB) IDB.clear();
+          this.items = [];
+          this.filteredItems = [];
+          this.renderItems();
+          this.renderFavorites();
+          this.showToast('数据已清空');
+          // 跳转回首页
+          this.switchPage('home');
         }
       });
     }

@@ -715,6 +715,18 @@ a {
   color: var(--text-muted);
 }
 
+.danger-item {
+  border-color: #ff4d4f33;
+}
+
+.danger-item:hover {
+  background: #fff1f0;
+}
+
+.danger-item span {
+  color: #ff4d4f;
+}
+
 .about-item {
   flex-direction: column;
   align-items: flex-start;
