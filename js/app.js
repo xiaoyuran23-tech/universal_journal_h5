@@ -1,6 +1,6 @@
 /**
- * 万物手札 H5 - 主应用逻辑 v3.2.1-hotfix.3
- * 修复：分类管理按钮显示逻辑、补全云同步模块引用
+ * 万物手札 H5 - 主应用逻辑 v3.3.0
+ * 重构：统一模块调度、修复 ECharts 依赖、清理冗余同步模块
  */
 
 // ===================================
@@ -99,718 +99,6 @@ const StorageBackend = {
       return await IDBModule.migrateFromLocalStorage();
     }
     return { migrated: 0 };
-  }
-};
-
-// ===================================
-// 批量操作管理器
-// ===================================
-
-const BatchManager = {
-  isBatchMode: false,
-  selectedIds: new Set(),
-  longPressTimer: null,
-  LONG_PRESS_DURATION: 500,
-  
-  /**
-   * 初始化批量操作
-   */
-  init() {
-    this.bindLongPress();
-  },
-  
-  /**
-   * 绑定长按事件
-   */
-  bindLongPress() {
-    const container = document.getElementById('items-container');
-    if (!container) return;
-    
-    // 触摸设备长按
-    container.addEventListener('touchstart', (e) => {
-      const card = e.target.closest('.item-card');
-      if (!card) return;
-      
-      this.longPressTimer = setTimeout(() => {
-        this.enterBatchMode(card.dataset.id);
-        // 震动反馈
-        if (navigator.vibrate) navigator.vibrate(50);
-      }, this.LONG_PRESS_DURATION);
-    });
-    
-    container.addEventListener('touchend', () => {
-      clearTimeout(this.longPressTimer);
-    });
-    
-    container.addEventListener('touchmove', () => {
-      clearTimeout(this.longPressTimer);
-    });
-    
-    // 鼠标右键（桌面端批量模式入口）
-    container.addEventListener('contextmenu', (e) => {
-      const card = e.target.closest('.item-card');
-      if (!card) return;
-      
-      e.preventDefault();
-      this.enterBatchMode(card.dataset.id);
-    });
-  },
-  
-  /**
-   * 进入批量模式
-   */
-  enterBatchMode(firstId) {
-    this.isBatchMode = true;
-    this.selectedIds.clear();
-    this.selectedIds.add(firstId);
-    
-    this.showBatchToolbar();
-    this.updateCardSelection();
-  },
-  
-  /**
-   * 退出批量模式
-   */
-  exitBatchMode() {
-    this.isBatchMode = false;
-    this.selectedIds.clear();
-    this.hideBatchToolbar();
-    this.updateCardSelection();
-  },
-  
-  /**
-   * 切换选中状态
-   */
-  toggleSelect(id) {
-    if (this.selectedIds.has(id)) {
-      this.selectedIds.delete(id);
-    } else {
-      this.selectedIds.add(id);
-    }
-    this.updateCardSelection();
-    this.updateBatchToolbar();
-  },
-  
-  /**
-   * 全选/取消全选
-   */
-  toggleSelectAll() {
-    if (this.selectedIds.size === App.items.length) {
-      this.selectedIds.clear();
-    } else {
-      App.items.forEach(item => this.selectedIds.add(item.id));
-    }
-    this.updateCardSelection();
-    this.updateBatchToolbar();
-  },
-  
-  /**
-   * 更新卡片选中样式
-   */
-  updateCardSelection() {
-    document.querySelectorAll('.item-card').forEach(card => {
-      if (this.selectedIds.has(card.dataset.id)) {
-        card.classList.add('selected');
-      } else {
-        card.classList.remove('selected');
-      }
-    });
-  },
-  
-  /**
-   * 显示批量工具栏
-   */
-  showBatchToolbar() {
-    let toolbar = document.getElementById('batch-toolbar');
-    if (!toolbar) {
-      toolbar = document.createElement('div');
-      toolbar.id = 'batch-toolbar';
-      toolbar.className = 'batch-toolbar';
-      toolbar.innerHTML = `
-        <div class="batch-toolbar-content">
-          <span class="batch-count" id="batch-count">已选 0 项</span>
-          <div class="batch-actions">
-            <button class="btn btn-small" id="batch-select-all">全选</button>
-            <button class="btn btn-small btn-danger" id="batch-delete">删除</button>
-            <button class="btn btn-small" id="batch-cancel">取消</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(toolbar);
-      
-      // 绑定事件
-      document.getElementById('batch-select-all').addEventListener('click', () => {
-        this.toggleSelectAll();
-      });
-      
-      document.getElementById('batch-delete').addEventListener('click', () => {
-        this.batchDelete();
-      });
-      
-      document.getElementById('batch-cancel').addEventListener('click', () => {
-        this.exitBatchMode();
-      });
-    }
-    
-    toolbar.classList.add('show');
-    this.updateBatchToolbar();
-  },
-  
-  /**
-   * 隐藏批量工具栏
-   */
-  hideBatchToolbar() {
-    const toolbar = document.getElementById('batch-toolbar');
-    if (toolbar) {
-      toolbar.classList.remove('show');
-    }
-  },
-  
-  /**
-   * 更新批量工具栏计数
-   */
-  updateBatchToolbar() {
-    const countEl = document.getElementById('batch-count');
-    if (countEl) {
-      countEl.textContent = `已选 ${this.selectedIds.size} 项`;
-    }
-  },
-  
-  /**
-   * 批量删除
-   */
-  async batchDelete() {
-    if (this.selectedIds.size === 0) return;
-    
-    if (!confirm(`确定要删除选中的 ${this.selectedIds.size} 条记录吗？`)) return;
-    
-    // 添加到回收站
-    const itemsToDelete = App.items.filter(item => this.selectedIds.has(item.id));
-    if (window.TrashManager) {
-      TrashManager.addManyToTrash(itemsToDelete);
-    }
-    
-    // 从主存储删除
-    const ids = Array.from(this.selectedIds);
-    await StorageBackend.deleteMany(ids);
-    
-    App.showToast(`已删除 ${ids.length} 条记录`);
-    
-    this.exitBatchMode();
-    await App.loadItems();
-    App.renderItems();
-  },
-  
-  /**
-   * 点击卡片处理
-   */
-  handleCardClick(id) {
-    if (this.isBatchMode) {
-      this.toggleSelect(id);
-      return true; // 已处理
-    }
-    return false; // 未处理，需要正常点击逻辑
-  }
-};
-
-// ===================================
-// 加密工具
-// ===================================
-
-const Crypto = {
-  KEY_STORAGE: '_uj_salt',
-  
-  generateSalt() {
-    const array = new Uint8Array(16);
-    crypto.getRandomValues(array);
-    return Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
-  },
-  
-  deriveKey(password, salt) {
-    let key = salt;
-    for (let i = 0; i < 100; i++) {
-      key = password + key + salt;
-      let hash = 0;
-      for (let j = 0; j < key.length; j++) {
-        const char = key.charCodeAt(j);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
-      }
-      key = hash.toString(36);
-    }
-    return key;
-  },
-  
-  encrypt(text, password) {
-    const salt = this.generateSalt();
-    const key = this.deriveKey(password, salt);
-    let encrypted = '';
-    
-    for (let i = 0; i < text.length; i++) {
-      const charCode = text.charCodeAt(i);
-      const keyChar = key.charCodeAt(i % key.length);
-      encrypted += String.fromCharCode(charCode ^ keyChar);
-    }
-    
-    return salt + ':' + btoa(encrypted);
-  },
-  
-  decrypt(encryptedText, password) {
-    try {
-      const [salt, data] = encryptedText.split(':');
-      if (!salt || !data) return null;
-      
-      const key = this.deriveKey(password, salt);
-      const decoded = atob(data);
-      let decrypted = '';
-      
-      for (let i = 0; i < decoded.length; i++) {
-        const charCode = decoded.charCodeAt(i);
-        const keyChar = key.charCodeAt(i % key.length);
-        decrypted += String.fromCharCode(charCode ^ keyChar);
-      }
-      
-      return decrypted;
-    } catch (e) {
-      return null;
-    }
-  }
-};
-
-// ===================================
-// 安全模块
-// ===================================
-
-const Security = {
-  LOCK_KEY: '_uj_locked',
-  DATA_KEY: '_uj_data_encrypted',
-  HASH_KEY: '_uj_hash',
-  
-  isLocked() {
-    return localStorage.getItem(this.LOCK_KEY) === 'true';
-  },
-  
-  hasPassword() {
-    return !!localStorage.getItem(this.HASH_KEY);
-  },
-  
-  setPassword(password) {
-    const hash = this.hashPassword(password);
-    localStorage.setItem(this.HASH_KEY, hash);
-    localStorage.setItem(this.LOCK_KEY, 'true');
-  },
-  
-  verifyPassword(password) {
-    const hash = this.hashPassword(password);
-    return hash === localStorage.getItem(this.HASH_KEY);
-  },
-  
-  hashPassword(password) {
-    let hash = 0;
-    for (let i = 0; i < password.length; i++) {
-      const char = password.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return hash.toString(36);
-  },
-  
-  encryptData(items, password) {
-    const json = JSON.stringify(items);
-    const encrypted = Crypto.encrypt(json, password);
-    localStorage.setItem(this.DATA_KEY, encrypted);
-    StorageBackend.clear();
-  },
-  
-  decryptData(password) {
-    const encrypted = localStorage.getItem(this.DATA_KEY);
-    if (!encrypted) return null;
-    
-    const decrypted = Crypto.decrypt(encrypted, password);
-    if (!decrypted) return null;
-    
-    try {
-      return JSON.parse(decrypted);
-    } catch (e) {
-      return null;
-    }
-  },
-  
-  removePassword() {
-    localStorage.removeItem(this.HASH_KEY);
-    localStorage.removeItem(this.LOCK_KEY);
-    localStorage.removeItem(this.DATA_KEY);
-  }
-};
-
-// ===================================
-// 标签管理模块
-// ===================================
-
-const TagManager = {
-  // 当前已选标签（chip 模式）
-  currentTags: [],
-  
-  async getAllTags() {
-    if (window.IDBModule && IDBModule.db) {
-      return await IDBModule.getAllTags();
-    }
-    const items = await StorageBackend.getAll();
-    const tagMap = {};
-    items.forEach(item => {
-      if (item.tags && Array.isArray(item.tags)) {
-        item.tags.forEach(tag => {
-          tagMap[tag] = (tagMap[tag] || 0) + 1;
-        });
-      }
-    });
-    return Object.entries(tagMap)
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count);
-  },
-  
-  renderTagCloud(containerId, onSelect) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    
-    this.getAllTags().then(tags => {
-      if (tags.length === 0) {
-        container.innerHTML = '<p class="empty-tags">暂无标签</p>';
-        return;
-      }
-      
-      const maxCount = tags[0].count;
-      container.innerHTML = tags.map(tag => {
-        const size = 0.8 + (tag.count / maxCount) * 0.8;
-        return `<span class="tag-cloud-item" data-tag="${this.escapeHtml(tag.name)}" style="font-size: ${size}rem">${this.escapeHtml(tag.name)} (${tag.count})</span>`;
-      }).join('');
-      
-      container.querySelectorAll('.tag-cloud-item').forEach(item => {
-        item.addEventListener('click', () => {
-          onSelect(item.dataset.tag);
-        });
-      });
-    });
-  },
-  
-  parseTags(input) {
-    if (!input) return [];
-    return input
-      .split(/[,，\s]+/)
-      .map(t => t.trim().replace(/^#/, ''))
-      .filter(t => t.length > 0);
-  },
-  
-  escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  },
-  
-  /**
-   * 初始化标签 Chip 输入系统
-   * @param {string} inputId - 输入框 ID
-   * @param {string} wrapperId - 包裹容器 ID
-   */
-  initTagChipInput(inputId = 'create-tags', wrapperId = 'tag-input-wrapper') {
-    const input = document.getElementById(inputId);
-    const wrapper = document.getElementById(wrapperId);
-    
-    if (!input || !wrapper) return;
-    
-    this.currentTags = [];
-    
-    // 点击 wrapper 聚焦输入框
-    wrapper.addEventListener('click', (e) => {
-      if (e.target === wrapper || e.target.classList.contains('chip-remove')) return;
-      input.focus();
-    });
-    
-    // 输入框事件
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ',') {
-        e.preventDefault();
-        this._addTagFromInput(input);
-      }
-      if (e.key === 'Backspace' && input.value === '' && this.currentTags.length > 0) {
-        // 退格键删除最后一个标签
-        this.removeTag(this.currentTags[this.currentTags.length - 1]);
-        this._renderChips(wrapper, input);
-      }
-    });
-    
-    // 逗号/中文逗号分隔（input 事件处理粘贴等情况）
-    input.addEventListener('input', (e) => {
-      const val = input.value;
-      if (/[，,]/.test(val)) {
-        this._addTagFromInput(input);
-      }
-    });
-    
-    // 显示标签建议
-    input.addEventListener('input', () => {
-      this._showTagSuggestions(input.value.trim());
-    });
-    
-    input.addEventListener('blur', () => {
-      setTimeout(() => {
-        const suggestions = document.getElementById('tag-suggestions');
-        if (suggestions) suggestions.classList.remove('show');
-      }, 200);
-    });
-  },
-  
-  /**
-   * 从输入框添加标签
-   */
-  _addTagFromInput(input) {
-    const raw = input.value;
-    const tags = this.parseTags(raw);
-    
-    if (tags.length === 0) return;
-    
-    let addedAny = false;
-    tags.forEach(tag => {
-      if (this.addTag(tag)) {
-        addedAny = true;
-      }
-    });
-    
-    input.value = '';
-    
-    // 重新渲染 chips
-    const wrapper = document.getElementById('tag-input-wrapper');
-    if (wrapper) {
-      this._renderChips(wrapper, input);
-    }
-  },
-  
-  /**
-   * 添加标签（防重复）
-   * @returns {boolean} 是否成功添加
-   */
-  addTag(tag) {
-    tag = tag.trim().replace(/^#/, '');
-    if (!tag || this.currentTags.includes(tag)) return false;
-    
-    this.currentTags.push(tag);
-    return true;
-  },
-  
-  /**
-   * 移除标签
-   */
-  removeTag(tag) {
-    this.currentTags = this.currentTags.filter(t => t !== tag);
-  },
-  
-  /**
-   * 渲染标签 Chips
-   */
-  _renderChips(wrapper, input) {
-    // 清除旧 chips（保留 input 和 suggestions）
-    wrapper.querySelectorAll('.tag-chip').forEach(c => c.remove());
-    
-    // 在 input 前面插入 chips
-    this.currentTags.forEach(tag => {
-      const chip = document.createElement('span');
-      chip.className = 'tag-chip';
-      chip.innerHTML = `
-        <span class="chip-text">${this.escapeHtml(tag)}</span>
-        <button type="button" class="chip-remove" data-tag="${this.escapeHtml(tag)}">×</button>
-      `;
-      wrapper.insertBefore(chip, input);
-      
-      // 点击删除按钮
-      chip.querySelector('.chip-remove').addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.removeTag(e.target.dataset.tag);
-        this._renderChips(wrapper, input);
-      });
-    });
-  },
-  
-  /**
-   * 显示标签建议
-   */
-  _showTagSuggestions(query) {
-    const suggestionsEl = document.getElementById('tag-suggestions');
-    if (!suggestionsEl) return;
-    
-    if (!query) {
-      suggestionsEl.classList.remove('show');
-      return;
-    }
-    
-    this.getAllTags().then(tags => {
-      const matched = tags.filter(t => 
-        t.name.toLowerCase().includes(query.toLowerCase()) && 
-        !this.currentTags.includes(t.name)
-      ).slice(0, 5);
-      
-      if (matched.length === 0) {
-        suggestionsEl.classList.remove('show');
-        return;
-      }
-      
-      suggestionsEl.innerHTML = matched.map(tag => `
-        <div class="tag-suggestion-item" data-tag="${this.escapeHtml(tag.name)}">
-          ${this.escapeHtml(tag.name)}
-          <span class="tag-count">${tag.count}</span>
-        </div>
-      `).join('');
-      
-      suggestionsEl.classList.add('show');
-      
-      suggestionsEl.querySelectorAll('.tag-suggestion-item').forEach(item => {
-        item.addEventListener('click', () => {
-          this.addTag(item.dataset.tag);
-          const wrapper = document.getElementById('tag-input-wrapper');
-          const input = document.getElementById('create-tags');
-          if (wrapper && input) {
-            input.value = '';
-            this._renderChips(wrapper, input);
-          }
-          suggestionsEl.classList.remove('show');
-        });
-      });
-    });
-  },
-  
-  /**
-   * 获取当前选中的标签数组
-   */
-  getSelectedTags() {
-    return [...this.currentTags];
-  },
-  
-  /**
-   * 设置标签（用于编辑模式）
-   */
-  setTags(tags) {
-    this.currentTags = [...tags];
-    const wrapper = document.getElementById('tag-input-wrapper');
-    const input = document.getElementById('create-tags');
-    if (wrapper && input) {
-      input.value = '';
-      this._renderChips(wrapper, input);
-    }
-  }
-};
-
-// ===================================
-// 主题管理
-// ===================================
-
-const ThemeManager = {
-  currentTheme: 'light',
-  themes: [
-    { id: 'light', name: '明亮' },
-    { id: 'dark', name: '暗黑' },
-    { id: 'warm', name: '暖光' },
-    { id: 'ink', name: '墨影' }
-  ],
-  
-  init() {
-    const saved = localStorage.getItem('universal_journal_theme');
-    if (saved && this.themes.find(t => t.id === saved)) {
-      this.currentTheme = saved;
-    }
-    document.documentElement.setAttribute('data-theme', this.currentTheme);
-  },
-  
-  apply(themeId) {
-    const theme = this.themes.find(t => t.id === themeId);
-    if (!theme) return;
-    
-    document.documentElement.setAttribute('data-theme', themeId);
-    localStorage.setItem('universal_journal_theme', themeId);
-    this.currentTheme = themeId;
-    
-    const themeNameEl = document.getElementById('current-theme-name');
-    if (themeNameEl) themeNameEl.textContent = theme.name;
-  },
-  
-  renderOptions() {
-    const container = document.getElementById('theme-options');
-    if (!container) return;
-    
-    container.innerHTML = this.themes.map(theme => `
-      <div class="theme-option" data-theme="${theme.id}">
-        <div class="theme-preview" style="background: var(--bg); border-color: var(--primary)"></div>
-        <span class="theme-name">${theme.name}</span>
-      </div>
-    `).join('');
-    
-    container.querySelectorAll('.theme-option').forEach(option => {
-      option.addEventListener('click', () => {
-        this.apply(option.dataset.theme);
-        document.getElementById('theme-panel').classList.remove('show');
-      });
-    });
-  }
-};
-
-// ===================================
-// 密码 UI
-// ===================================
-
-const PasswordUI = {
-  currentAction: null,
-  currentCallback: null,
-  
-  showModal(title, hint, placeholder, callback) {
-    this.currentCallback = callback;
-    
-    const titleEl = document.getElementById('modal-title');
-    const hintEl = document.getElementById('modal-hint');
-    const input = document.getElementById('modal-password');
-    const modal = document.getElementById('password-modal');
-    
-    if (titleEl) titleEl.textContent = title;
-    if (hintEl) hintEl.textContent = hint || '';
-    if (input) {
-      input.placeholder = placeholder || '请输入密码';
-      input.value = '';
-    }
-    if (modal) modal.style.display = 'flex';
-    
-    setTimeout(() => { if (input) input.focus(); }, 100);
-  },
-  
-  hideModal() {
-    const modal = document.getElementById('password-modal');
-    if (modal) modal.style.display = 'none';
-    this.currentCallback = null;
-  },
-  
-  showError(message) {
-    const hint = document.getElementById('modal-hint');
-    if (hint) {
-      hint.textContent = message;
-      hint.className = 'modal-hint error';
-    }
-  },
-  
-  showLockScreen() {
-    const input = document.getElementById('lock-password');
-    const hint = document.getElementById('lock-hint');
-    const overlay = document.getElementById('lock-overlay');
-    
-    if (input) input.value = '';
-    if (hint) {
-      hint.textContent = '';
-      hint.className = 'lock-hint';
-    }
-    if (overlay) overlay.style.display = 'flex';
-    
-    setTimeout(() => { if (input) input.focus(); }, 100);
-  },
-  
-  hideLockScreen() {
-    const overlay = document.getElementById('lock-overlay');
-    if (overlay) overlay.style.display = 'none';
   }
 };
 
@@ -1308,7 +596,18 @@ const App = {
     const closeCatModalBtn = document.getElementById('close-category-modal');
     if (closeCatModalBtn) {
       closeCatModalBtn.addEventListener('click', () => {
-        this.closeModal('category-modal');
+        this.closeCategoryModal();
+      });
+    }
+    
+    // 分类管理器内部事件委托（处理动态生成的新增按钮等）
+    const catMgrModal = document.getElementById('category-manager-modal');
+    if (catMgrModal) {
+      catMgrModal.addEventListener('click', (e) => {
+        const addBtn = e.target.closest('#btn-add-category');
+        if (addBtn) {
+          this.openCategoryModal();
+        }
       });
     }
     
@@ -1649,7 +948,7 @@ const App = {
           ` : ''}
           <p class="item-notes">${this.escapeHtml(item.notes || '')}</p>
           <div class="item-meta">
-            <span class="item-date">${item.createdAt}</span>
+            <span class="item-date">${item.createdAt ? new Date(item.createdAt).toLocaleDateString('zh-CN') : '未知日期'}</span>
             ${item.favorite ? '<span class="item-favorite">⭐</span>' : ''}
           </div>
         </div>
@@ -2484,13 +1783,7 @@ const App = {
     const usedCats = [...new Set(this.items.map(i => i.category).filter(Boolean))];
     const allCats = [...new Set([...customCats, ...usedCats])];
     
-    // 始终渲染头部按钮和列表容器
-    let html = `
-      <div class="category-manager-header">
-        <button class="btn-sm btn-primary" id="btn-add-category">+ 新增分类</button>
-      </div>
-      <div class="category-manager-list">
-    `;
+    let html = '<div class="category-manager-list">';
     
     if (allCats.length === 0) {
       html += '<p class="empty-hint">暂无分类</p>';
@@ -2498,7 +1791,10 @@ const App = {
       html += allCats.map(cat => `
           <div class="category-manager-item">
             <span class="category-name">${this.escapeHtml(cat)}</span>
-            <button class="btn-sm btn-danger-outline" data-action="delete-category" data-name="${this.escapeHtml(cat)}">删除</button>
+            <div class="category-actions">
+              <button class="btn-sm btn-edit" data-action="edit-category" data-name="${this.escapeHtml(cat)}">编辑</button>
+              <button class="btn-sm btn-danger-outline" data-action="delete-category" data-name="${this.escapeHtml(cat)}">删除</button>
+            </div>
           </div>
         `).join('');
     }
@@ -2506,18 +1802,18 @@ const App = {
     html += '</div>';
     listEl.innerHTML = html;
     
-    // 绑定新增按钮
-    document.getElementById('btn-add-category')?.addEventListener('click', () => {
-      this.closeModal('category-manager-modal');
-      document.getElementById('category-modal').style.display = 'flex';
-    });
-    
-    // 绑定删除按钮 (事件委托)
+    // 事件委托处理编辑和删除
     listEl.addEventListener('click', (e) => {
+      const editBtn = e.target.closest('[data-action="edit-category"]');
+      if (editBtn) {
+        this.openCategoryModal(editBtn.dataset.name);
+        return;
+      }
+      
       const delBtn = e.target.closest('[data-action="delete-category"]');
       if (delBtn) {
         const name = delBtn.dataset.name;
-        if (confirm(`确定删除分类"${name}"吗？已使用该分类的记录将保留，但分类标签会被移除。`)) {
+        if (confirm(`确定删除分类"${name}"吗？相关记录将变为"未分类"。`)) {
           this.deleteCategory(name);
         }
       }
@@ -2535,17 +1831,36 @@ const App = {
     }
     
     const customCats = JSON.parse(localStorage.getItem('universal_journal_categories') || '[]');
-    if (customCats.includes(name)) {
-      this.showToast('分类已存在');
-      return;
+    
+    // 检查是新增还是编辑
+    if (this.editingCategoryName) {
+      // 编辑模式：更新名称
+      const index = customCats.indexOf(this.editingCategoryName);
+      if (index > -1) {
+        // 检查新名称是否与其他分类冲突
+        if (customCats.includes(name) && name !== this.editingCategoryName) {
+          this.showToast('分类名称已存在');
+          return;
+        }
+        customCats[index] = name;
+        // 更新记录中的分类名称
+        this.updateCategoryInItems(this.editingCategoryName, name);
+      }
+    } else {
+      // 新增模式
+      if (customCats.includes(name)) {
+        this.showToast('分类已存在');
+        return;
+      }
+      customCats.push(name);
     }
     
-    customCats.push(name);
     localStorage.setItem('universal_journal_categories', JSON.stringify(customCats));
     
     input.value = '';
-    this.closeModal('category-modal');
-    this.showToast('分类已添加');
+    this.closeCategoryModal();
+    this.showToast(this.editingCategoryName ? '分类已更新' : '分类已添加');
+    this.editingCategoryName = null;
     
     // 刷新列表如果管理器是打开的
     if (document.getElementById('category-manager-modal').style.display === 'flex') {
@@ -2562,14 +1877,62 @@ const App = {
     const filtered = customCats.filter(c => c !== name);
     localStorage.setItem('universal_journal_categories', JSON.stringify(filtered));
     
-    // 更新所有使用该分类的记录，将其分类置空或改为"未分类"
-    // 这里简单处理：不修改记录，只移除自定义分类列表。
-    // 记录上的分类依然存在，只是不再是"预定义"的。
+    // 更新记录中的分类
+    this.updateCategoryInItems(name, '');
     
     this.renderCategoryList();
     this.populateCategorySelect();
     this.renderCategoryFilter();
     this.showToast('分类已删除');
+  },
+
+  updateCategoryInItems(oldName, newName) {
+    // 异步更新 IndexedDB 或 localStorage 中的记录
+    StorageBackend.getAll().then(items => {
+      let changed = false;
+      items.forEach(item => {
+        if (item.category === oldName) {
+          item.category = newName;
+          changed = true;
+        }
+      });
+      if (changed) {
+        StorageBackend.save(items);
+        this.items = items;
+        this.renderItems();
+      }
+    });
+  },
+  
+  openCategoryModal(editingName = null) {
+    const modal = document.getElementById('category-modal');
+    const titleEl = document.getElementById('category-modal-title');
+    const input = document.getElementById('category-name-input');
+    
+    if (modal) {
+      modal.style.display = 'flex';
+      if (editingName) {
+        if (titleEl) titleEl.textContent = '编辑分类';
+        if (input) input.value = editingName;
+        this.editingCategoryName = editingName;
+      } else {
+        if (titleEl) titleEl.textContent = '新增分类';
+        if (input) input.value = '';
+        this.editingCategoryName = null;
+      }
+      setTimeout(() => { if (input) input.focus(); }, 100);
+    }
+  },
+
+  closeCategoryModal() {
+    this.closeModal('category-modal');
+  },
+
+  closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+      modal.style.display = 'none';
+    }
   }
 };
 
@@ -2581,18 +1944,12 @@ document.addEventListener('DOMContentLoaded', () => {
   App.init();
 });
 
-// 导出到全局
+// 导出到全局（仅导出未独立成模块的对象）
 window.App = App;
-window.ThemeManager = ThemeManager;
 window.StorageBackend = StorageBackend;
-window.Security = Security;
-window.Crypto = Crypto;
-window.TagManager = TagManager;
 window.ImageProcessor = ImageProcessor;
 window.IDBModule = IDBModule;
 window.TrashManager = TrashManager;
 window.DraftManager = DraftManager;
-window.BatchManager = BatchManager;
 window.CalendarView = CalendarView;
-window.TemplateManager = TemplateManager;
 window.TemplateManager = TemplateManager;

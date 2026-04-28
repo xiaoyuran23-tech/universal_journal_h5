@@ -15,9 +15,12 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     
-    <title>万物手札 v3.2.1-hotfix.3 - 记录世间万物</title>
-    <link rel="stylesheet" href="style.css?v=3.2.1-hotfix.3">
-    <link rel="stylesheet" href="animations.css?v=3.2.1-hotfix.3">
+    <title>万物手札 v3.3.0 - 记录世间万物</title>
+    <link rel="stylesheet" href="style.css?v=3.3.0">
+    <link rel="stylesheet" href="animations.css?v=3.3.0">
+    
+    <!-- ECharts CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     
     <!-- iOS 兼容性修复 -->
     <script>
@@ -278,7 +281,7 @@
                     <div class="settings-section">
                         <h3 class="settings-section-title">关于</h3>
                         <div class="settings-item about-item">
-                            <span>万物手札 v3.2.1-hotfix.3</span>
+                            <span>万物手札 v3.3.0</span>
                             <span class="about-version">自定义分类版</span>
                         </div>
                     </div>
@@ -488,8 +491,29 @@
                 <button class="modal-close" id="close-category-manager">×</button>
             </div>
             <div class="modal-body">
-                <div id="category-list">
+                <button class="btn-add-category" id="btn-add-category">+ 新增分类</button>
+                <div id="category-list" class="category-manager-list">
                     <!-- 动态渲染分类列表 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增/编辑分类弹窗 -->
+    <div id="category-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="category-modal-title">新增分类</h3>
+                <button class="modal-close" id="close-category-modal">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="category-name-input">分类名称</label>
+                    <input type="text" id="category-name-input" placeholder="输入分类名称">
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" id="category-cancel-btn">取消</button>
+                    <button class="btn btn-primary" id="save-category-btn">保存</button>
                 </div>
             </div>
         </div>
@@ -557,19 +581,24 @@
     <!-- 提示消息 -->
     <div class="toast" id="toast"></div>
 
-    <!-- JavaScript 模块 -->
-    <!-- <script src="js/storage.js?v=2.7.5"></script> --> <!-- 已禁用：与 app.js 中的 Storage 冲突 -->
-    <!-- <script src="js/ui.js?v=2.7.5"></script> --> <!-- 已禁用：功能已整合至 app.js，避免冗余加载 -->
-    <script src="js/sync.js?v=2.7.5"></script>
-    <script src="js/idb.js?v=3.2.1-hotfix.3"></script>
-    <script src="js/draft.js?v=3.2.1-hotfix.3"></script>
-    <script src="js/trash.js?v=3.2.1-hotfix.3"></script>
-    <script src="js/calendar.js?v=3.2.1-hotfix.3"></script>
-    <script src="js/template.js?v=3.2.1-hotfix.3"></script>
-    <script src="js/timeline.js?v=3.2.1-hotfix.3"></script>
-    <script src="js/visuals.js?v=3.2.1-hotfix.3"></script>
-    <script src="js/image-processor.js?v=3.2.1-hotfix.3"></script>
-    <script src="js/cloud-sync.js?v=3.2.1-hotfix.3"></script>
-    <script src="js/app.js?v=3.2.1-hotfix.3"></script>
+    <!-- JavaScript 模块 (v3.3.0 重构版) -->
+    <!-- 基础模块 -->
+    <script src="js/security.js?v=3.3.0"></script>
+    <script src="js/theme.js?v=3.3.0"></script>
+    <script src="js/tag-manager.js?v=3.3.0"></script>
+    <script src="js/batch.js?v=3.3.0"></script>
+    <!-- 核心数据层 -->
+    <script src="js/idb.js?v=3.3.0"></script>
+    <script src="js/draft.js?v=3.3.0"></script>
+    <script src="js/trash.js?v=3.3.0"></script>
+    <!-- 功能模块 -->
+    <script src="js/calendar.js?v=3.3.0"></script>
+    <script src="js/template.js?v=3.3.0"></script>
+    <script src="js/timeline.js?v=3.3.0"></script>
+    <script src="js/visuals.js?v=3.3.0"></script>
+    <script src="js/image-processor.js?v=3.3.0"></script>
+    <script src="js/cloud-sync.js?v=3.3.0"></script>
+    <!-- 主应用控制器 -->
+    <script src="js/app.js?v=3.3.0"></script>
 </body>
 </html>

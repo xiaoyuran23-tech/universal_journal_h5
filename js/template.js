@@ -481,6 +481,87 @@ const TemplateManager = {
     if (window.App) {
       App.showToast('模板已保存');
     }
+  },
+  
+  /**
+   * 显示模板管理页
+   */
+  showTemplateManager() {
+    const container = document.getElementById('template-manager-container');
+    if (!container) return;
+    
+    const templates = this.getAllTemplates();
+    const defaultIds = this.DEFAULT_TEMPLATES.map(t => t.id);
+    
+    let html = '<div class="template-manager-list">';
+    
+    templates.forEach(t => {
+      const isDefault = defaultIds.includes(t.id);
+      html += `
+        <div class="template-manager-item" data-id="${t.id}">
+          <span class="template-item-icon">${t.icon || '📝'}</span>
+          <div class="template-item-info">
+            <div class="template-item-name">${this._escapeHtml(t.name)}</div>
+            <div class="template-item-desc">${this._escapeHtml(t.description || '')}</div>
+          </div>
+          <div class="template-item-actions">
+            <button class="btn-sm btn-use" data-action="use" data-id="${t.id}">使用</button>
+            ${!isDefault ? `<button class="btn-sm btn-delete" data-action="delete" data-id="${t.id}">删除</button>` : ''}
+          </div>
+        </div>
+      `;
+    });
+    
+    html += '</div>';
+    html += '<button class="btn-add-template" id="btn-add-template"><span>+</span> 新增模板</button>';
+    
+    container.innerHTML = html;
+  },
+  
+  /**
+   * 绑定模板管理页事件
+   */
+  bindTemplateManagerEvents() {
+    // 使用全局事件委托，避免重复绑定
+    if (this._managerEventsBound) return;
+    this._managerEventsBound = true;
+    
+    const container = document.getElementById('template-manager-container');
+    if (!container) return;
+    
+    container.addEventListener('click', (e) => {
+      const useBtn = e.target.closest('[data-action="use"]');
+      if (useBtn) {
+        this.applyTemplate(useBtn.dataset.id);
+        if (window.App) {
+          App.switchPage('form');
+        }
+        return;
+      }
+      
+      const deleteBtn = e.target.closest('[data-action="delete"]');
+      if (deleteBtn) {
+        if (confirm('确定删除此模板？')) {
+          this.deleteTemplate(deleteBtn.dataset.id);
+          this.showTemplateManager(); // 重新渲染
+        }
+        return;
+      }
+    });
+    
+    // 新增模板按钮
+    const addBtn = document.getElementById('btn-add-template');
+    if (addBtn) {
+      addBtn.addEventListener('click', () => {
+        if (window.App) {
+          App.switchPage('form');
+        }
+        // 提示用户填写内容后保存为模板
+        setTimeout(() => {
+          this.showSaveTemplateModal();
+        }, 300);
+      });
+    }
   }
 };
 
