@@ -97,8 +97,75 @@ const TagManager = {
     return [...this.currentTags];
   },
   
+  /**
+   * 初始化标签 Chip 输入框
+   * 监听输入框，支持回车、逗号、空格分隔
+   */
+  initTagChipInput() {
+    const input = document.getElementById('create-tags');
+    const wrapper = document.getElementById('tag-input-wrapper');
+    if (!input || !wrapper) return;
+    
+    // 清理旧的监听器（防止重复绑定）
+    const newInput = input.cloneNode(true);
+    input.parentNode.replaceChild(newInput, input);
+    
+    // 维护当前输入框中的标签列表
+    let tags = [];
+    
+    const renderChips = () => {
+      // 清空 wrapper 中除了 input 以外的内容
+      const chips = wrapper.querySelectorAll('.tag-chip-input');
+      chips.forEach(c => c.remove());
+      
+      // 在每个 chip 前面插入
+      tags.forEach((tag, index) => {
+        const chip = document.createElement('span');
+        chip.className = 'tag-chip-input';
+        chip.textContent = tag;
+        
+        const removeBtn = document.createElement('span');
+        removeBtn.className = 'tag-chip-remove';
+        removeBtn.innerHTML = '&times;';
+        removeBtn.onclick = (e) => {
+          e.stopPropagation();
+          tags.splice(index, 1);
+          renderChips();
+        };
+        
+        chip.appendChild(removeBtn);
+        wrapper.insertBefore(chip, newInput);
+      });
+      
+      // 更新 currentTags 供表单提交使用
+      this.currentTags = [...tags];
+    };
+    
+    newInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ',' || e.key === ' ') {
+        e.preventDefault();
+        const val = newInput.value.trim().replace(/,/g, '').replace(/ /g, '');
+        if (val && !tags.includes(val)) {
+          tags.push(val);
+          newInput.value = '';
+          renderChips();
+        }
+      }
+    });
+    
+    // 暴露 clear 方法供表单重置使用
+    this.clearInput = () => {
+      tags = [];
+      newInput.value = '';
+      renderChips();
+    };
+  },
+  
   clearSelectedTags() {
     this.currentTags = [];
+    if (typeof this.clearInput === 'function') {
+      this.clearInput();
+    }
     document.querySelectorAll('.tag-chip.active').forEach(chip => {
       chip.classList.remove('active');
     });
