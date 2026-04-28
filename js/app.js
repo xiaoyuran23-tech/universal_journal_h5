@@ -1,6 +1,6 @@
 /**
- * 万物手札 H5 - 主应用逻辑 v3.2.1-hotfix.2
- * 修复：分类管理逻辑、云同步事件绑定、Toast 提示样式
+ * 万物手札 H5 - 主应用逻辑 v3.2.1-hotfix.3
+ * 修复：分类管理按钮显示逻辑、补全云同步模块引用
  */
 
 // ===================================
@@ -2484,24 +2484,27 @@ const App = {
     const usedCats = [...new Set(this.items.map(i => i.category).filter(Boolean))];
     const allCats = [...new Set([...customCats, ...usedCats])];
     
-    if (allCats.length === 0) {
-      listEl.innerHTML = '<p class="empty-hint">暂无分类</p>';
-      return;
-    }
-    
-    listEl.innerHTML = `
+    // 始终渲染头部按钮和列表容器
+    let html = `
       <div class="category-manager-header">
         <button class="btn-sm btn-primary" id="btn-add-category">+ 新增分类</button>
       </div>
       <div class="category-manager-list">
-        ${allCats.map(cat => `
+    `;
+    
+    if (allCats.length === 0) {
+      html += '<p class="empty-hint">暂无分类</p>';
+    } else {
+      html += allCats.map(cat => `
           <div class="category-manager-item">
             <span class="category-name">${this.escapeHtml(cat)}</span>
             <button class="btn-sm btn-danger-outline" data-action="delete-category" data-name="${this.escapeHtml(cat)}">删除</button>
           </div>
-        `).join('')}
-      </div>
-    `;
+        `).join('');
+    }
+    
+    html += '</div>';
+    listEl.innerHTML = html;
     
     // 绑定新增按钮
     document.getElementById('btn-add-category')?.addEventListener('click', () => {
