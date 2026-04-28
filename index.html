@@ -15,9 +15,9 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     
-    <title>万物手札 v2.5.0 - 记录世间万物</title>
-    <link rel="stylesheet" href="style.css?v=2.9.1">
-    <link rel="stylesheet" href="animations.css?v=2.9.1">
+    <title>万物手札 v3.2.1 - 记录世间万物</title>
+    <link rel="stylesheet" href="style.css?v=3.2.1">
+    <link rel="stylesheet" href="animations.css?v=3.2.1">
     
     <!-- iOS 兼容性修复 -->
     <script>
@@ -62,6 +62,22 @@
                 <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path>
             </svg>
             <span class="tab-label">记录</span>
+        </button>
+        <button class="tab-item" data-page="calendar">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            <span class="tab-label">日历</span>
+        </button>
+        <button class="tab-item" data-page="timeline">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M12 7v5l3 3"></path>
+            </svg>
+            <span class="tab-label">故事</span>
         </button>
         <button class="tab-item" data-page="favorites">
             <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -110,12 +126,49 @@
                     <circle cx="11" cy="11" r="8"></circle>
                     <path d="m21 21-4.35-4.35"></path>
                 </svg>
-                <input type="text" class="search-input" id="search-input" placeholder="搜索名称、备注...">
+                <input type="text" class="search-input" id="search-input" placeholder="搜索名称、备注、标签...">
+            </div>
+            
+            <!-- 分类筛选 -->
+            <div class="category-filter" id="category-filter">
+                <button class="category-item active" data-category="">全部</button>
+            </div>
+            
+            <!-- 标签筛选 -->
+            <div class="tag-filter" id="tag-filter">
+                <!-- 动态生成标签 -->
             </div>
             
             <!-- 记录列表容器 -->
             <div class="items-container" id="items-container">
                 <!-- 动态生成记录卡片 -->
+            </div>
+        </section>
+
+        <!-- 日历页 -->
+        <section id="page-calendar" class="page">
+            <div class="calendar-container" id="calendar-container">
+                <!-- 动态渲染日历 -->
+            </div>
+            <!-- 选中日期的记录列表 -->
+            <div class="calendar-day-items" id="calendar-day-items">
+                <div class="calendar-day-header">
+                    <h3 id="calendar-day-title">选择日期查看记录</h3>
+                    <button class="cal-back-btn" id="cal-back-btn" style="display:none;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                            <path d="M19 12H5M12 19l-7-7 7-7"></path>
+                        </svg>
+                        返回日历
+                    </button>
+                </div>
+                <div class="items-container" id="calendar-items-list"></div>
+            </div>
+        </section>
+
+        <!-- 时间线/故事页 -->
+        <section id="page-timeline" class="page">
+            <div class="timeline-container" id="timeline-container">
+                <!-- 动态渲染时间线 -->
             </div>
         </section>
 
@@ -151,6 +204,11 @@
                         </svg>
                     </div>
                     <h2 class="profile-name">用户</h2>
+                </div>
+                
+                <!-- 数据可视化区域 -->
+                <div class="visuals-container" id="visuals-container">
+                    <!-- 动态渲染热力图、趋势图等 -->
                 </div>
                 
                 <div class="settings-container">
@@ -207,11 +265,163 @@
                     <div class="settings-section">
                         <h3 class="settings-section-title">关于</h3>
                         <div class="settings-item about-item">
-                            <span>万物手札 v2.5.0</span>
+                            <span>万物手札 v3.2.1</span>
                             <span class="about-version">自定义分类版</span>
                         </div>
                     </div>
                 </div>
+            </div>
+        </section>
+
+        <!-- 新建/编辑记录页 -->
+        <section id="page-form" class="page">
+            <div class="form-header">
+                <button class="form-back-btn" id="create-back-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"></path>
+                    </svg>
+                    取消
+                </button>
+                <h2 class="form-title" id="create-title">新建记录</h2>
+                <button class="form-save-btn" id="create-save-btn">保存</button>
+            </div>
+            
+            <div class="form-body">
+                <!-- 模板选择器 -->
+                <div class="template-selector" id="template-selector" style="display:none;">
+                    <!-- 动态渲染模板 -->
+                </div>
+                <button class="btn-use-template" id="btn-use-template">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="12" y1="8" x2="12" y2="16"></line>
+                        <line x1="8" y1="12" x2="16" y2="12"></line>
+                    </svg>
+                    使用模板快速创建
+                </button>
+                
+                <div class="form-group">
+                    <label for="create-name">名称</label>
+                    <input type="text" id="create-name" placeholder="给这条记录起个名字" maxlength="100" autocomplete="off">
+                </div>
+                
+                <div class="form-group">
+                    <label for="create-category">分类</label>
+                    <select id="create-category">
+                        <option value="">选择分类</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>标签</label>
+                    <div class="tag-input-wrapper" id="tag-input-wrapper">
+                        <input type="text" class="tag-input-field" id="create-tags" placeholder="输入标签，按回车或逗号添加" autocomplete="off">
+                    </div>
+                    <p class="form-hint">按回车、逗号或空格分隔标签，重复标签会自动忽略</p>
+                    <div class="tag-suggestions" id="tag-suggestions"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="create-rich-content">备注</label>
+                    <div class="rich-editor" id="create-rich-content" contenteditable="true" placeholder="写下你的想法..."></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="create-status">状态</label>
+                    <select id="create-status">
+                        <option value="in-use">使用中</option>
+                        <option value="idle">闲置</option>
+                        <option value="lost">遗失</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="create-date">日期</label>
+                    <input type="date" id="create-date">
+                </div>
+                
+                <div class="form-group">
+                    <label>照片</label>
+                    <div class="photo-upload-progress" id="photo-upload-progress">
+                        <div class="progress-header">
+                            <span id="photo-progress-text">正在压缩...</span>
+                            <span id="photo-progress-percent">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="photo-progress-fill"></div>
+                        </div>
+                    </div>
+                    <div class="photo-preview" id="photo-preview"></div>
+                    <div class="photo-summary" id="photo-summary" style="display: none;">
+                        <span>📸 已添加 <span class="summary-count">0</span> 张照片</span>
+                        <span class="summary-total">共节省 <span class="summary-saved">0 KB</span></span>
+                    </div>
+                    <input type="file" id="create-photo-input" accept="image/*" multiple style="display:none;">
+                    <button type="button" id="create-photo-btn" class="btn-photo-add">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                        添加照片
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 详情页 -->
+        <section id="page-detail" class="page">
+            <div class="detail-header">
+                <button class="detail-back-btn" id="detail-back-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"></path>
+                    </svg>
+                    返回
+                </button>
+                <h2 class="detail-title">记录详情</h2>
+                <div class="detail-actions">
+                    <button class="detail-action-btn" id="detail-favorite-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                        </svg>
+                    </button>
+                    <button class="detail-action-btn" id="detail-edit-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                    </button>
+                    <button class="detail-action-btn" id="detail-delete-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="detail-body" id="detail-body">
+                <!-- 动态生成详情内容 -->
+            </div>
+        </section>
+
+        <!-- 回收站页 -->
+        <section id="page-trash" class="page">
+            <div class="trash-header">
+                <h2>🗑️ 回收站</h2>
+                <p class="trash-desc">已删除的记录将保留 30 天</p>
+            </div>
+            <div class="items-container" id="trash-container">
+                <!-- 动态生成回收站列表 -->
+            </div>
+        </section>
+
+        <!-- 统计页 -->
+        <section id="page-stats" class="page">
+            <div class="stats-header">
+                <h2>📊 数据统计</h2>
+            </div>
+            <div class="stats-container" id="stats-container">
+                <!-- 动态生成统计内容 -->
             </div>
         </section>
 
@@ -287,91 +497,6 @@
         </div>
     </div>
 
-    <!-- 详情页 -->
-    <section id="page-detail" class="page detail-page">
-        <div class="page-header">
-            <button class="back-btn" id="detail-back-btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="m15 18-6-6 6-6"></path>
-                </svg>
-            </button>
-            <h2>详情</h2>
-            <button class="detail-action-btn" id="detail-edit-btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                </svg>
-            </button>
-            <button class="detail-action-btn" id="detail-delete-btn" style="color: #ef4444;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M3 6h18"></path>
-                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                </svg>
-            </button>
-        </div>
-        <div class="detail-content" id="detail-content">
-            <!-- 动态生成详情内容 -->
-        </div>
-    </section>
-
-    <!-- 编辑/新建表单页 -->
-    <section id="page-form" class="page form-page">
-        <div class="page-header">
-            <button class="back-btn" id="create-back-btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="m15 18-6-6 6-6"></path>
-                </svg>
-            </button>
-            <h2 id="create-title">新建记录</h2>
-            <div class="form-actions">
-                <button class="form-action-btn" id="create-save-btn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                        <polyline points="7 3 7 8 15 8"></polyline>
-                    </svg>
-                </button>
-            </div>
-        </div>
-        <div class="form-container">
-            <div class="form-group">
-                <label for="create-name">名称</label>
-                <input type="text" id="create-name" placeholder="输入名称" required>
-            </div>
-            <div class="form-group">
-                <label for="create-category">分类</label>
-                <select id="create-category">
-                    <!-- 动态渲染：预设 + 自定义 -->
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="create-date">日期（可选）</label>
-                <input type="date" id="create-date">
-            </div>
-            <div class="form-group">
-                <label for="create-notes">备注</label>
-                <textarea id="create-notes" placeholder="输入备注信息..."></textarea>
-            </div>
-            <div class="form-group">
-                <label class="form-label">照片</label>
-                <div class="photo-upload-area">
-                    <input type="file" id="create-photo-input" accept="image/*" multiple style="display:none;" />
-                    <button type="button" id="create-photo-btn" class="btn-photo-add">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                            <polyline points="21 15 16 10 5 21"></polyline>
-                        </svg>
-                        添加照片
-                    </button>
-                    <p class="photo-hint">支持多选，照片将保存在本地</p>
-                </div>
-                <div class="photo-preview" id="photo-preview"></div>
-            </div>
-        </div>
-    </section>
-
     <!-- 悬浮操作按钮 (FAB) -->
     <button class="fab" id="fab-add">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -397,7 +522,15 @@
     <!-- JavaScript 模块 -->
     <!-- <script src="js/storage.js?v=2.7.5"></script> --> <!-- 已禁用：与 app.js 中的 Storage 冲突 -->
     <!-- <script src="js/ui.js?v=2.7.5"></script> --> <!-- 已禁用：功能已整合至 app.js，避免冗余加载 -->
-    <script src="js/sync.js?v=2.8.2"></script>
-    <script src="js/app.js?v=2.9.1"></script>
+    <script src="js/sync.js?v=2.7.5"></script>
+    <script src="js/idb.js?v=3.2.1"></script>
+    <script src="js/draft.js?v=3.2.1"></script>
+    <script src="js/trash.js?v=3.2.1"></script>
+    <script src="js/calendar.js?v=3.2.1"></script>
+    <script src="js/template.js?v=3.2.1"></script>
+    <script src="js/timeline.js?v=3.2.1"></script>
+    <script src="js/visuals.js?v=3.2.1"></script>
+    <script src="js/image-processor.js?v=3.2.1"></script>
+    <script src="js/app.js?v=3.2.1"></script>
 </body>
 </html>

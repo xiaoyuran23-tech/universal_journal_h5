@@ -1,0 +1,355 @@
+/**
+ * 万物手札 H5 - 模板系统模块
+ * 提供预设模板和自定义模板功能
+ * 版本：v3.2.0
+ */
+
+const TemplateManager = {
+  STORAGE_KEY: 'journal_templates',
+  
+  // 内置默认模板
+  DEFAULT_TEMPLATES: [
+    {
+      id: 'tpl_shopping',
+      name: '购物清单',
+      icon: '🛒',
+      category: '生活',
+      description: '记录需要购买的物品',
+      fields: [
+        { label: '购物地点', type: 'text', value: '' },
+        { label: '预算', type: 'text', value: '' },
+        { label: '清单', type: 'textarea', value: '' },
+        { label: '备注', type: 'textarea', value: '' }
+      ]
+    },
+    {
+      id: 'tpl_reading',
+      name: '读书笔记',
+      icon: '📖',
+      category: '学习',
+      description: '记录阅读心得和摘抄',
+      fields: [
+        { label: '书名', type: 'text', value: '' },
+        { label: '作者', type: 'text', value: '' },
+        { label: '评分', type: 'text', value: '⭐⭐⭐⭐⭐' },
+        { label: '摘抄', type: 'textarea', value: '' },
+        { label: '读后感', type: 'textarea', value: '' }
+      ]
+    },
+    {
+      id: 'tpl_travel',
+      name: '旅行计划',
+      icon: '✈️',
+      category: '生活',
+      description: '规划旅行行程和必备物品',
+      fields: [
+        { label: '目的地', type: 'text', value: '' },
+        { label: '出发日期', type: 'date', value: '' },
+        { label: '返回日期', type: 'date', value: '' },
+        { label: '行程安排', type: 'textarea', value: '' },
+        { label: '必备物品', type: 'textarea', value: '' },
+        { label: '预算', type: 'text', value: '' }
+      ]
+    },
+    {
+      id: 'tpl_movie',
+      name: '观影记录',
+      icon: '🎬',
+      category: '娱乐',
+      description: '记录观影感受和评价',
+      fields: [
+        { label: '电影名', type: 'text', value: '' },
+        { label: '导演', type: 'text', value: '' },
+        { label: '评分', type: 'text', value: '⭐⭐⭐⭐⭐' },
+        { label: '观影地点', type: 'text', value: '' },
+        { label: '影评', type: 'textarea', value: '' }
+      ]
+    },
+    {
+      id: 'tpl_meeting',
+      name: '会议纪要',
+      icon: '📋',
+      category: '工作',
+      description: '记录会议内容和待办事项',
+      fields: [
+        { label: '会议主题', type: 'text', value: '' },
+        { label: '参会人员', type: 'text', value: '' },
+        { label: '会议时间', type: 'text', value: '' },
+        { label: '会议内容', type: 'textarea', value: '' },
+        { label: '待办事项', type: 'textarea', value: '' }
+      ]
+    }
+  ],
+  
+  /**
+   * 初始化模板系统
+   */
+  init() {
+    this._ensureDefaults();
+    this.renderTemplateSelector();
+    this.bindEvents();
+  },
+  
+  /**
+   * 确保默认模板存在
+   */
+  _ensureDefaults() {
+    const custom = this.getCustomTemplates();
+    const existingIds = custom.map(t => t.id);
+    
+    // 合并默认模板（去重）
+    const defaults = this.DEFAULT_TEMPLATES.filter(t => !existingIds.includes(t.id));
+    if (defaults.length > 0) {
+      this.saveTemplates([...defaults, ...custom]);
+    }
+  },
+  
+  /**
+   * 获取所有模板
+   */
+  getAllTemplates() {
+    const stored = localStorage.getItem(this.STORAGE_KEY);
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch (e) {
+        return [...this.DEFAULT_TEMPLATES];
+      }
+    }
+    return [...this.DEFAULT_TEMPLATES];
+  },
+  
+  /**
+   * 获取自定义模板（排除内置）
+   */
+  getCustomTemplates() {
+    const all = this.getAllTemplates();
+    const defaultIds = this.DEFAULT_TEMPLATES.map(t => t.id);
+    return all.filter(t => !defaultIds.includes(t.id));
+  },
+  
+  /**
+   * 保存模板列表
+   */
+  saveTemplates(templates) {
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(templates));
+  },
+  
+  /**
+   * 根据 ID 获取模板
+   */
+  getTemplate(id) {
+    return this.getAllTemplates().find(t => t.id === id);
+  },
+  
+  /**
+   * 添加自定义模板
+   */
+  addCustomTemplate(template) {
+    const all = this.getAllTemplates();
+    template.id = 'tpl_custom_' + Date.now();
+    all.push(template);
+    this.saveTemplates(all);
+    this.renderTemplateSelector();
+    return template;
+  },
+  
+  /**
+   * 删除模板
+   */
+  deleteTemplate(id) {
+    const defaultIds = this.DEFAULT_TEMPLATES.map(t => t.id);
+    if (defaultIds.includes(id)) return false; // 不允许删除内置模板
+    
+    const all = this.getAllTemplates().filter(t => t.id !== id);
+    this.saveTemplates(all);
+    this.renderTemplateSelector();
+    return true;
+  },
+  
+  /**
+   * 应用模板到表单
+   */
+  applyTemplate(id) {
+    const template = this.getTemplate(id);
+    if (!template) return;
+    
+    // 设置分类
+    if (template.category) {
+      const categorySelect = document.getElementById('create-category');
+      if (categorySelect) {
+        // 如果分类不存在，先添加
+        const exists = [...categorySelect.options].some(opt => opt.value === template.category);
+        if (!exists) {
+          const option = document.createElement('option');
+          option.value = template.category;
+          option.textContent = template.category;
+          categorySelect.appendChild(option);
+        }
+        categorySelect.value = template.category;
+      }
+    }
+    
+    // 构建备注内容 (富文本编辑器)
+    const richEditor = document.getElementById('create-rich-content');
+    if (richEditor && template.fields) {
+      const html = template.fields.map(f => {
+        const label = f.label || '';
+        const value = f.value || '';
+        return `<p><strong>${label}:</strong> ${value}</p>`;
+      }).join('\n');
+      richEditor.innerHTML = html;
+    }
+    
+    // 设置名称
+    const nameEl = document.getElementById('create-name');
+    if (nameEl && template.name) {
+      nameEl.value = template.name;
+    }
+    
+    // 触发草稿保存
+    if (window.DraftManager) {
+      DraftManager.saveDraft();
+    }
+    
+    // 隐藏模板选择器
+    this.hideTemplateSelector();
+    
+    // 提示
+    if (window.App) {
+      App.showToast(`已应用模板: ${template.icon} ${template.name}`);
+    }
+  },
+  
+  /**
+   * 将当前表单保存为模板
+   */
+  saveCurrentAsTemplate(name, icon, category) {
+    const richEditor = document.getElementById('create-rich-content');
+    const nameEl = document.getElementById('create-name');
+    
+    // 从富文本编辑器解析字段
+    const fields = [];
+    if (richEditor) {
+      const paragraphs = richEditor.querySelectorAll('p');
+      paragraphs.forEach(p => {
+        const strong = p.querySelector('strong');
+        if (strong) {
+          const label = strong.textContent.replace(':', '').trim();
+          // 获取 strong 后面的文本
+          let value = '';
+          const nextSibling = strong.nextSibling;
+          if (nextSibling) {
+            value = nextSibling.textContent.trim();
+          }
+          fields.push({
+            label,
+            type: 'textarea',
+            value
+          });
+        } else {
+          fields.push({ label: '', type: 'textarea', value: p.textContent.trim() });
+        }
+      });
+    }
+    
+    const template = {
+      name: name || nameEl?.value || '未命名模板',
+      icon: icon || '📝',
+      category: category || '',
+      description: '自定义模板',
+      fields
+    };
+    
+    return this.addCustomTemplate(template);
+  },
+  
+  /**
+   * 渲染模板选择器
+   */
+  renderTemplateSelector() {
+    const container = document.getElementById('template-selector');
+    if (!container) return;
+    
+    const templates = this.getAllTemplates();
+    
+    container.innerHTML = `
+      <div class="template-header">
+        <span>📋 使用模板快速创建</span>
+        <button class="template-close-btn" id="template-close-btn">×</button>
+      </div>
+      <div class="template-list">
+        ${templates.map(t => `
+          <div class="template-card" data-id="${t.id}">
+            <span class="template-icon">${t.icon || '📝'}</span>
+            <div class="template-info">
+              <span class="template-name">${this._escapeHtml(t.name)}</span>
+              <span class="template-desc">${this._escapeHtml(t.description || '')}</span>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  },
+  
+  /**
+   * 显示模板选择器
+   */
+  showTemplateSelector() {
+    const container = document.getElementById('template-selector');
+    if (container) {
+      container.style.display = 'block';
+      this.renderTemplateSelector();
+    }
+  },
+  
+  /**
+   * 隐藏模板选择器
+   */
+  hideTemplateSelector() {
+    const container = document.getElementById('template-selector');
+    if (container) {
+      container.style.display = 'none';
+    }
+  },
+  
+  /**
+   * 绑定事件
+   */
+  bindEvents() {
+    // 防止重复绑定
+    if (this._eventsBound) return;
+    this._eventsBound = true;
+    
+    const container = document.getElementById('template-selector');
+    if (!container) return;
+    
+    container.addEventListener('click', (e) => {
+      const closeBtn = e.target.closest('#template-close-btn');
+      const templateCard = e.target.closest('.template-card');
+      
+      if (closeBtn) {
+        this.hideTemplateSelector();
+        return;
+      }
+      
+      if (templateCard) {
+        const id = templateCard.dataset.id;
+        if (id) this.applyTemplate(id);
+      }
+    });
+  },
+  
+  /**
+   * HTML 转义
+   */
+  _escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+};
+
+// 全局导出
+window.TemplateManager = TemplateManager;
