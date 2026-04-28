@@ -21,6 +21,16 @@
     
     <!-- iOS 兼容性修复 -->
     <script>
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            console.error('Error: ' + msg + '\nURL: ' + url + '\nLine: ' + lineNo + '\nColumn: ' + columnNo + '\nStack: ' + (error && error.stack));
+            window.__lastError = msg + ' (Line ' + lineNo + ')';
+            document.body.innerHTML = '<div style="padding:20px;color:red;font-family:monospace;">FATAL ERROR:<br>' + msg + '<br>Line: ' + lineNo + '</div>';
+            return false;
+        };
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('Unhandled Rejection: ' + event.reason);
+            window.__lastError = 'Unhandled Rejection: ' + event.reason;
+        });
         // 检测 iOS 独立 Web App 模式
         window.isIOSStandalone = window.navigator.standalone || false;
         
@@ -376,9 +386,9 @@
     <div class="toast" id="toast"></div>
 
     <!-- JavaScript 模块 -->
-    <script src="js/storage.js?v=2.7.0"></script>
-    <script src="js/ui.js?v=2.7.0"></script>
-    <script src="js/sync.js?v=2.7.0"></script>
-    <script src="js/app.js?v=2.7.0"></script>
+    <!-- <script src="js/storage.js?v=2.7.5"></script> --> <!-- 已禁用：与 app.js 中的 Storage 冲突 -->
+    <!-- <script src="js/ui.js?v=2.7.5"></script> --> <!-- 已禁用：功能已整合至 app.js，避免冗余加载 -->
+    <script src="js/sync.js?v=2.8.2"></script>
+    <script src="js/app.js?v=2.8.2"></script>
 </body>
 </html>

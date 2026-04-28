@@ -3,6 +3,18 @@
  * 支持：IndexedDB、云端同步、冲突解决、分享功能
  */
 
+// IDB 兼容存根（防止 ReferenceError）
+const IDB = window.IDB || {
+  init: () => {},
+  db: null,
+  putMany: () => {},
+  markAsModified: () => {},
+  markAsDeleted: () => {},
+  clear: () => {},
+  getAll: () => [],
+  migrateFromLocalStorage: async () => ({ migrated: 0 })
+};
+
 // CloudSync 别名（兼容 sync.js 导出的 Sync 对象）
 const CloudSync = window.Sync || {
   loadConfig: () => {},
@@ -266,6 +278,14 @@ const Storage = {
     return filtered.length < items.length;
   },
   
+  getSettings() {
+    return JSON.parse(localStorage.getItem('universal_journal_settings') || '{}');
+  },
+  
+  saveSettings(settings) {
+    localStorage.setItem('universal_journal_settings', JSON.stringify(settings));
+  },
+  
   exportJSON() {
     const items = this.getAll();
     return JSON.stringify({
@@ -480,7 +500,7 @@ const App = {
     // 确保初始页面和 FAB 状态正确
     this.switchPage('home');
     
-    console.log(' 万物手札 H5 已启动 v=2.7.4');
+    console.log(' 万物手札 H5 已启动 v=2.7.8');
   },
   
   bindEvents() {
@@ -1348,7 +1368,7 @@ const App = {
         }
       });
     } else {
-      PasswordUI.showModal('🔒 设置密码', '设置密码保护数据', '输入密码', (password) => {
+      PasswordUI.showModal(' 设置密码', '设置密码保护数据', '输入密码', (password) => {
         PasswordUI.showModal('🔒 确认密码', '请再次输入密码', '再次输入密码', (confirmPwd) => {
           if (password !== confirmPwd) {
             PasswordUI.showError('两次密码不一致');
@@ -1578,7 +1598,7 @@ const App = {
         this.updateCloudStatus();
         this.showToast(`✅ ${result.message}`);
       } else {
-        this.showToast(`❌ ${result.message}`);
+        this.showToast(` ${result.message}`);
       }
       
       PasswordUI.hideModal();
@@ -1626,3 +1646,10 @@ const App = {
 document.addEventListener('DOMContentLoaded', () => {
   App.init();
 });
+
+// 导出到全局供调试/外部调用
+window.App = App;
+window.ThemeManager = ThemeManager;
+window.Storage = Storage;
+window.Security = Security;
+window.Crypto = Crypto;
