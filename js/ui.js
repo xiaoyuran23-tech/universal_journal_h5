@@ -180,7 +180,7 @@ const UI = {
     if (exportBtn) {
       exportBtn.addEventListener('click', () => {
         Storage.exportData();
-        this.showToast('数据已导?);
+        this.showToast('数据已导出');
       });
     }
     
@@ -204,7 +204,7 @@ const UI = {
             this.renderItems();
             this.renderFavorites();
           } catch (err) {
-            this.showToast('导入失败? + err.message);
+            this.showToast('导入失败: ' + err.message);
           }
         }
       });
@@ -411,7 +411,7 @@ const UI = {
       </div>
       <div class="detail-field">
         <div class="detail-label">日期</div>
-        <div class="detail-value">${item.date || '未设?}</div>
+        <div class="detail-value">${item.date || '未设置'}</div>
       </div>
       <div class="detail-field">
         <div class="detail-label">备注</div>
@@ -488,7 +488,7 @@ const UI = {
     const notes = document.getElementById('create-notes').value.trim();
     
     if (!name) {
-      this.showToast('请输入名?);
+      this.showToast('请输入名称');
       return;
     }
     
@@ -577,17 +577,17 @@ const UI = {
     
     const name = input.value.trim();
     if (!name) {
-      this.showToast('请输入分类名?);
+      this.showToast('请输入分类名称');
       return;
     }
     
     const success = Storage.addCategory(name);
     if (success) {
-      this.showToast('分类已添?);
+      this.showToast('分类已添加');
       this.closeAddCategoryModal();
-      this.renderCategorySelect('custom_' + Storage.slugify(name)); // 自动选中新分?
+      this.renderCategorySelect('custom_' + Storage.slugify(name)); // 自动选中新分类
     } else {
-      this.showToast('分类已存?);
+      this.showToast('分类已存在');
     }
   },
   
@@ -651,21 +651,21 @@ const UI = {
     if (confirm('删除此分类后，使用该分类的记录将保留但分类显示为原始值。确定要删除吗？')) {
       const success = Storage.deleteCategory(categoryId);
       if (success) {
-        this.showToast('分类已删?);
+        this.showToast('分类已删除');
         this.renderCategoryList(); // 刷新列表
-        this.renderCategorySelect(); // 刷新表单下拉?
+        this.renderCategorySelect(); // 刷新表单下拉框
       } else {
         this.showToast('删除失败');
       }
     }
   },
   
-  // 切换收藏状?
+  // 切换收藏状态
   toggleFavorite(id) {
     const item = Storage.toggleFavorite(id);
     if (item) {
-      this.showToast(item.favorite ? '已收? : '已取消收?);
-      this.showDetail(id); // 刷新详情?
+      this.showToast(item.favorite ? '已收藏' : '已取消收藏');
+      this.showDetail(id); // 刷新详情页
       this.renderItems();
       this.renderFavorites();
     }
@@ -673,9 +673,9 @@ const UI = {
   
   // 删除项目
   deleteItem(id) {
-    if (confirm('确定要删除这条记录吗?)) {
+    if (confirm('确定要删除这条记录吗？')) {
       Storage.deleteItem(id);
-      this.showToast('已删?);
+      this.showToast('已删除');
       this.switchPage('home');
       this.renderItems();
       this.renderFavorites();
@@ -911,7 +911,7 @@ const UI = {
   
   saveSyncConfig() {
     if (typeof Sync === 'undefined') {
-      this.showToast('同步模块未加?);
+      this.showToast('同步模块未加载');
       return;
     }
     
@@ -920,19 +920,19 @@ const UI = {
     const key = document.getElementById('sync-key').value.trim();
     
     if (!gistId || !token || !key) {
-      this.showToast('请填写所有字?);
+      this.showToast('请填写所有字段');
       return;
     }
     
     Sync.setConfig(gistId, token, key);
     this.updateSyncStatus();
-    this.showToast('同步配置已保?);
+    this.showToast('同步配置已保存');
     this.addSyncLog('配置保存成功', 'success');
   },
   
   async uploadSync() {
     if (typeof Sync === 'undefined') {
-      this.showToast('同步模块未加?);
+      this.showToast('同步模块未加载');
       return;
     }
     
@@ -944,14 +944,14 @@ const UI = {
       this.showToast('同步上传成功');
       this.updateSyncStatus();
     } catch (e) {
-      this.addSyncLog('上传失败? + e.message, 'error');
-      this.showToast('上传失败? + e.message);
+      this.addSyncLog('上传失败: ' + e.message, 'error');
+      this.showToast('上传失败: ' + e.message);
     }
   },
   
   async downloadSync() {
     if (typeof Sync === 'undefined') {
-      this.showToast('同步模块未加?);
+      this.showToast('同步模块未加载');
       return;
     }
     
@@ -963,8 +963,8 @@ const UI = {
       this.showToast('同步下载成功');
       this.updateSyncStatus();
     } catch (e) {
-      this.addSyncLog('下载失败? + e.message, 'error');
-      this.showToast('下载失败? + e.message);
+      this.addSyncLog('下载失败: ' + e.message, 'error');
+      this.showToast('下载失败: ' + e.message);
     }
   },
   

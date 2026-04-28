@@ -259,6 +259,13 @@ const Storage = {
     return this.getAll().length;
   },
   
+  deleteItem(id) {
+    const items = this.getAll();
+    const filtered = items.filter(item => item.id !== id);
+    this.save(filtered);
+    return filtered.length < items.length;
+  },
+  
   exportJSON() {
     const items = this.getAll();
     return JSON.stringify({
@@ -473,7 +480,7 @@ const App = {
     // 确保初始页面和 FAB 状态正确
     this.switchPage('home');
     
-    console.log(' 万物手札 H5 已启动 v=2.7.1');
+    console.log(' 万物手札 H5 已启动 v=2.7.4');
   },
   
   bindEvents() {
@@ -656,6 +663,23 @@ const App = {
       detailEdit.addEventListener('click', () => {
         if (this.currentDetailId) {
           this.editItem(this.currentDetailId);
+        }
+      });
+    }
+    
+    // 详情删除按钮
+    const detailDelete = document.getElementById('detail-delete-btn');
+    if (detailDelete) {
+      detailDelete.addEventListener('click', () => {
+        if (this.currentDetailId) {
+          if (confirm('确定要删除这条记录吗？')) {
+            Storage.deleteItem(this.currentDetailId);
+            this.showToast('已删除');
+            this.currentDetailId = null;
+            this.loadItems();
+            this.renderItems();
+            this.switchPage('home');
+          }
         }
       });
     }
