@@ -1132,13 +1132,15 @@ const App = {
   async submitForm() {
     const nameEl = document.getElementById('create-name');
     const categoryEl = document.getElementById('create-category');
-    const notesEl = document.getElementById('create-notes');
+    // 兼容 contenteditable div 和普通 input
+    const notesEl = document.getElementById('create-rich-content') || document.getElementById('create-notes');
     const statusEl = document.getElementById('create-status');
     const dateEl = document.getElementById('create-date');
     
     const name = nameEl ? nameEl.value.trim() : '';
     const category = categoryEl ? categoryEl.value.trim() : '';
-    const notes = notesEl ? notesEl.value.trim() : '';
+    // 处理 contenteditable 的内容
+    const notes = notesEl ? (notesEl.isContentEditable ? notesEl.innerHTML.trim() : notesEl.value.trim()) : '';
     const tags = window.TagManager ? TagManager.getSelectedTags() : [];
     const status = statusEl ? statusEl.value : '';
     const date = dateEl ? dateEl.value : '';

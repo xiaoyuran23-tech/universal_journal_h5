@@ -144,7 +144,7 @@
             
             <!-- 记录列表容器 -->
             <div class="items-container" id="items-container">
-                <!-- 动态生成记录卡片 -->
+                <!-- 动态生成记录卡片或空状态 -->
             </div>
         </section>
 
@@ -559,13 +559,6 @@
         </div>
     </div>
 
-    <!-- 悬浮操作按钮 (FAB) -->
-    <button class="fab" id="fab-add">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 5v14M5 12h14"></path>
-        </svg>
-    </button>
-
     <!-- 主题面板 -->
     <div class="theme-overlay" id="theme-overlay"></div>
     <div class="theme-selector-panel" id="theme-selector-panel">
@@ -600,5 +593,13 @@
     <script src="js/cloud-sync.js?v=3.3.0"></script>
     <!-- 主应用控制器 -->
     <script src="js/app.js?v=3.3.0"></script>
+    
+    <!-- 全局悬浮新建按钮 (FAB) -->
+    <button class="fab" id="fab-add" aria-label="新建记录">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+    </button>
 </body>
 </html>
