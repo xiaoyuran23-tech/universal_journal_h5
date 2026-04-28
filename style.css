@@ -2732,6 +2732,73 @@ a {
   color: white;
 }
 
+/* ===================================
+   Toast 提示
+   =================================== */
+.toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 24px;
+  font-size: 14px;
+  z-index: 2000;
+  opacity: 0;
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ===================================
+   分类管理弹窗
+   =================================== */
+.category-manager-list {
+  margin-top: 16px;
+}
+
+.category-manager-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.category-manager-item:last-child {
+  border-bottom: none;
+}
+
+.category-name {
+  font-weight: 500;
+}
+
+.btn-danger-outline {
+  background: transparent;
+  color: #ff4d4f;
+  border: 1px solid #ff4d4f;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-danger-outline:hover {
+  background: #ff4d4f;
+  color: white;
+}
+
+.empty-hint {
+  text-align: center;
+  color: #999;
+  padding: 20px;
+}
+
 
 
 

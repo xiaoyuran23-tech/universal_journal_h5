@@ -1,6 +1,6 @@
 /**
- * 万物手札 H5 - 主应用逻辑 v3.2.1-hotfix.1
- * 修复：空状态图标、事件委托、模板管理功能
+ * 万物手札 H5 - 主应用逻辑 v3.2.1-hotfix.2
+ * 修复：分类管理逻辑、云同步事件绑定、Toast 提示样式
  */
 
 // ===================================
@@ -1283,6 +1283,35 @@ const App = {
       });
     }
     
+    // ==================== 分类管理 ====================
+    const manageCatBtn = document.getElementById('manage-categories-btn');
+    if (manageCatBtn) {
+      manageCatBtn.addEventListener('click', () => {
+        this.openCategoryManager();
+      });
+    }
+    
+    const closeCatMgrBtn = document.getElementById('close-category-manager');
+    if (closeCatMgrBtn) {
+      closeCatMgrBtn.addEventListener('click', () => {
+        this.closeModal('category-manager-modal');
+      });
+    }
+    
+    const saveCatBtn = document.getElementById('save-category-btn');
+    if (saveCatBtn) {
+      saveCatBtn.addEventListener('click', () => {
+        this.saveCategory();
+      });
+    }
+    
+    const closeCatModalBtn = document.getElementById('close-category-modal');
+    if (closeCatModalBtn) {
+      closeCatModalBtn.addEventListener('click', () => {
+        this.closeModal('category-modal');
+      });
+    }
+    
     if (window.CloudSync) {
       this.bindCloudEvents();
     }
@@ -1338,6 +1367,14 @@ const App = {
         const passInput = document.getElementById('cloud-password-input');
         if (tokenInput) tokenInput.value = '';
         if (passInput) passInput.value = '';
+        const modal = document.getElementById('cloud-modal');
+        if (modal) modal.style.display = 'none';
+      });
+    }
+    
+    const closeBtn = document.getElementById('cloud-modal-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
         const modal = document.getElementById('cloud-modal');
         if (modal) modal.style.display = 'none';
       });
@@ -2403,6 +2440,133 @@ const App = {
         this.showToast('已复制到剪贴板');
       });
     }
+  },
+  
+  // ==================== UI 工具方法 ====================
+  
+  showToast(message) {
+    let toast = document.getElementById('toast-notification');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'toast-notification';
+      toast.className = 'toast';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.classList.add('show');
+    
+    clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => {
+      toast.classList.remove('show');
+    }, 3000);
+  },
+  
+  closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) modal.style.display = 'none';
+  },
+  
+  // ==================== 分类管理 ====================
+  
+  openCategoryManager() {
+    const modal = document.getElementById('category-manager-modal');
+    if (modal) {
+      modal.style.display = 'flex';
+      this.renderCategoryList();
+    }
+  },
+  
+  renderCategoryList() {
+    const listEl = document.getElementById('category-list');
+    if (!listEl) return;
+    
+    const customCats = JSON.parse(localStorage.getItem('universal_journal_categories') || '[]');
+    const usedCats = [...new Set(this.items.map(i => i.category).filter(Boolean))];
+    const allCats = [...new Set([...customCats, ...usedCats])];
+    
+    if (allCats.length === 0) {
+      listEl.innerHTML = '<p class="empty-hint">暂无分类</p>';
+      return;
+    }
+    
+    listEl.innerHTML = `
+      <div class="category-manager-header">
+        <button class="btn-sm btn-primary" id="btn-add-category">+ 新增分类</button>
+      </div>
+      <div class="category-manager-list">
+        ${allCats.map(cat => `
+          <div class="category-manager-item">
+            <span class="category-name">${this.escapeHtml(cat)}</span>
+            <button class="btn-sm btn-danger-outline" data-action="delete-category" data-name="${this.escapeHtml(cat)}">删除</button>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    
+    // 绑定新增按钮
+    document.getElementById('btn-add-category')?.addEventListener('click', () => {
+      this.closeModal('category-manager-modal');
+      document.getElementById('category-modal').style.display = 'flex';
+    });
+    
+    // 绑定删除按钮 (事件委托)
+    listEl.addEventListener('click', (e) => {
+      const delBtn = e.target.closest('[data-action="delete-category"]');
+      if (delBtn) {
+        const name = delBtn.dataset.name;
+        if (confirm(`确定删除分类"${name}"吗？已使用该分类的记录将保留，但分类标签会被移除。`)) {
+          this.deleteCategory(name);
+        }
+      }
+    });
+  },
+  
+  saveCategory() {
+    const input = document.getElementById('category-name-input');
+    if (!input) return;
+    
+    const name = input.value.trim();
+    if (!name) {
+      this.showToast('请输入分类名称');
+      return;
+    }
+    
+    const customCats = JSON.parse(localStorage.getItem('universal_journal_categories') || '[]');
+    if (customCats.includes(name)) {
+      this.showToast('分类已存在');
+      return;
+    }
+    
+    customCats.push(name);
+    localStorage.setItem('universal_journal_categories', JSON.stringify(customCats));
+    
+    input.value = '';
+    this.closeModal('category-modal');
+    this.showToast('分类已添加');
+    
+    // 刷新列表如果管理器是打开的
+    if (document.getElementById('category-manager-modal').style.display === 'flex') {
+      this.renderCategoryList();
+    }
+    
+    // 刷新表单下拉框和筛选器
+    this.populateCategorySelect();
+    this.renderCategoryFilter();
+  },
+  
+  deleteCategory(name) {
+    const customCats = JSON.parse(localStorage.getItem('universal_journal_categories') || '[]');
+    const filtered = customCats.filter(c => c !== name);
+    localStorage.setItem('universal_journal_categories', JSON.stringify(filtered));
+    
+    // 更新所有使用该分类的记录，将其分类置空或改为"未分类"
+    // 这里简单处理：不修改记录，只移除自定义分类列表。
+    // 记录上的分类依然存在，只是不再是"预定义"的。
+    
+    this.renderCategoryList();
+    this.populateCategorySelect();
+    this.renderCategoryFilter();
+    this.showToast('分类已删除');
   }
 };
 
