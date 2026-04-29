@@ -192,15 +192,17 @@ await loader.loadAll();
 - [x] Calendar Plugin (日历视图)
 - [x] Timeline Plugin (时间线/故事)
 - [x] Editor Plugin (编辑器)
-- [ ] Favorites Plugin (收藏)
-- [ ] Templates Plugin (模板)
-- [ ] Sync Plugin (同步)
-- [ ] Settings Plugin (设置)
+- [x] Favorites Plugin (收藏)
+- [x] Templates Plugin (模板)
+- [x] Sync Plugin (同步)
+- [x] Settings Plugin (设置)
 
-### Phase 3: UI 组件库
-- [ ] Base Components (Button, Input, Modal, Toast)
-- [ ] List Components (VirtualList, ItemCard)
-- [ ] Layout Components (TabBar, FAB)
+### Phase 3: UI 组件库 (已完成 ✅)
+- [x] Base Components (Button, Input, Modal, Toast)
+- [x] List Components (VirtualList, ItemCard)
+- [x] Layout Components (TabBar, FAB, EmptyState)
+- [x] 组件样式文件 (components.css)
+- [x] 所有插件集成 UI 组件
 
 ### Phase 4: 服务层
 - [ ] Storage Service

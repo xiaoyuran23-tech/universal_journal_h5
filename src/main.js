@@ -23,9 +23,16 @@ async function initApp() {
       loader.register('calendar', CalendarPlugin);
       loader.register('timeline', TimelinePlugin);
       loader.register('editor', EditorPlugin);
+      loader.register('favorites', FavoritesPlugin);
+      loader.register('templates', TemplatesPlugin);
+      loader.register('sync', SyncPlugin);
+      loader.register('settings', SettingsPlugin);
       
       // 加载所有插件 (自动处理依赖)
-      await loader.loadAll(['records', 'calendar', 'timeline', 'editor']);
+      await loader.loadAll([
+        'records', 'calendar', 'timeline', 'editor',
+        'favorites', 'templates', 'sync', 'settings'
+      ]);
     }
 
     // 3. 启动 Kernel (包含 Store 初始化)
