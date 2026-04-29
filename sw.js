@@ -1,4 +1,4 @@
-const CACHE_NAME = 'journal-v6.0.0';
+const CACHE_NAME = 'journal-v6.1.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -26,12 +26,41 @@ const ASSETS_TO_CACHE = [
   './js/ui/components/empty.css',
   './js/ui/guide/onboarding.js',
   './js/ui/guide/onboarding.css',
+  // v6.0.0+ Core
   './src/core/store.js',
   './src/core/router.js',
   './src/core/event-bus.js',
   './src/core/plugin-loader.js',
   './src/core/kernel.js',
+  './src/core/adapter.js',
+  // v6.0.0+ Services
+  './src/services/storage.js',
+  './src/services/crypto.js',
+  './src/services/sync.js',
+  './src/services/image.js',
+  // v6.0.0+ Plugins
   './src/plugins/records/index.js',
+  './src/plugins/calendar/index.js',
+  './src/plugins/timeline/index.js',
+  './src/plugins/editor/index.js',
+  './src/plugins/favorites/index.js',
+  './src/plugins/templates/index.js',
+  './src/plugins/sync/index.js',
+  './src/plugins/settings/index.js',
+  // v6.0.0+ UI Components
+  './src/components/base/index.js',
+  './src/components/base/status-states.js',
+  './src/components/list/index.js',
+  './src/components/list/featured-card.js',
+  './src/components/layout/index.js',
+  './src/components/layout/category-tabs.js',
+  './src/components/layout/header-bar.js',
+  './src/components/components.css',
+  // v6.1 UX Migration
+  './src/hooks/records-hook.js',
+  './src/views/home-page.js',
+  './src/styles/ux-theme.css',
+  // v6.1 Entry
   './src/main.js'
 ];
 
