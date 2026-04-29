@@ -456,6 +456,45 @@ const App = {
       });
     }
     
+    // 用户名编辑功能
+    const editNameBtn = document.getElementById('profile-edit-btn');
+    const nameInput = document.getElementById('profile-name-input');
+    const saveNameBtn = document.getElementById('profile-save-btn');
+    const displayName = document.getElementById('profile-display-name');
+    
+    if (editNameBtn && nameInput && saveNameBtn && displayName) {
+      // 加载保存的昵称
+      const savedName = localStorage.getItem('user_nickname');
+      if (savedName) displayName.textContent = savedName;
+      
+      // 点击编辑按钮
+      editNameBtn.addEventListener('click', () => {
+        nameInput.value = displayName.textContent;
+        nameInput.style.display = 'block';
+        saveNameBtn.style.display = 'block';
+        editNameBtn.style.display = 'none';
+        nameInput.focus();
+      });
+      
+      // 保存昵称
+      saveNameBtn.addEventListener('click', () => {
+        const newName = nameInput.value.trim();
+        if (newName) {
+          localStorage.setItem('user_nickname', newName);
+          displayName.textContent = newName;
+          this.showToast('昵称已保存');
+        }
+        nameInput.style.display = 'none';
+        saveNameBtn.style.display = 'none';
+        editNameBtn.style.display = 'block';
+      });
+      
+      // 回车保存
+      nameInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') saveNameBtn.click();
+      });
+    }
+    
     // 模板管理入口
     const templateBtn = document.getElementById('manage-templates-btn');
     if (templateBtn) {
@@ -847,9 +886,9 @@ const App = {
       'consumed': '已消耗',
       'lost': '遗失'
     };
-    return map[status] || '';
+    return map[status] || status;
   },
-  
+
   resetForm() {
     const nameEl = document.getElementById('create-name');
     if (nameEl) nameEl.value = '';
@@ -1173,7 +1212,9 @@ const App = {
     const total = this.items.length;
     const favorites = this.items.filter(i => i.favorite).length;
     const byCategory = this.items.reduce((acc, item) => {
-      acc[item.category || '未分类'] = (acc[item.category || '未分类'] || 0) + 1;
+      // 统计按首标签分类
+      const primaryTag = (item.tags && item.tags.length > 0) ? item.tags[0] : '无标签';
+      acc[primaryTag] = (acc[primaryTag] || 0) + 1;
       return acc;
     }, {});
     

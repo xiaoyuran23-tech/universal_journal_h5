@@ -378,7 +378,9 @@ const TemplateManager = {
               <span class="template-icon">${t.icon || ''}</span>
               <div class="template-card-info">
                 <span class="template-name">${this._escapeHtml(t.name)}</span>
-                <span class="template-category">${this._escapeHtml(t.category || '未分类')}</span>
+                <div class="template-tags">
+                ${t.tags && t.tags.length > 0 ? t.tags.slice(0, 3).map(tag => `<span class="tag-small">#${this._escapeHtml(tag)}</span>`).join('') : '<span class="tag-empty">无标签</span>'}
+                </div>
               </div>
             </div>
             <p class="template-desc">${this._escapeHtml(t.description || '')}</p>

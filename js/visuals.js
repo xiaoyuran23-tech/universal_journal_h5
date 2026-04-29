@@ -79,7 +79,7 @@ const VisualsManager = {
     const counts = {};
     let total = 0;
     items.forEach(item => {
-      const cat = item.category || '未分类';
+      const cat = (item.tags && item.tags.length > 0) ? item.tags[0] : '无标签';
       counts[cat] = (counts[cat] || 0) + 1;
       total++;
     });

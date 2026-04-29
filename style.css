@@ -3584,3 +3584,27 @@ button:active::before,
   font-size: 12px;
   color: var(--text-secondary);
 }
+
+/* ===================================
+   v4.0.2 新增：iOS 键盘弹出适配
+   =================================== */
+
+/* 当键盘弹出时，减小表单区域高度 */
+@media screen and (max-height: 500px) {
+  .form-layout {
+    padding-bottom: 20px;
+  }
+  .form-footer-sticky {
+    padding-bottom: env(safe-area-inset-bottom, 10px);
+  }
+}
+
+/* 防止 iOS 键盘弹出时页面缩放 */
+input, textarea, select {
+  font-size: 16px !important; /* iOS Safari 小于 16px 会触发缩放 */
+}
+
+/* 表单输入框聚焦时，确保可见 */
+input:focus, textarea:focus {
+  scroll-into-view: smooth;
+}

@@ -206,7 +206,16 @@
                             <path d="M20 21a8 8 0 1 0-16 0"></path>
                         </svg>
                     </div>
-                    <h2 class="profile-name">用户</h2>
+                    <div class="profile-name-container">
+                        <h2 class="profile-name" id="profile-display-name">用户</h2>
+                        <button class="profile-edit-btn" id="profile-edit-btn" title="编辑昵称">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <input type="text" class="profile-name-input" id="profile-name-input" placeholder="输入昵称" style="display:none;" />
+                    <button class="profile-save-btn" id="profile-save-btn" style="display:none;">保存</button>
                 </div>
                 
                 <!-- 数据可视化区域 -->

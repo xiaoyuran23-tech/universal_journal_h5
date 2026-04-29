@@ -143,7 +143,7 @@ const TimelineManager = {
         ? `${date.getFullYear()}年 ${date.getMonth() + 1}月${date.getDate()}日`
         : `${date.getMonth() + 1}月${date.getDate()}日`;
     }
-    const category = item.category || '未分类';
+    const primaryTag = (item.tags && item.tags.length > 0) ? item.tags[0] : '无标签';
     const tags = (item.tags || []).map(t => `<span class="tag-pill">${t}</span>`).join('');
     const photoCount = item.photos ? item.photos.length : 0;
 
