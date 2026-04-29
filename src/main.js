@@ -147,7 +147,11 @@ function initUXViews() {
 
   console.log('[UX Views] Dependencies ready, initializing...');
 
-  // 1. 隐藏旧版 UI 容器，防止重叠
+  // 1. 应用暖色主题 (v6.1 UX 默认主题)
+  document.documentElement.setAttribute('data-theme', 'warm');
+  document.body.setAttribute('data-theme', 'warm');
+
+  // 2. 隐藏旧版 UI 容器，防止重叠
   // 旧版 Header 和 Nav 是 body 的直接子元素，不在 #page-home 内
   const oldHeader = document.querySelector('header.header');
   if (oldHeader) oldHeader.style.display = 'none';
@@ -155,7 +159,7 @@ function initUXViews() {
   const oldNav = document.querySelector('nav.tab-bar');
   if (oldNav) oldNav.style.display = 'none';
   
-  // 2. 在首页容器中渲染 UX 视图
+  // 3. 在首页容器中渲染 UX 视图
   const homeContainer = document.getElementById('page-home');
   
   if (!homeContainer) {
