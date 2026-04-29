@@ -8,53 +8,69 @@ async function initApp() {
   console.log('[App] Initializing v6.0.0...');
 
   try {
-    // 1. 初始化存储服务 (IndexedDB)
+    // 1. 初始化存储服务 (IndexedDB) - 容错处理
     if (window.StorageService) {
-      await StorageService.init();
-      console.log('[App] StorageService initialized');
+      try {
+        await StorageService.init();
+        console.log('[App] StorageService initialized');
+      } catch (e) {
+        console.warn('[App] StorageService init failed, continuing anyway:', e);
+      }
     }
 
-    // 2. 注册插件
-    if (window.PluginLoader && window.Kernel) {
-      const loader = new PluginLoader(Kernel);
-      
-      // 注册核心插件
-      loader.register('records', RecordsPlugin);
-      loader.register('calendar', CalendarPlugin);
-      loader.register('timeline', TimelinePlugin);
-      loader.register('editor', EditorPlugin);
-      loader.register('favorites', FavoritesPlugin);
-      loader.register('templates', TemplatesPlugin);
-      loader.register('sync', SyncPlugin);
-      loader.register('settings', SettingsPlugin);
-      
-      // 加载所有插件 (自动处理依赖)
-      await loader.loadAll([
-        'records', 'calendar', 'timeline', 'editor',
-        'favorites', 'templates', 'sync', 'settings'
-      ]);
+    // 2. 注册插件 - 容错处理
+    try {
+      if (window.PluginLoader && window.Kernel) {
+        const loader = new PluginLoader(Kernel);
+        
+        // 注册核心插件
+        loader.register('records', RecordsPlugin);
+        loader.register('calendar', CalendarPlugin);
+        loader.register('timeline', TimelinePlugin);
+        loader.register('editor', EditorPlugin);
+        loader.register('favorites', FavoritesPlugin);
+        loader.register('templates', TemplatesPlugin);
+        loader.register('sync', SyncPlugin);
+        loader.register('settings', SettingsPlugin);
+        
+        // 加载所有插件 (自动处理依赖)
+        await loader.loadAll([
+          'records', 'calendar', 'timeline', 'editor',
+          'favorites', 'templates', 'sync', 'settings'
+        ]);
+      }
+    } catch (e) {
+      console.warn('[App] Plugin loading failed, continuing anyway:', e);
     }
 
-    // 3. 启动 Kernel (包含 Store 初始化)
-    if (window.Kernel) {
-      // Store 现在从 IndexedDB 加载数据
-      await Kernel.boot({
-        theme: 'light',
-        language: 'zh-CN'
-      });
+    // 3. 启动 Kernel (包含 Store 初始化) - 容错处理
+    try {
+      if (window.Kernel) {
+        // Store 现在从 IndexedDB 加载数据
+        await Kernel.boot({
+          theme: 'light',
+          language: 'zh-CN'
+        });
+      }
+    } catch (e) {
+      console.warn('[App] Kernel boot failed, continuing anyway:', e);
     }
 
-    // 4. 启动迁移适配器 (解决双重状态冲突)
-    if (window.MigrationAdapter && window.App) {
-      const adapter = new MigrationAdapter(Kernel, App);
-      await adapter.start();
-      console.log('[App] MigrationAdapter started');
+    // 4. 启动迁移适配器 (解决双重状态冲突) - 容错处理
+    try {
+      if (window.MigrationAdapter && window.App) {
+        const adapter = new MigrationAdapter(Kernel, App);
+        await adapter.start();
+        console.log('[App] MigrationAdapter started');
+      }
+    } catch (e) {
+      console.warn('[App] MigrationAdapter failed, continuing anyway:', e);
     }
 
     // 5. 初始化 UI
     initUI();
 
-    // 5.5 初始化 UX 视图 (v6.1 新增)
+    // 5.5 初始化 UX 视图 (v6.1 新增) - 关键！必须执行
     initUXViews();
 
     // 6. 检查新手引导
@@ -64,6 +80,12 @@ async function initApp() {
 
   } catch (error) {
     console.error('[App] Initialization failed:', error);
+    // 即使整体失败，也尝试初始化 UX 视图
+    try {
+      initUXViews();
+    } catch (e) {
+      console.error('[App] UX Views also failed:', e);
+    }
   }
 }
 
