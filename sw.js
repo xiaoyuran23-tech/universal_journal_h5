@@ -51,28 +51,41 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// 请求拦截：Network First (优先网络，失败则缓存)
-// 对于 JS/CSS/HTML 等资源
 self.addEventListener('fetch', (event) => {
-  if (event.request.url.includes('github.com') || event.request.url.includes('jsdelivr')) {
-    // CDN 资源使用 Stale-While-Revalidate
+  const url = new URL(event.request.url);
+
+  // 1. HTML 入口文件: Network First (保证更新)
+  if (event.request.destination === 'document' || url.pathname.endsWith('.html')) {
     event.respondWith(
-      caches.match(event.request).then((response) => {
-        const fetchPromise = fetch(event.request).then((networkResponse) => {
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, networkResponse.clone());
-          });
+      fetch(event.request)
+        .then(response => {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // 2. CDN / 外部资源: Stale-While-Revalidate
+  if (event.request.url.includes('github.com') || event.request.url.includes('jsdelivr')) {
+    event.respondWith(
+      caches.match(event.request).then(response => {
+        const fetchPromise = fetch(event.request).then(networkResponse => {
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, networkResponse.clone()));
           return networkResponse;
         });
         return response || fetchPromise;
       })
     );
-  } else {
-    // 本地资源使用 Cache First (离线优先)
-    event.respondWith(
-      caches.match(event.request).then((response) => {
-        return response || fetch(event.request);
-      })
-    );
+    return;
   }
+
+  // 3. 本地静态资源 (JS/CSS/Images): Cache First (离线优先)
+  event.respondWith(
+    caches.match(event.request).then(response => {
+      return response || fetch(event.request);
+    })
+  );
 });

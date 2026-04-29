@@ -7,100 +7,6 @@
 // 存储后端抽象层
 // ===================================
 
-const StorageBackend = {
-  useIndexedDB: false,
-  
-  async init() {
-    if (window.IDBModule) {
-      try {
-        await IDBModule.init();
-        this.useIndexedDB = true;
-
-      } catch (e) {
-        console.warn('IndexedDB 初始化失败，降级到 localStorage:', e);
-        this.useIndexedDB = false;
-      }
-    }
-  },
-  
-  async getAll() {
-    if (this.useIndexedDB && window.IDBModule && IDBModule.db) {
-      return await IDBModule.getAll();
-    }
-    try {
-      const data = localStorage.getItem('universal_journal_items');
-      return data ? JSON.parse(data) : [];
-    } catch (e) {
-      console.error('localStorage 数据解析失败，已清空损坏数据:', e);
-      localStorage.removeItem('universal_journal_items');
-      return [];
-    }
-  },
-  
-  async save(items) {
-    if (this.useIndexedDB && window.IDBModule && IDBModule.db) {
-      await IDBModule.clear();
-      await IDBModule.putMany(items);
-      return;
-    }
-    try {
-      localStorage.setItem('universal_journal_items', JSON.stringify(items));
-    } catch (e) {
-      console.error('localStorage 写入失败（可能超出配额）:', e);
-      if (window.App && App.showToast) {
-        App.showToast('⚠️ 存储空间不足，请清理旧记录');
-      }
-    }
-  },
-  
-  async put(item) {
-    if (this.useIndexedDB && window.IDBModule && IDBModule.db) {
-      await IDBModule.put(item);
-      return;
-    }
-    const items = await this.getAll();
-    const index = items.findIndex(i => i.id === item.id);
-    if (index >= 0) {
-      items[index] = item;
-    } else {
-      items.unshift(item);
-    }
-    await this.save(items);
-  },
-  
-  async delete(id) {
-    if (this.useIndexedDB && window.IDBModule && IDBModule.db) {
-      await IDBModule.delete(id);
-      return;
-    }
-    const items = await this.getAll();
-    await this.save(items.filter(i => i.id !== id));
-  },
-  
-  async deleteMany(ids) {
-    if (this.useIndexedDB && window.IDBModule && IDBModule.db) {
-      await IDBModule.deleteMany(ids);
-      return;
-    }
-    const items = await this.getAll();
-    await this.save(items.filter(i => !ids.includes(i.id)));
-  },
-  
-  async clear() {
-    if (this.useIndexedDB && window.IDBModule && IDBModule.db) {
-      await IDBModule.clear();
-      return;
-    }
-    localStorage.removeItem('universal_journal_items');
-  },
-  
-  async migrateFromLocalStorage() {
-    if (this.useIndexedDB && window.IDBModule) {
-      return await IDBModule.migrateFromLocalStorage();
-    }
-    return { migrated: 0 };
-  }
-};
 
 // ===================================
 // 应用主逻辑
@@ -731,7 +637,7 @@ const App = {
     
     this.filteredItems = this.items.filter(item => {
         const matchTag = !this.currentTag || (item.tags && item.tags.includes(this.currentTag));
-      const matchDate = !dateStr || (item.createdAt && item.createdAt.includes(dateStr));
+      const matchDate = !dateStr || (item.createdAt && item.createdAt.startsWith(dateStr.replace(/\//g, '-')));
       const matchSearch = !this.searchKey || 
         (item.name && item.name.toLowerCase().includes(this.searchKey.toLowerCase())) ||
         (item.notes && item.notes.toLowerCase().includes(this.searchKey.toLowerCase())) ||
@@ -1396,26 +1302,17 @@ const App = {
     alert('万物手札 v3.1.0\n\n记录世间万物，收藏生活点滴\n\n新特性：草稿自动保存、回收站、批量操作');
   },
   
-  async migrateLegacyData() {
-    console.log('开始执行 v3.4.0 数据迁移...');
-    let changed = false;
-    for (let item of this.items) {
-      if (item.category && item.category.trim() !== '') {
-        if (!Array.isArray(item.tags)) item.tags = [];
-        if (!item.tags.includes(item.category)) {
-          item.tags.push(item.category);
-          console.log(`迁移分类 "${item.category}" 到标签列表`);
-        }
-        delete item.category;
-        changed = true;
-      }
-    }
-    if (changed) {
-      await StorageBackend.save(this.items);
-      console.log('数据迁移完成');
+
+  stripHtml(html) {
+    if (!html) return '';
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      return doc.body.textContent || '';
+    } catch (e) {
+      return html.replace(/<[^>]*>/g, '');
     }
   },
-
   showToast(message) {
 
     const toast = document.getElementById('toast');

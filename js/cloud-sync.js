@@ -128,7 +128,7 @@ const CloudSync = {
   async getKey(salt) {
     const keyMaterial = await this.getKeyMaterial();
     return window.crypto.subtle.deriveKey(
-      { name: 'PBKDF2', salt: salt, iterations: 100000, hash: 'SHA-256' },
+      { name: 'PBKDF2', salt: salt, iterations: 50000, hash: 'SHA-256' },
       keyMaterial,
       { name: 'AES-GCM', length: 256 },
       false,
@@ -283,22 +283,29 @@ const CloudSync = {
   /** 合并数据（Last-Write-Wins based on updatedAt） */
   mergeItems(localItems, cloudItems) {
     const map = new Map();
-    // 先放入本地
-    localItems.forEach(item => map.set(item.id, item));
-    // 云端覆盖（如果云端更新）
+    
+    // 1. 放入本地数据
+    localItems.forEach(item => {
+      if (item.id) map.set(item.id, item);
+    });
+    
+    // 2. 合并云端数据 (Last-Write-Wins)
     cloudItems.forEach(cloudItem => {
-      const local = map.get(cloudItem.id);
-      if (!local || new Date(cloudItem.updatedAt) > new Date(local.updatedAt)) {
+      if (!cloudItem.id) return;
+      const existing = map.get(cloudItem.id);
+      
+      // 如果本地没有，或者云端更新
+      if (!existing || new Date(cloudItem.updatedAt) > new Date(existing.updatedAt)) {
         map.set(cloudItem.id, cloudItem);
       }
     });
-    // 新增：云端有但本地没有的
-    cloudItems.forEach(cloudItem => {
-      if (!map.has(cloudItem.id)) {
-        map.set(cloudItem.id, cloudItem);
-      }
+    
+    // 3. 排序
+    return Array.from(map.values()).sort((a, b) => {
+      const tA = new Date(b.updatedAt || 0).getTime();
+      const tB = new Date(a.updatedAt || 0).getTime();
+      return tA - tB;
     });
-    return Array.from(map.values()).sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
   }
 };
 
