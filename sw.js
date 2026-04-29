@@ -1,4 +1,4 @@
-const CACHE_NAME = 'journal-v4.0.0';
+const CACHE_NAME = 'journal-v5.0.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -20,7 +20,12 @@ const ASSETS_TO_CACHE = [
   './js/visuals.js',
   './js/cloud-sync.js',
   './js/image-processor-v2.js',
-  './js/app.js'
+  './js/app.js',
+  './js/core/event-bus.js',
+  './js/ui/components/empty.js',
+  './js/ui/components/empty.css',
+  './js/ui/guide/onboarding.js',
+  './js/ui/guide/onboarding.css'
 ];
 
 // 安装阶段：缓存核心资源
