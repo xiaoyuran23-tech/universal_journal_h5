@@ -333,3 +333,4 @@ if (document.readyState === 'loading') {
 } else {
   CloudSyncV2.init();
 }
+"window.CloudSyncV2 = CloudSyncV2;" 

@@ -144,7 +144,7 @@ const App = {
       CloudSync.loadConfig();
       this.updateCloudStatus();
       
-      if (CloudSync.isEnabled() && CloudSync.config.syncOnStart) {
+      if (CloudSync.isEnabled() && CloudSyncV2.config.syncOnStart) {
         this.autoSync();
       }
     }
@@ -610,8 +610,9 @@ const App = {
       });
     }
     
-    if (window.CloudSync) {
+    if (window.CloudSyncV2) {
       this.bindCloudEvents();
+      CloudSyncV2.init();
     }
   },
   
@@ -1486,7 +1487,7 @@ const App = {
   updateCloudStatus() {
     const statusText = document.getElementById('cloud-status-text');
     if (statusText && window.CloudSync) {
-      statusText.textContent = CloudSync.getStatusText();
+      statusText.textContent = CloudSyncV2.getStatusText();
     }
   },
   
@@ -1496,8 +1497,8 @@ const App = {
     const tokenInput = document.getElementById('sync-token');
     const keyInput = document.getElementById('sync-key');
     
-    if (gistInput) gistInput.value = CloudSync.config.gistId || '';
-    if (tokenInput) tokenInput.value = CloudSync.config.token || '';
+    if (gistInput) gistInput.value = CloudSyncV2.config.gistId || '';
+    if (tokenInput) tokenInput.value = CloudSyncV2.config.token || '';
     if (keyInput) keyInput.value = '';
     if (modal) modal.classList.add('active');
     
@@ -1519,10 +1520,10 @@ const App = {
       return;
     }
     
-    CloudSync.config.gistId = gistId;
-    CloudSync.config.token = token;
-    CloudSync.config.password = key;
-    CloudSync.config.enabled = true;
+    CloudSyncV2.config.gistId = gistId;
+    CloudSyncV2.config.token = token;
+    CloudSyncV2.config.password = key;
+    CloudSyncV2.config.enabled = true;
     CloudSync.saveConfig();
     
     const modal = document.getElementById('cloud-modal');
@@ -1539,7 +1540,7 @@ const App = {
       return;
     }
     
-    CloudSync.config.token = token;
+    CloudSyncV2.config.token = token;
     const testArea = document.getElementById('cloud-test-area');
     const testResult = document.getElementById('cloud-test-result');
     
@@ -1549,7 +1550,7 @@ const App = {
       testResult.textContent = '正在测试连接...';
     }
     
-    const result = await CloudSync.testConnection();
+    const result = await CloudSyncV2.testConnection();
     
     if (testResult) {
       if (result.success) {
@@ -1563,7 +1564,7 @@ const App = {
   },
   
   async cloudUpload() {
-    if (!CloudSync.config.token) {
+    if (!CloudSyncV2.config.token) {
       this.showToast('请先配置同步设置');
       this.showCloudConfig();
       return;
@@ -1589,7 +1590,7 @@ const App = {
   },
   
   async cloudDownload() {
-    if (!CloudSync.config.token) {
+    if (!CloudSyncV2.config.token) {
       this.showToast('请先配置同步设置');
       this.showCloudConfig();
       return;
@@ -1619,7 +1620,7 @@ const App = {
   },
   
   async cloudSyncBidirectional() {
-    if (!CloudSync.config.token) {
+    if (!CloudSyncV2.config.token) {
       this.showToast('请先配置同步设置');
       this.showCloudConfig();
       return;
@@ -1649,11 +1650,11 @@ const App = {
   },
   
   async autoSync() {
-    if (!CloudSync.config.password) return;
+    if (!CloudSyncV2.config.password) return;
     
     try {
       const localItems = await StorageBackend.getAll();
-      const result = await CloudSync.syncBidirectional(localItems, CloudSync.config.password);
+      const result = await CloudSync.syncBidirectional(localItems, CloudSyncV2.config.password);
       
       if (result.success) {
         await StorageBackend.save(result.items);
