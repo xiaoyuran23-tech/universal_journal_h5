@@ -4,36 +4,43 @@
  * @version 6.0.0
  */
 
-// 导入核心模块 (通过 script 标签加载)
-// Store, Router, Kernel, PluginLoader 已在全局作用域
-
 async function initApp() {
   console.log('[App] Initializing v6.0.0...');
 
   try {
-    // 1. 注册插件
+    // 1. 初始化存储服务 (IndexedDB)
+    if (window.StorageService) {
+      await StorageService.init();
+      console.log('[App] StorageService initialized');
+    }
+
+    // 2. 注册插件
     if (window.PluginLoader && window.Kernel) {
       const loader = new PluginLoader(Kernel);
-      
-      // 注册 Records 插件
       loader.register('records', RecordsPlugin);
-      
-      // 加载所有插件到 Kernel
       await loader.loadAll(['records']);
     }
 
-    // 2. 启动 Kernel
+    // 3. 启动 Kernel (包含 Store 初始化)
     if (window.Kernel) {
+      // Store 现在从 IndexedDB 加载数据
       await Kernel.boot({
         theme: 'light',
         language: 'zh-CN'
       });
     }
 
-    // 3. 初始化 UI
+    // 4. 启动迁移适配器 (解决双重状态冲突)
+    if (window.MigrationAdapter && window.App) {
+      const adapter = new MigrationAdapter(Kernel, App);
+      await adapter.start();
+      console.log('[App] MigrationAdapter started');
+    }
+
+    // 5. 初始化 UI
     initUI();
 
-    // 4. 检查新手引导
+    // 6. 检查新手引导
     initOnboarding();
 
     console.log('[App] Application initialized successfully');

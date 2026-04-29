@@ -208,31 +208,36 @@ class Store {
   }
 
   /**
-   * 持久化到 localStorage
-   * @param {string} key - 存储键名
+   * 持久化到 IndexedDB (异步)
    */
-  persist(key = 'journal_state') {
+  async persist() {
     try {
-      localStorage.setItem(key, JSON.stringify(this._state));
+      if (window.StorageService) {
+        await StorageService.bulkPut(this._state.records.list);
+      }
     } catch (error) {
       console.error('[Store] Persist error:', error);
     }
   }
 
   /**
-   * 从 localStorage 加载
-   * @param {string} key - 存储键名
-   * @returns {boolean} 是否成功加载
+   * 从 IndexedDB 加载 (异步)
+   * @returns {Promise<boolean>}
    */
-  hydrate(key = 'journal_state') {
+  async hydrate() {
     try {
-      const saved = localStorage.getItem(key);
-      if (saved) {
-        this._state = JSON.parse(saved);
-        this._history = [JSON.stringify(this._state)];
-        this._historyIndex = 0;
-        this._notify();
-        return true;
+      if (window.StorageService) {
+        const records = await StorageService.getAll();
+        if (records && records.length > 0) {
+          this._state.records = {
+            ...this._state.records,
+            list: records,
+            filtered: records
+          };
+          this._history = [JSON.stringify(this._state)];
+          this._notify();
+          return true;
+        }
       }
     } catch (error) {
       console.error('[Store] Hydrate error:', error);
