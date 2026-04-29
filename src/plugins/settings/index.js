@@ -138,7 +138,7 @@ const SettingsPlugin = {
             <span class="settings-item-icon">📱</span>
             <div class="settings-item-content">
               <span class="settings-item-title">万物手札</span>
-              <span class="settings-item-desc">v6.0.0 · 微内核架构</span>
+              <span class="settings-item-desc">v6.1.0 · 微内核架构</span>
             </div>
           </div>
           
@@ -265,11 +265,30 @@ const SettingsPlugin = {
         const data = JSON.parse(text);
         
         if (data.records && Array.isArray(data.records)) {
-          // 导入记录
-          if (window.RecordsPlugin) {
+          // 导入记录 — 区分新增/更新
+          if (window.Store && window.StorageService) {
+            const existing = window.Store.getState('records.list') || [];
+            const existingIds = new Set(existing.map(r => r.id));
+
             for (const record of data.records) {
-              await RecordsPlugin.updateRecord(record.id, record);
+              if (existingIds.has(record.id)) {
+                // 更新已有记录
+                window.Store.dispatch({
+                  type: 'records/update',
+                  payload: { id: record.id, updates: record }
+                });
+                await window.StorageService.put(record);
+              } else {
+                // 导入新记录
+                await window.StorageService.put(record);
+              }
             }
+            // 刷新 Store 中的记录列表
+            const allRecords = await window.StorageService.getAll();
+            window.Store.dispatch({
+              type: 'SET_STATE',
+              payload: { records: { list: allRecords, filtered: allRecords } }
+            });
           }
           this._showToast(`成功导入 ${data.records.length} 条记录`, { type: 'success' });
           this._render();

@@ -518,7 +518,6 @@ const App = {
     if (window.CloudSync) {
       CloudSync.init();
       this.bindCloudEvents();
-      CloudSync.init();
     }
   },
   
