@@ -1,0 +1,113 @@
+/**
+ * 空状态组件样式
+ * @version 5.0.0
+ */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  min-height: 300px;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.empty-state-icon {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 24px;
+  color: #ccc;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.empty-state-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.empty-state-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 8px 0;
+}
+
+.empty-state-description {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.6;
+  margin: 0 0 24px 0;
+  max-width: 300px;
+}
+
+.empty-state-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.empty-state-btn {
+  padding: 10px 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: white;
+  color: #333;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.empty-state-btn:hover {
+  border-color: var(--primary-color, #4A90D9);
+  color: var(--primary-color, #4A90D9);
+}
+
+.empty-state-btn.primary {
+  background: var(--primary-color, #4A90D9);
+  border-color: var(--primary-color, #4A90D9);
+  color: white;
+}
+
+.empty-state-btn.primary:hover {
+  background: var(--primary-hover, #3a7bc8);
+  border-color: var(--primary-hover, #3a7bc8);
+}
+
+/* 暗色主题适配 */
+[data-theme="dark"] .empty-state-title {
+  color: #f0f0f0;
+}
+
+[data-theme="dark"] .empty-state-description {
+  color: #b0b0b0;
+}
+
+[data-theme="dark"] .empty-state-btn {
+  background: #2a2a2a;
+  border-color: #444;
+  color: #e0e0e0;
+}
+
+[data-theme="dark"] .empty-state-btn:hover {
+  border-color: var(--primary-color, #4A90D9);
+  color: var(--primary-color, #4A90D9);
+}
+
+[data-theme="dark"] .empty-state-btn.primary {
+  background: var(--primary-color, #4A90D9);
+  border-color: var(--primary-color, #4A90D9);
+  color: white;
+}

@@ -776,20 +776,43 @@ const App = {
     if (!container) return;
     
     if (this.filteredItems.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state">
-          <svg class="empty-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <polyline points="14 2 14 8 20 8"></polyline>
-            <line x1="16" y1="13" x2="8" y2="13"></line>
-            <line x1="16" y1="17" x2="8" y2="17"></line>
-            <polyline points="10 9 9 9 8 9"></polyline>
-          </svg>
-          <p class="empty-title">暂无记录</p>
-          <p class="empty-desc">添加你的第一条手札吧</p>
-          <button class="btn btn-primary empty-add-btn">新建记录</button>
-        </div>
-      `;
+      // v5.0.0: 使用 EmptyState 组件
+      if (window.EmptyState) {
+        EmptyState.render({
+          container: container,
+          icon: 'record',
+          title: this.searchKey ? '未找到匹配的记录' : '暂无记录',
+          description: this.searchKey 
+            ? '试试其他关键词' 
+            : '点击底部"+"按钮，开始记录你的第一个故事',
+          actions: this.searchKey ? [] : [
+            {
+              text: '+ 新建记录',
+              primary: true,
+              onClick: () => {
+                this.switchPage('editor');
+                this.resetForm();
+              }
+            }
+          ]
+        });
+      } else {
+        // 兼容旧版
+        container.innerHTML = `
+          <div class="empty-state">
+            <svg class="empty-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            <p class="empty-title">暂无记录</p>
+            <p class="empty-desc">添加你的第一条手札吧</p>
+            <button class="btn btn-primary empty-add-btn">新建记录</button>
+          </div>
+        `;
+      }
       return;
     }
     
@@ -1647,8 +1670,15 @@ const App = {
 // 启动应用
 // ===================================
 
-document.addEventListener('DOMContentLoaded', () => {
-  App.init();
+document.addEventListener('DOMContentLoaded', async () => {
+  await App.init();
+  
+  // v5.0.0: 检查是否需要显示新手引导
+  if (window.Onboarding && Onboarding.shouldShow()) {
+    Onboarding.init(Onboarding.DEFAULT_STEPS);
+    // 延迟显示，确保页面渲染完成
+    setTimeout(() => Onboarding.start(), 1000);
+  }
 });
 
 // 导出到全局（仅导出未独立成模块的对象）
