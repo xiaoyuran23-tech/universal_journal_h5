@@ -1573,18 +1573,23 @@ const App = {
   },
 
   showToast(message) {
-
-    let toast = document.getElementById('toast-notification');
+    // 统一使用 id="toast" (HTML 中已存在)
+    let toast = document.getElementById('toast');
     if (!toast) {
       toast = document.createElement('div');
-      toast.id = 'toast-notification';
+      toast.id = 'toast';
       toast.className = 'toast';
       document.body.appendChild(toast);
     }
+    
+    // 清除旧定时器，防止多个 Toast 叠加
+    if (this._toastTimer) {
+      clearTimeout(this._toastTimer);
+    }
+    
     toast.textContent = message;
     toast.classList.add('show');
     
-    clearTimeout(this._toastTimer);
     this._toastTimer = setTimeout(() => {
       toast.classList.remove('show');
     }, 3000);

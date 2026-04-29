@@ -272,16 +272,16 @@ const CalendarView = {
    * 检查某天是否有记录
    */
   _hasItemsOnDate(date) {
-    const dateStr = this._formatDateLocal(date);
-    return this.items.some(item => item.createdAt && item.createdAt.includes(dateStr));
+    const dateStr = this._formatDateISO(date);
+    return this.items.some(item => item.createdAt && item.createdAt.startsWith(dateStr));
   },
 
   /**
    * 获取某天的记录数
    */
   _getItemsCountOnDate(date) {
-    const dateStr = this._formatDateLocal(date);
-    return this.items.filter(item => item.createdAt && item.createdAt.includes(dateStr)).length;
+    const dateStr = this._formatDateISO(date);
+    return this.items.filter(item => item.createdAt && item.createdAt.startsWith(dateStr)).length;
   },
 
   /**
@@ -308,6 +308,13 @@ const CalendarView = {
    */
   _formatDateLocal(date) {
     return date.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  },
+
+  /**
+   * 格式化日期为 ISO 日期部分 (如 2026-04-28)
+   */
+  _formatDateISO(date) {
+    return date.toISOString().split('T')[0];
   },
 
   /**
