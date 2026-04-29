@@ -144,7 +144,7 @@ const App = {
       CloudSync.loadConfig();
       this.updateCloudStatus();
       
-      if (CloudSync.isEnabled() && CloudSyncV2.config.syncOnStart) {
+      if (CloudSync.isEnabled() && CloudSync.config.syncOnStart) {
         this.autoSync();
       }
     }
@@ -570,49 +570,10 @@ const App = {
       });
     }
     
-    // ==================== 分类管理 ====================
-    const manageCatBtn = document.getElementById('manage-categories-btn');
-    if (manageCatBtn) {
-      manageCatBtn.addEventListener('click', () => {
-        this.openCategoryManager();
-      });
-    }
-    
-    const closeCatMgrBtn = document.getElementById('close-category-manager');
-    if (closeCatMgrBtn) {
-      closeCatMgrBtn.addEventListener('click', () => {
-        this.closeModal('category-manager-modal');
-      });
-    }
-    
-    const saveCatBtn = document.getElementById('save-category-btn');
-    if (saveCatBtn) {
-      saveCatBtn.addEventListener('click', () => {
-        this.saveCategory();
-      });
-    }
-    
-    const closeCatModalBtn = document.getElementById('close-category-modal');
-    if (closeCatModalBtn) {
-      closeCatModalBtn.addEventListener('click', () => {
-        this.closeCategoryModal();
-      });
-    }
-    
-    // 分类管理器内部事件委托（处理动态生成的新增按钮等）
-    const catMgrModal = document.getElementById('category-manager-modal');
-    if (catMgrModal) {
-      catMgrModal.addEventListener('click', (e) => {
-        const addBtn = e.target.closest('#btn-add-category');
-        if (addBtn) {
-          this.openCategoryModal();
-        }
-      });
-    }
-    
-    if (window.CloudSyncV2) {
+    if (window.CloudSync) {
+      CloudSync.init();
       this.bindCloudEvents();
-      CloudSyncV2.init();
+      CloudSync.init();
     }
   },
   
@@ -775,7 +736,7 @@ const App = {
         (item.name && item.name.toLowerCase().includes(this.searchKey.toLowerCase())) ||
         (item.notes && item.notes.toLowerCase().includes(this.searchKey.toLowerCase())) ||
         (item.tags && item.tags.some(t => t.toLowerCase().includes(this.searchKey.toLowerCase())));
-      return matchCategory && matchTag && matchDate && matchSearch;
+      return matchTag && matchDate && matchSearch;
     });
   },
   
@@ -832,7 +793,6 @@ const App = {
         ` : ''}
         <div class="item-content">
           <h3 class="item-name">${this.escapeHtml(item.name || '未命名')}</h3>
-          <p class="item-category">${this.escapeHtml(item.category || '未分类')}</p>
           ${item.tags && item.tags.length > 0 ? `
             <div class="item-tags">
               ${item.tags.map(tag => `<span class="tag-small">#${this.escapeHtml(tag)}</span>`).join('')}
@@ -897,7 +857,6 @@ const App = {
         ` : ''}
         <div class="item-content">
           <h3 class="item-name">${this.escapeHtml(item.name || '未命名')}</h3>
-          <p class="item-category">${this.escapeHtml(item.category || '未分类')}</p>
           ${item.tags && item.tags.length > 0 ? `
             <div class="item-tags">
               ${item.tags.map(tag => `<span class="tag-small">#${this.escapeHtml(tag)}</span>`).join('')}
@@ -933,7 +892,6 @@ const App = {
         
         <h1 class="detail-name">${this.escapeHtml(item.name || '未命名')}</h1>
         <div class="detail-meta">
-          <span class="detail-category">${this.escapeHtml(item.category || '未分类')}</span>
           <span class="detail-status">${this.getStatusText(item.status)}</span>
           ${item.date ? `<span class="detail-date">📅 ${item.date}</span>` : ''}
           <span class="detail-date">创建：${item.createdAt}</span>
@@ -1296,7 +1254,6 @@ const App = {
         ` : ''}
         <div class="item-content">
           <h3 class="item-name">${this.escapeHtml(item.name || '未命名')}</h3>
-          <p class="item-category">${this.escapeHtml(item.category || '未分类')}</p>
           <div class="item-meta">
             <span class="item-date">${item.createdAt}</span>
             <span class="item-favorite">⭐</span>
@@ -1459,13 +1416,6 @@ const App = {
     }
   },
 
-  stripHtml(html) {
-    if (!html) return '';
-    let tmp = document.createElement('DIV');
-    tmp.innerHTML = html;
-    return tmp.textContent || tmp.innerText || '';
-  },
-
   showToast(message) {
 
     const toast = document.getElementById('toast');
@@ -1487,7 +1437,7 @@ const App = {
   updateCloudStatus() {
     const statusText = document.getElementById('cloud-status-text');
     if (statusText && window.CloudSync) {
-      statusText.textContent = CloudSyncV2.getStatusText();
+      statusText.textContent = CloudSync.getStatusText();
     }
   },
   
@@ -1497,8 +1447,8 @@ const App = {
     const tokenInput = document.getElementById('sync-token');
     const keyInput = document.getElementById('sync-key');
     
-    if (gistInput) gistInput.value = CloudSyncV2.config.gistId || '';
-    if (tokenInput) tokenInput.value = CloudSyncV2.config.token || '';
+    if (gistInput) gistInput.value = CloudSync.config.gistId || '';
+    if (tokenInput) tokenInput.value = CloudSync.config.token || '';
     if (keyInput) keyInput.value = '';
     if (modal) modal.classList.add('active');
     
@@ -1520,10 +1470,10 @@ const App = {
       return;
     }
     
-    CloudSyncV2.config.gistId = gistId;
-    CloudSyncV2.config.token = token;
-    CloudSyncV2.config.password = key;
-    CloudSyncV2.config.enabled = true;
+    CloudSync.config.gistId = gistId;
+    CloudSync.config.token = token;
+    CloudSync.config.password = key;
+    CloudSync.config.enabled = true;
     CloudSync.saveConfig();
     
     const modal = document.getElementById('cloud-modal');
@@ -1540,7 +1490,7 @@ const App = {
       return;
     }
     
-    CloudSyncV2.config.token = token;
+    CloudSync.config.token = token;
     const testArea = document.getElementById('cloud-test-area');
     const testResult = document.getElementById('cloud-test-result');
     
@@ -1550,7 +1500,7 @@ const App = {
       testResult.textContent = '正在测试连接...';
     }
     
-    const result = await CloudSyncV2.testConnection();
+    const result = await CloudSync.testConnection();
     
     if (testResult) {
       if (result.success) {
@@ -1564,7 +1514,7 @@ const App = {
   },
   
   async cloudUpload() {
-    if (!CloudSyncV2.config.token) {
+    if (!CloudSync.config.token) {
       this.showToast('请先配置同步设置');
       this.showCloudConfig();
       return;
@@ -1590,7 +1540,7 @@ const App = {
   },
   
   async cloudDownload() {
-    if (!CloudSyncV2.config.token) {
+    if (!CloudSync.config.token) {
       this.showToast('请先配置同步设置');
       this.showCloudConfig();
       return;
@@ -1607,9 +1557,11 @@ const App = {
       if (result.success) {
         await StorageBackend.save(result.items);
         await this.loadItems();
+        // 触发数据迁移（处理云端旧数据）
+        await this.migrateLegacyData();
         this.renderItems();
         this.renderFavorites();
-            this.updateCloudStatus();
+        this.updateCloudStatus();
         this.showToast(`✅ ${result.message}`);
       } else {
         this.showToast(`❌ ${result.message}`);
@@ -1620,7 +1572,7 @@ const App = {
   },
   
   async cloudSyncBidirectional() {
-    if (!CloudSyncV2.config.token) {
+    if (!CloudSync.config.token) {
       this.showToast('请先配置同步设置');
       this.showCloudConfig();
       return;
@@ -1637,9 +1589,11 @@ const App = {
       if (result.success) {
         await StorageBackend.save(result.items);
         await this.loadItems();
+        // 触发数据迁移（处理云端旧数据）
+        await this.migrateLegacyData();
         this.renderItems();
         this.renderFavorites();
-            this.updateCloudStatus();
+        this.updateCloudStatus();
         this.showToast(`✅ ${result.message}`);
       } else {
         this.showToast(`❌ ${result.message}`);
@@ -1650,18 +1604,19 @@ const App = {
   },
   
   async autoSync() {
-    if (!CloudSyncV2.config.password) return;
+    if (!CloudSync.config.key) return;
     
     try {
       const localItems = await StorageBackend.getAll();
-      const result = await CloudSync.syncBidirectional(localItems, CloudSyncV2.config.password);
+      const result = await CloudSync.syncBidirectional(localItems, CloudSync.config.key);
       
       if (result.success) {
         await StorageBackend.save(result.items);
         await this.loadItems();
+        await this.migrateLegacyData();
         this.renderItems();
         this.renderFavorites();
-            this.updateCloudStatus();
+        this.updateCloudStatus();
       }
     } catch (e) {
       console.warn('自动同步失败:', e);
@@ -1718,13 +1673,6 @@ const App = {
       await StorageBackend.save(this.items);
       console.log('数据迁移完成');
     }
-  },
-
-  stripHtml(html) {
-    if (!html) return '';
-    let tmp = document.createElement('DIV');
-    tmp.innerHTML = html;
-    return tmp.textContent || tmp.innerText || '';
   },
 
   showToast(message) {

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'journal-v3.4.0';
+const CACHE_NAME = 'journal-v4.0.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -11,13 +11,14 @@ const ASSETS_TO_CACHE = [
   './js/tag-manager.js',
   './js/batch.js',
   './js/idb.js',
+  './js/storage.js',
   './js/draft.js',
   './js/trash.js',
   './js/calendar.js',
   './js/template.js',
   './js/timeline.js',
   './js/visuals.js',
-  './js/cloud-sync-v2.js',
+  './js/cloud-sync.js',
   './js/image-processor-v2.js',
   './js/app.js'
 ];

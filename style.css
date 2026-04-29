@@ -26,7 +26,7 @@ html {
 /* 平滑滚动 */
 body {
   -webkit-overflow-scrolling: touch;
-  min-height: 100vh;
+  min-height: 100dvh;
   min-height: -webkit-fill-available;
 }
 
@@ -328,7 +328,7 @@ a {
 
 .main-content {
   padding-bottom: calc(64px + env(safe-area-inset-bottom));
-  min-height: calc(100vh - 64px - env(safe-area-inset-bottom));
+  min-height: calc(100dvh - 64px - env(safe-area-inset-bottom));
 }
 
 .page {
@@ -2864,7 +2864,7 @@ a {
 
 .template-manager-content {
   padding: var(--spacing-md);
-  min-height: calc(100vh - 120px);
+  min-height: calc(100dvh - 120px);
 }
 
 .template-manager-empty {
@@ -3402,7 +3402,7 @@ button:active::before,
 #page-form {
   padding: 0 !important; /* 覆盖旧样式 */
   overflow: hidden !important;
-  height: 100vh;
+  height: 100dvh;
   height: 100dvh;
   display: none; /* 默认隐藏，由 .active 控制 */
 }
