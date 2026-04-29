@@ -63,17 +63,20 @@ async function initApp() {
       throw e;
     }
 
-    // 3. 启动 Kernel (包含 Store 初始化) - 容错处理
-    try {
-      if (window.Kernel) {
-        // Store 现在从 IndexedDB 加载数据
+    // 3. 启动 Kernel (包含 Store 初始化) - 关键依赖失败时阻断
+    if (window.Kernel) {
+      try {
         await Kernel.boot({
           theme: 'light',
           language: 'zh-CN'
         });
+        console.log('[App] Kernel booted successfully');
+      } catch (e) {
+        console.error('[App] Kernel boot failed (CRITICAL):', e);
+        throw new Error(`Kernel boot failed: ${e.message}`);
       }
-    } catch (e) {
-      console.warn('[App] Kernel boot failed, continuing anyway:', e);
+    } else {
+      throw new Error('Kernel is not available');
     }
 
     // 4. 启动迁移适配器 (解决双重状态冲突) - 容错处理
