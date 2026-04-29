@@ -1,7 +1,7 @@
 /**
  * HeaderBar - 顶部导航组件
  * 标题 + 搜索按钮
- * @version 6.0.0
+ * @version 6.1.0
  */
 
 class HeaderBar {

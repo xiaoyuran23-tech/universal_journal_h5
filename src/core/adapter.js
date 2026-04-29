@@ -1,7 +1,7 @@
 /**
  * MigrationAdapter - 迁移适配器
  * 负责在新旧系统之间同步数据和事件，确保迁移期体验一致
- * @version 6.0.0
+ * @version 6.1.0
  */
 
 class MigrationAdapter {

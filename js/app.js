@@ -1672,12 +1672,13 @@ const App = {
 
 document.addEventListener('DOMContentLoaded', async () => {
   await App.init();
-  
+
   // v5.0.0: 检查是否需要显示新手引导
   if (window.Onboarding && Onboarding.shouldShow()) {
-    Onboarding.init(Onboarding.DEFAULT_STEPS);
+    const onboarding = new Onboarding();
+    onboarding.init(Onboarding.DEFAULT_STEPS);
     // 延迟显示，确保页面渲染完成
-    setTimeout(() => Onboarding.start(), 1000);
+    setTimeout(() => onboarding.start(), 1000);
   }
 });
 

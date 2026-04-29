@@ -2,7 +2,7 @@
  * StorageService - 基于 IndexedDB 的高性能存储服务
  * 替代 localStorage，解决大数据量卡顿和 5MB 限制问题
  * 纯原生 IndexedDB 实现，无外部依赖
- * @version 6.0.0
+ * @version 6.1.0
  */
 
 class StorageService {

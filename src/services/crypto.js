@@ -1,7 +1,7 @@
 /**
  * CryptoService - 基于 Web Crypto API 的加密服务
  * 提供 AES-GCM 加密/解密、PBKDF2 密钥派生、Hash 计算
- * @version 6.0.0
+ * @version 6.1.0
  */
 
 class CryptoService {

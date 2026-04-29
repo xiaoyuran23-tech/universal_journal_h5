@@ -1,7 +1,7 @@
 /**
  * EventBus - 全局事件总线 (v6 src 版本)
  * 实现发布/订阅模式，解耦模块间通信
- * @version 6.0.0
+ * @version 6.1.0
  */
 class EventBus {
   constructor() {

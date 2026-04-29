@@ -1,7 +1,7 @@
 /**
  * SyncService - 云同步服务
  * 提供数据上传、下载、冲突解决、状态管理
- * @version 6.0.0
+ * @version 6.1.0
  */
 
 class SyncService {

@@ -1,7 +1,7 @@
 /**
  * FeaturedCard - 精选卡片组件
  * 展示置顶/精选记录的大图卡片
- * @version 6.0.0
+ * @version 6.1.0
  */
 
 class FeaturedCard {

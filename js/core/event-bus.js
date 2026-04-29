@@ -1,7 +1,7 @@
 /**
  * EventBus - 全局事件总线 (js compat version)
  * 实现发布/订阅模式，解耦模块间通信
- * @version 5.0.0
+ * @version 6.1.0
  */
 
 // 幂等加载：防止 src/core/event-bus.js 已定义时重复声明

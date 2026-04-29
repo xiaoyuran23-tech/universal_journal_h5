@@ -1,7 +1,7 @@
 /**
  * CategoryTabs - 分类标签组件
  * 横向滚动的分类筛选器
- * @version 6.0.0
+ * @version 6.1.0
  */
 
 class CategoryTabs {

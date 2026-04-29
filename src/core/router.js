@@ -1,7 +1,7 @@
 /**
  * Router - 路由系统
  * 支持页面切换、历史记录、参数传递
- * @version 6.0.0
+ * @version 6.1.0
  */
 class Router {
   constructor() {

@@ -2,7 +2,7 @@
  * HomePage - 首页视图组件
  * 整合 HeaderBar + CategoryTabs + FeaturedCard + RecordList + BottomTabBar
  * 等效 React 的 HomePage.tsx
- * @version 6.0.0
+ * @version 6.1.0
  */
 
 class HomePage {

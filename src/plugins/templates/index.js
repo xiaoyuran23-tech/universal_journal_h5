@@ -1,7 +1,7 @@
 /**
  * Templates Plugin - 模板系统插件
  * 提供预设模板和自定义模板功能
- * @version 6.0.0
+ * @version 6.1.0
  */
 
 // 幂等加载保护

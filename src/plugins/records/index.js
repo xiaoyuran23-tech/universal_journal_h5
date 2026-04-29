@@ -1,7 +1,7 @@
 /**
  * Records Plugin - 记录管理插件
  * 负责记录的 CRUD 操作、列表渲染、筛选
- * @version 6.0.0
+ * @version 6.1.0
  */
 
 // 幂等加载：防止重复声明导致 SyntaxError

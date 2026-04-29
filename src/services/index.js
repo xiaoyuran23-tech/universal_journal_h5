@@ -1,6 +1,6 @@
 /**
  * Services Index - 服务层统一导出
- * @version 6.0.0
+ * @version 6.1.0
  */
 
 // 各服务通过全局变量暴露:

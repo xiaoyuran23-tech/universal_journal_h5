@@ -1,7 +1,7 @@
 /**
  * Kernel - 微内核
  * 应用的核心控制器，负责协调各模块
- * @version 6.0.0
+ * @version 6.1.0
  */
 class Kernel {
   constructor() {

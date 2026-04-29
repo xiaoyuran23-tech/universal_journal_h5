@@ -1,7 +1,7 @@
 /**
  * Favorites Plugin - 收藏管理插件
  * 提供收藏列表和收藏筛选功能
- * @version 6.0.0
+ * @version 6.1.0
  */
 
 // 幂等加载保护

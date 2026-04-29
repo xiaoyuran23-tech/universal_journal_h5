@@ -1,7 +1,7 @@
 /**
  * Status States - 状态组件
  * EmptyState / LoadingState / ErrorState
- * @version 6.0.0
+ * @version 6.1.0
  */
 
 // 幂等加载

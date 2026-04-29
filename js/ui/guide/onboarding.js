@@ -1,7 +1,7 @@
 /**
  * Onboarding - 新手引导系统
  * 提供分步引导，帮助首次用户快速了解核心功能
- * @version 5.0.0
+ * @version 6.1.0
  */
 class Onboarding {
   constructor() {

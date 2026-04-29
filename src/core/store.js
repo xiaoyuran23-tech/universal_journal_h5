@@ -1,7 +1,7 @@
 /**
  * Store - 集中式状态管理 (类似 Redux)
  * 单一数据源，状态变更必须通过 Action
- * @version 6.0.0
+ * @version 6.1.0
  */
 class Store {
   constructor(initialState = {}) {

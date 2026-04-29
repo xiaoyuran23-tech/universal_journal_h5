@@ -1,7 +1,7 @@
 /**
  * ImageService - 图片处理服务
  * 提供压缩、Base64 转换、缩略图生成、缓存管理
- * @version 6.0.0
+ * @version 6.1.0
  */
 
 class ImageService {

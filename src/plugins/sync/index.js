@@ -1,7 +1,7 @@
 /**
  * Sync Plugin - 云同步插件 (UI 层)
  * 提供同步操作的 UI 交互，底层委托 SyncService
- * @version 6.0.0
+ * @version 6.1.0
  */
 
 // 幂等加载保护

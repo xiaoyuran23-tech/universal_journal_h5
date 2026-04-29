@@ -1,7 +1,7 @@
 /**
  * PluginLoader - 插件加载器
  * 支持动态加载、依赖管理、生命周期
- * @version 6.0.0
+ * @version 6.1.0
  */
 class PluginLoader {
   constructor(kernel) {
