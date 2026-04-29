@@ -323,7 +323,7 @@ class HomePage {
         ${record.notes ? `<p class="detail-item-notes">${this._escape(record.notes)}</p>` : ''}
         <div class="detail-item-meta">
           <span>${this._formatDate(record.createdAt)}</span>
-          ${record.tags && record.tags.length > 0 ? `<span>${record.tags.join(' ')}</span>` : ''}
+          ${record.tags && record.tags.length > 0 ? `<span>${record.tags.map(t => this._escape(t)).join(' ')}</span>` : ''}
         </div>
       `;
     }

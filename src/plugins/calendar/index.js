@@ -254,9 +254,16 @@ const CalendarPlugin = {
    * @param {Array} records
    * @private
    */
+  _escape(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  },
+
   _renderDayDetail(date, records) {
     const dayRecords = this._getRecordsForDate(date, records);
-    
+
     if (dayRecords.length === 0) {
       return `
         <div class="day-detail">
@@ -273,13 +280,13 @@ const CalendarPlugin = {
         <div class="day-detail-list">
           ${dayRecords.map(record => `
             <div class="day-detail-item" data-id="${record.id}">
-              <h4>${record.name || '未命名'}</h4>
+              <h4>${this._escape(record.name || '未命名')}</h4>
               ${record.tags && record.tags.length > 0 ? `
                 <div class="day-detail-tags">
-                  ${record.tags.map(tag => `<span class="tag">#${tag}</span>`).join('')}
+                  ${record.tags.map(tag => `<span class="tag">#${this._escape(tag)}</span>`).join('')}
                 </div>
               ` : ''}
-              <p class="day-detail-notes">${(record.notes || '').substring(0, 50)}${(record.notes || '').length > 50 ? '...' : ''}</p>
+              <p class="day-detail-notes">${this._escape((record.notes || '').substring(0, 50))}${(record.notes || '').length > 50 ? '...' : ''}</p>
             </div>
           `).join('')}
         </div>

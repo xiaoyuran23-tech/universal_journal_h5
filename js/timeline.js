@@ -6,7 +6,14 @@
 
 const TimelineManager = {
   _eventsBound: false,
-  
+
+  _escape(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  },
+
   /**
    * 初始化
    */
@@ -139,17 +146,15 @@ const TimelineManager = {
     const date = new Date(item.date || item.createdAt || 0);
     let dateStr = '未知日期';
     if (!isNaN(date.getTime())) {
-      dateStr = isOnThisDay 
+      dateStr = isOnThisDay
         ? `${date.getFullYear()}年 ${date.getMonth() + 1}月${date.getDate()}日`
         : `${date.getMonth() + 1}月${date.getDate()}日`;
     }
-    const primaryTag = (item.tags && item.tags.length > 0) ? item.tags[0] : '无标签';
-    const tags = (item.tags || []).map(t => `<span class="tag-pill">${t}</span>`).join('');
+    const tags = (item.tags || []).map(t => `<span class="tag-pill">${this._escape(t)}</span>`).join('');
     const photoCount = item.photos ? item.photos.length : 0;
 
-    // 提取纯文本内容作为摘要 (如果是 HTML 则截断)
+    // 提取纯文本内容作为摘要
     let summary = item.content || '';
-    // 简单的 HTML 转文本处理 (如果需要)
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = summary;
     const textSummary = tempDiv.textContent || tempDiv.innerText || '';
@@ -158,11 +163,10 @@ const TimelineManager = {
     return `
       <div class="timeline-card" data-id="${item.id}">
         <div class="card-header">
-          <span class="card-date">${isOnThisDay ? date.getFullYear() + '年 ' : ''}${dateStr}</span>
-          <span class="card-category">${category}</span>
+          <span class="card-date">${isOnThisDay ? date.getFullYear() + '年 ' : ''}${this._escape(dateStr)}</span>
         </div>
-        <h4 class="card-title">${item.name}</h4>
-        <p class="card-summary">${displaySummary || '无内容'}</p>
+        <h4 class="card-title">${this._escape(item.name)}</h4>
+        <p class="card-summary">${this._escape(displaySummary || '无内容')}</p>
         <div class="card-footer">
           ${tags}
           ${photoCount > 0 ? `<span class="photo-indicator"> ${photoCount}</span>` : ''}
