@@ -4,6 +4,8 @@
  * @version 6.0.0
  */
 
+// 幂等加载保护
+if (!window.FavoritesPlugin) {
 const FavoritesPlugin = {
   name: 'favorites',
   version: '1.0.0',
@@ -238,3 +240,6 @@ const FavoritesPlugin = {
 window.FavoritesPlugin = FavoritesPlugin;
 
 console.log('[FavoritesPlugin] 收藏插件已定义');
+} else {
+  console.log('[FavoritesPlugin] 已存在，跳过加载');
+}

@@ -4,6 +4,8 @@
  * @version 6.0.0
  */
 
+// 幂等加载保护
+if (!window.SyncPlugin) {
 const SyncPlugin = {
   name: 'sync',
   version: '1.0.0',
@@ -187,3 +189,6 @@ const SyncPlugin = {
 window.SyncPlugin = SyncPlugin;
 
 console.log('[SyncPlugin] 同步插件已定义 (委托 SyncService)');
+} else {
+  console.log('[SyncPlugin] 已存在，跳过加载');
+}

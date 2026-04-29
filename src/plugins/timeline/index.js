@@ -4,6 +4,8 @@
  * @version 6.0.0
  */
 
+// 幂等加载保护
+if (!window.TimelinePlugin) {
 const TimelinePlugin = {
   name: 'timeline',
   version: '1.0.0',
@@ -253,3 +255,6 @@ const TimelinePlugin = {
 window.TimelinePlugin = TimelinePlugin;
 
 console.log('[TimelinePlugin] 时间线插件已定义');
+} else {
+  console.log('[TimelinePlugin] 已存在，跳过加载');
+}

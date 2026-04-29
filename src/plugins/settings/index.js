@@ -4,6 +4,8 @@
  * @version 6.0.0
  */
 
+// 幂等加载保护
+if (!window.SettingsPlugin) {
 const SettingsPlugin = {
   name: 'settings',
   version: '1.0.0',
@@ -372,3 +374,6 @@ const SettingsPlugin = {
 window.SettingsPlugin = SettingsPlugin;
 
 console.log('[SettingsPlugin] 设置插件已定义');
+} else {
+  console.log('[SettingsPlugin] 已存在，跳过加载');
+}

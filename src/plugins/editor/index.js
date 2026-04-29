@@ -4,6 +4,8 @@
  * @version 6.0.0
  */
 
+// 幂等加载保护
+if (!window.EditorPlugin) {
 const EditorPlugin = {
   name: 'editor',
   version: '1.0.0',
@@ -417,3 +419,6 @@ const EditorPlugin = {
 window.EditorPlugin = EditorPlugin;
 
 console.log('[EditorPlugin] 编辑器插件已定义');
+} else {
+  console.log('[EditorPlugin] 已存在，跳过加载');
+}

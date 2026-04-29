@@ -4,6 +4,8 @@
  * @version 6.0.0
  */
 
+// 幂等加载保护
+if (!window.TemplatesPlugin) {
 const TemplatesPlugin = {
   name: 'templates',
   version: '1.0.0',
@@ -306,3 +308,6 @@ const TemplatesPlugin = {
 window.TemplatesPlugin = TemplatesPlugin;
 
 console.log('[TemplatesPlugin] 模板插件已定义');
+} else {
+  console.log('[TemplatesPlugin] 已存在，跳过加载');
+}

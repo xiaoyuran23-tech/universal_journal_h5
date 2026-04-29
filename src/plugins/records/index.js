@@ -3,7 +3,10 @@
  * 负责记录的 CRUD 操作、列表渲染、筛选
  * @version 6.0.0
  */
-const RecordsPlugin = {
+
+// 幂等加载：防止重复声明导致 SyntaxError
+if (!window.RecordsPlugin) {
+  window.RecordsPlugin = {
   name: 'records',
   version: '1.0.0',
   
@@ -360,7 +363,7 @@ const RecordsPlugin = {
   }
 };
 
-// 全局暴露
-window.RecordsPlugin = RecordsPlugin;
-
-console.log('[RecordsPlugin] 记录管理插件已定义');
+  console.log('[RecordsPlugin] 记录管理插件已定义');
+} else {
+  console.log('[RecordsPlugin] 已存在，跳过重复加载');
+}

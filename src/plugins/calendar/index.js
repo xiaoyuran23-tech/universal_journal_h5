@@ -4,6 +4,8 @@
  * @version 6.0.0
  */
 
+// 幂等加载保护
+if (!window.CalendarPlugin) {
 const CalendarPlugin = {
   name: 'calendar',
   version: '1.0.0',
@@ -420,3 +422,6 @@ const CalendarPlugin = {
 window.CalendarPlugin = CalendarPlugin;
 
 console.log('[CalendarPlugin] 日历插件已定义');
+} else {
+  console.log('[CalendarPlugin] 已存在，跳过加载');
+}

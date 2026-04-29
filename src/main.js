@@ -18,29 +18,49 @@ async function initApp() {
       }
     }
 
-    // 2. 注册插件 - 容错处理
+    // 2. 注册插件 - 关键依赖失败时阻断流程
     try {
       if (window.PluginLoader && window.Kernel) {
         const loader = new PluginLoader(Kernel);
         
-        // 注册核心插件
-        loader.register('records', RecordsPlugin);
-        loader.register('calendar', CalendarPlugin);
-        loader.register('timeline', TimelinePlugin);
-        loader.register('editor', EditorPlugin);
-        loader.register('favorites', FavoritesPlugin);
-        loader.register('templates', TemplatesPlugin);
-        loader.register('sync', SyncPlugin);
-        loader.register('settings', SettingsPlugin);
+        // 注册核心插件 (跳过未定义的插件)
+        const pluginMap = {
+          records: window.RecordsPlugin,
+          calendar: window.CalendarPlugin,
+          timeline: window.TimelinePlugin,
+          editor: window.EditorPlugin,
+          favorites: window.FavoritesPlugin,
+          templates: window.TemplatesPlugin,
+          sync: window.SyncPlugin,
+          settings: window.SettingsPlugin
+        };
+        
+        // 检查核心依赖
+        if (!pluginMap.records) {
+          throw new Error('RecordsPlugin is not loaded - critical dependency missing');
+        }
+        
+        // 只注册已加载的插件
+        Object.entries(pluginMap).forEach(([name, plugin]) => {
+          if (plugin) {
+            loader.register(name, plugin);
+          } else {
+            console.warn(`[App] Skipping plugin "${name}" - not loaded`);
+          }
+        });
         
         // 加载所有插件 (自动处理依赖)
         await loader.loadAll([
           'records', 'calendar', 'timeline', 'editor',
           'favorites', 'templates', 'sync', 'settings'
         ]);
+        
+        console.log('[App] Plugin loading completed');
       }
     } catch (e) {
-      console.warn('[App] Plugin loading failed, continuing anyway:', e);
+      console.error('[App] Plugin loading failed (CRITICAL):', e);
+      // 核心依赖失败时抛出，阻止后续流程
+      throw e;
     }
 
     // 3. 启动 Kernel (包含 Store 初始化) - 容错处理
