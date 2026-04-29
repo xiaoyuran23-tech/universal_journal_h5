@@ -71,6 +71,17 @@ const RecordsPlugin = {
   ],
 
   /**
+   * 视图定义 (v6.1 UX 迁移新增)
+   */
+  views: {
+    'home-ux': {
+      container: '#page-home',
+      component: HomePage,
+      theme: 'warm'
+    }
+  },
+
+  /**
    * Actions (状态变更)
    */
   actions: {

@@ -1,0 +1,416 @@
+/**
+ * UX Theme - 暖色主题 (Warm Earth)
+ * 基于 React/TS 设计 Token 迁移
+ * @version 6.0.0
+ */
+
+/* ===================================
+   Design Tokens - Warm Earth Theme
+   =================================== */
+
+:root {
+  /* 暖色调配色方案 */
+  --ux-bg: #F7F4EE;
+  --ux-card: #ECE6DA;
+  --ux-accent: #D6C7B3;
+  --ux-primary: #A88F6F;
+  --ux-text: #5C5146;
+  --ux-subtext: #8A8074;
+  --ux-white: #FFFFFF;
+
+  /* 圆角规范 */
+  --ux-radius-card: 16px;
+  --ux-radius-button: 999px;
+  --ux-radius-sm: 8px;
+
+  /* 阴影 */
+  --ux-shadow-sm: 0 2px 8px rgba(92, 81, 70, 0.08);
+  --ux-shadow-md: 0 4px 16px rgba(92, 81, 70, 0.12);
+
+  /* 间距 */
+  --ux-space-xs: 4px;
+  --ux-space-sm: 8px;
+  --ux-space-md: 16px;
+  --ux-space-lg: 24px;
+  --ux-space-xl: 32px;
+
+  /* 字体 */
+  --ux-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ux-font-serif: 'Noto Serif SC', 'Songti SC', serif;
+}
+
+/* ===================================
+   主题切换支持
+   =================================== */
+
+[data-theme="warm"] {
+  --bg-primary: var(--ux-bg);
+  --bg-card: var(--ux-card);
+  --accent-primary: var(--ux-primary);
+  --text-primary: var(--ux-text);
+  --text-secondary: var(--ux-subtext);
+  --border-color: var(--ux-accent);
+}
+
+/* ===================================
+   HeaderBar 样式
+   =================================== */
+
+.header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--ux-space-md) var(--ux-space-lg);
+  background: var(--bg-card, var(--ux-card));
+  border-bottom: 1px solid var(--border-color, var(--ux-accent));
+}
+
+.header-bar-title {
+  font-family: var(--ux-font-serif);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary, var(--ux-text));
+  margin: 0;
+}
+
+.header-bar-actions {
+  display: flex;
+  gap: var(--ux-space-sm);
+}
+
+.header-bar-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--ux-radius-button);
+  border: none;
+  background: transparent;
+  color: var(--text-primary, var(--ux-text));
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.header-bar-btn:hover {
+  background: var(--ux-accent);
+}
+
+.header-bar-btn-primary {
+  background: var(--accent-primary, var(--ux-primary));
+  color: var(--ux-white);
+}
+
+.header-bar-btn-primary:hover {
+  opacity: 0.9;
+}
+
+/* ===================================
+   CategoryTabs 样式
+   =================================== */
+
+.category-tabs {
+  display: flex;
+  gap: var(--ux-space-sm);
+  padding: var(--ux-space-md) var(--ux-space-lg);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.category-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.category-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--ux-space-xs);
+  padding: var(--ux-space-sm) var(--ux-space-md);
+  border-radius: var(--ux-radius-button);
+  border: none;
+  background: var(--bg-card, var(--ux-card));
+  color: var(--text-secondary, var(--ux-subtext));
+  font-size: 14px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.category-tab.active {
+  background: var(--accent-primary, var(--ux-primary));
+  color: var(--ux-white);
+}
+
+.category-tab-icon {
+  font-size: 16px;
+}
+
+/* ===================================
+   FeaturedCard 样式
+   =================================== */
+
+.featured-card {
+  margin: var(--ux-space-md) var(--ux-space-lg);
+  border-radius: var(--ux-radius-card);
+  overflow: hidden;
+  background: var(--bg-card, var(--ux-card));
+  box-shadow: var(--ux-shadow-md);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.featured-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(92, 81, 70, 0.16);
+}
+
+.featured-card-cover {
+  position: relative;
+  height: 200px;
+  overflow: hidden;
+}
+
+.featured-card-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.featured-card-badge {
+  position: absolute;
+  top: var(--ux-space-sm);
+  right: var(--ux-space-sm);
+  background: var(--ux-white);
+  color: var(--text-primary, var(--ux-text));
+  padding: 4px 12px;
+  border-radius: var(--ux-radius-button);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.featured-card-content {
+  padding: var(--ux-space-md);
+}
+
+.featured-card-title {
+  font-family: var(--ux-font-serif);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary, var(--ux-text));
+  margin: 0 0 var(--ux-space-xs);
+}
+
+.featured-card-summary {
+  font-size: 14px;
+  color: var(--text-secondary, var(--ux-subtext));
+  margin: 0 0 var(--ux-space-sm);
+}
+
+.featured-card-meta {
+  display: flex;
+  gap: var(--ux-space-md);
+  font-size: 12px;
+  color: var(--text-secondary, var(--ux-subtext));
+}
+
+/* ===================================
+   RecordList 样式
+   =================================== */
+
+.record-list {
+  padding: 0 var(--ux-space-lg) var(--ux-space-xl);
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--ux-space-md);
+}
+
+.record-list-item {
+  border-radius: var(--ux-radius-card);
+  overflow: hidden;
+  background: var(--bg-card, var(--ux-card));
+  box-shadow: var(--ux-shadow-sm);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.record-list-item:hover {
+  transform: translateY(-2px);
+}
+
+.record-list-item-cover {
+  height: 120px;
+  overflow: hidden;
+}
+
+.record-list-item-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.record-list-item-content {
+  padding: var(--ux-space-sm);
+}
+
+.record-list-item-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary, var(--ux-text));
+  margin: 0 0 var(--ux-space-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.record-list-item-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-secondary, var(--ux-subtext));
+}
+
+/* ===================================
+   Status States 样式
+   =================================== */
+
+.empty-state,
+.loading-state,
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--ux-space-xl);
+  text-align: center;
+}
+
+.empty-state-icon,
+.error-state-icon {
+  font-size: 48px;
+  margin-bottom: var(--ux-space-md);
+}
+
+.empty-state-title,
+.error-state-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary, var(--ux-text));
+  margin: 0 0 var(--ux-space-sm);
+}
+
+.empty-state-desc,
+.error-state-message {
+  font-size: 14px;
+  color: var(--text-secondary, var(--ux-subtext));
+  margin: 0 0 var(--ux-space-md);
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--ux-accent);
+  border-top-color: var(--ux-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: var(--ux-space-md);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ===================================
+   Skeleton 样式
+   =================================== */
+
+.skeleton-state {
+  padding: var(--ux-space-md);
+}
+
+.skeleton-card {
+  border-radius: var(--ux-radius-card);
+  overflow: hidden;
+  background: var(--bg-card, var(--ux-card));
+  margin-bottom: var(--ux-space-md);
+}
+
+.skeleton-cover {
+  height: 120px;
+  background: linear-gradient(90deg, var(--ux-card) 25%, var(--ux-accent) 50%, var(--ux-card) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-content {
+  padding: var(--ux-space-sm);
+}
+
+.skeleton-title,
+.skeleton-text {
+  height: 12px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--ux-card) 25%, var(--ux-accent) 50%, var(--ux-card) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  margin-bottom: var(--ux-space-xs);
+}
+
+.skeleton-title {
+  width: 60%;
+}
+
+.skeleton-text.short {
+  width: 40%;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ===================================
+   按钮样式
+   =================================== */
+
+.btn {
+  padding: var(--ux-space-sm) var(--ux-space-md);
+  border-radius: var(--ux-radius-button);
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background: var(--accent-primary, var(--ux-primary));
+  color: var(--ux-white);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border-color, var(--ux-accent));
+  color: var(--text-primary, var(--ux-text));
+}
+
+/* ===================================
+   响应式适配
+   =================================== */
+
+@media (max-width: 768px) {
+  .record-list {
+    grid-template-columns: 1fr;
+  }
+  
+  .header-bar {
+    padding: var(--ux-space-sm) var(--ux-space-md);
+  }
+  
+  .category-tabs {
+    padding: var(--ux-space-sm) var(--ux-space-md);
+  }
+  
+  .featured-card {
+    margin: var(--ux-space-md);
+  }
+}

@@ -54,6 +54,9 @@ async function initApp() {
     // 5. 初始化 UI
     initUI();
 
+    // 5.5 初始化 UX 视图 (v6.1 新增)
+    initUXViews();
+
     // 6. 检查新手引导
     initOnboarding();
 
@@ -101,6 +104,47 @@ function initUI() {
         updatePageVisibility(route.path);
       }
     });
+  }
+}
+
+/**
+ * 初始化 UX 视图 (v6.1 新增)
+ */
+function initUXViews() {
+  console.log('[UX Views] initUXViews called');
+  
+  if (!window.HomePage) {
+    console.error('[UX Views] HomePage is not defined');
+    return;
+  }
+  
+  if (!window.Store) {
+    console.error('[UX Views] Store is not defined');
+    return;
+  }
+
+  console.log('[UX Views] Dependencies ready, initializing...');
+
+  // 在首页容器中渲染 UX 视图
+  // 直接替换 page-home 内容（旧版 search-bar/tag-filter/items-container 会被覆盖）
+  const homeContainer = document.getElementById('page-home');
+  
+  if (!homeContainer) {
+    console.error('[UX Views] #page-home not found in DOM');
+    return;
+  }
+  
+  console.log('[UX Views] Found #page-home, clearing and rendering...');
+  
+  try {
+    // 清空旧内容
+    homeContainer.innerHTML = '';
+    
+    window.homePageInstance = new HomePage(homeContainer);
+    window.homePageInstance.render();
+    console.log('[UX Views] HomePage initialized successfully');
+  } catch (e) {
+    console.error('[UX Views] Failed to initialize HomePage:', e);
   }
 }
 

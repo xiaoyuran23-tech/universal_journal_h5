@@ -220,6 +220,16 @@ await loader.loadAll();
 - [x] 集成测试 (4 tests) - 端到端流程/撤销重做/订阅链/中间件+守卫
 - [x] 测试覆盖率: 核心模块 82/82 通过
 
+### Phase 6: UX 设计迁移与集成 (已完成 ✅)
+- [x] **HeaderBar** - 顶部导航栏 (标题 + 搜索/创建按钮)
+- [x] **CategoryTabs** - 分类标签栏 (全部/植物/美食/足迹/日常)
+- [x] **FeaturedCard** - 精选卡片组件 (大图 + 标题 + 摘要 + 元数据)
+- [x] **StatusStates** - 状态组件 (EmptyState / LoadingState / ErrorState)
+- [x] **RecordsHook** - 数据聚合层 (等效 React useRecords Hook)
+- [x] **HomePage** - 首页视图控制器 (整合所有组件)
+- [x] **UX Theme** - 暖色主题 CSS Variables (`#F7F4EE` / `#A88F6F` / `#5C5146`)
+- [x] **浏览器测试** - 分类筛选 / 精选卡片 / 列表渲染 / 状态同步 全部通过
+
 ---
 
 ## 📊 代码统计
