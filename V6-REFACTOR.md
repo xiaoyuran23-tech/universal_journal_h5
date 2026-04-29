@@ -183,6 +183,11 @@ await loader.loadAll();
 - [x] Records Plugin 实现
 - [x] 主入口整合
 
+### Phase 1.5: 风险修复 (已完成 ✅)
+- [x] **IndexedDB 存储升级**：`src/services/storage.js` 替代 localStorage，解决性能瓶颈
+- [x] **双向同步适配器**：`src/core/adapter.js` 解决新旧状态冲突
+- [x] **Store 持久化更新**：支持异步 IndexedDB 读写
+
 ### Phase 2: 插件迁移 (进行中)
 - [ ] Calendar Plugin
 - [ ] Timeline Plugin
