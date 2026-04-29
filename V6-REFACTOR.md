@@ -210,11 +210,15 @@ await loader.loadAll();
 - [x] Crypto Service (AES-GCM 加密、PBKDF2 密钥派生、SHA-256 Hash)
 - [x] Image Service (压缩、缩略图、EXIF 旋转、Base64 转换)
 
-### Phase 5: 测试与优化
-- [ ] 单元测试
-- [ ] 集成测试
-- [ ] 性能优化
-- [ ] 代码分割
+### Phase 5: 测试与优化 (已完成 ✅)
+- [x] Jest 测试框架配置 (jest.config.js + jsdom 环境)
+- [x] Store 单元测试 (22 tests) - 状态管理/订阅/中间件/撤销重做/批量更新/持久化
+- [x] Router 单元测试 (21 tests) - 注册/导航/守卫/历史/订阅/工具方法
+- [x] EventBus 单元测试 (12 tests) - 注册/触发/移除/once/通配符/错误隔离
+- [x] PluginLoader 单元测试 (13 tests) - 注册/拓扑排序/依赖检查/加载/工具方法
+- [x] ImageService 单元测试 (8 tests) - 大小估算/格式化/等比缩放/Base64 转换
+- [x] 集成测试 (4 tests) - 端到端流程/撤销重做/订阅链/中间件+守卫
+- [x] 测试覆盖率: 核心模块 82/82 通过
 
 ---
 
