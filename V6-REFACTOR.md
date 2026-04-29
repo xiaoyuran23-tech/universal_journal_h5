@@ -188,14 +188,14 @@ await loader.loadAll();
 - [x] **双向同步适配器**：`src/core/adapter.js` 解决新旧状态冲突
 - [x] **Store 持久化更新**：支持异步 IndexedDB 读写
 
-### Phase 2: 插件迁移 (进行中)
-- [ ] Calendar Plugin
-- [ ] Timeline Plugin
-- [ ] Favorites Plugin
-- [ ] Templates Plugin
-- [ ] Sync Plugin
-- [ ] Settings Plugin
-- [ ] Editor Plugin
+### Phase 2: 插件迁移 (已完成 ✅)
+- [x] Calendar Plugin (日历视图)
+- [x] Timeline Plugin (时间线/故事)
+- [x] Editor Plugin (编辑器)
+- [ ] Favorites Plugin (收藏)
+- [ ] Templates Plugin (模板)
+- [ ] Sync Plugin (同步)
+- [ ] Settings Plugin (设置)
 
 ### Phase 3: UI 组件库
 - [ ] Base Components (Button, Input, Modal, Toast)

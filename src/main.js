@@ -17,8 +17,15 @@ async function initApp() {
     // 2. 注册插件
     if (window.PluginLoader && window.Kernel) {
       const loader = new PluginLoader(Kernel);
+      
+      // 注册核心插件
       loader.register('records', RecordsPlugin);
-      await loader.loadAll(['records']);
+      loader.register('calendar', CalendarPlugin);
+      loader.register('timeline', TimelinePlugin);
+      loader.register('editor', EditorPlugin);
+      
+      // 加载所有插件 (自动处理依赖)
+      await loader.loadAll(['records', 'calendar', 'timeline', 'editor']);
     }
 
     // 3. 启动 Kernel (包含 Store 初始化)
