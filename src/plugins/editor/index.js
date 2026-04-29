@@ -41,7 +41,7 @@ const EditorPlugin = {
     
     // 监听路由变化，自动加载记录
     if (window.Router) {
-      Router.subscribe(route => {
+      window.Router.subscribe(route => {
         if (route && route.path === 'editor') {
           this._loadRecord(route.params);
         }
@@ -80,7 +80,7 @@ const EditorPlugin = {
 
     if (id) {
       // 编辑模式：从 Store 加载
-      const records = window.Store ? Store.getState('records.list') : [];
+      const records = window.Store ? window.Store.getState('records.list') : [];
       this._currentRecord = records.find(r => r.id === id);
     } else {
       // 新建模式：创建空记录
@@ -227,7 +227,7 @@ const EditorPlugin = {
     switch (action) {
       case 'back':
         if (window.Router) {
-          Router.back();
+          window.Router.back();
         }
         break;
       case 'save':
@@ -285,7 +285,7 @@ const EditorPlugin = {
         // 返回上一页
         setTimeout(() => {
           if (window.Router) {
-            Router.back();
+            window.Router.back();
           }
         }, 500);
       }

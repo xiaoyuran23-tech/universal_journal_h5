@@ -46,6 +46,10 @@ class RecordsHook {
         this._notify();
       }
     });
+
+    // 初始化时从 Store 加载一次数据
+    const initialState = store.getState?.();
+    this._records = initialState?.records?.list || [];
   }
 
   /**

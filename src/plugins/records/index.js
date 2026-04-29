@@ -15,10 +15,10 @@ if (!window.RecordsPlugin) {
    */
   async init() {
     console.log('[RecordsPlugin] Initializing...');
-    
+
     // 注册 Store 初始状态
     if (window.Store) {
-      Store.dispatch({
+      window.Store.dispatch({
         type: 'SET_STATE',
         payload: {
           records: {
@@ -75,13 +75,17 @@ if (!window.RecordsPlugin) {
 
   /**
    * 视图定义 (v6.1 UX 迁移新增)
+   * 注意: HomePage 在 views/home-page.js 中定义，加载顺序在插件之后
+   * 此处使用懒引用 (getter) 延迟解析
    */
-  views: {
-    'home-ux': {
-      container: '#page-home',
-      component: HomePage,
-      theme: 'warm'
-    }
+  get views() {
+    return {
+      'home-ux': {
+        container: '#page-home',
+        component: window.HomePage || null,
+        theme: 'warm'
+      }
+    };
   },
 
   /**
@@ -159,9 +163,9 @@ if (!window.RecordsPlugin) {
    */
   async loadRecords() {
     try {
-      Store.dispatch({
+      window.Store.dispatch({
         type: 'SET_STATE',
-        payload: { records: { ...Store.getState('records'), loading: true } }
+        payload: { records: { ...window.Store.getState('records'), loading: true } }
       });
 
       // 从存储加载
@@ -179,7 +183,7 @@ if (!window.RecordsPlugin) {
       // 数据标准化
       records = records.map(this._normalizeRecord);
 
-      Store.dispatch({
+      window.Store.dispatch({
         type: 'SET_STATE',
         payload: {
           records: {
@@ -191,19 +195,19 @@ if (!window.RecordsPlugin) {
       });
 
       console.log(`[RecordsPlugin] Loaded ${records.length} records`);
-      
+
       // 触发加载完成事件
       if (window.EventBus) {
-        EventBus.emit('records:loaded', { count: records.length });
+        window.EventBus.emit('records:loaded', { count: records.length });
       }
 
     } catch (error) {
       console.error('[RecordsPlugin] Failed to load records:', error);
-      Store.dispatch({
+      window.Store.dispatch({
         type: 'SET_STATE',
         payload: {
           records: {
-            ...Store.getState('records'),
+            ...window.Store.getState('records'),
             loading: false,
             error: error.message
           }
@@ -240,14 +244,14 @@ if (!window.RecordsPlugin) {
     }
 
     // 更新状态
-    Store.dispatch({
+    window.Store.dispatch({
       type: 'records/add',
       payload: record
     });
 
     // 触发事件
     if (window.EventBus) {
-      EventBus.emit('records:created', record);
+      window.EventBus.emit('records:created', record);
     }
 
     console.log('[RecordsPlugin] Record created:', record.id);
@@ -274,14 +278,14 @@ if (!window.RecordsPlugin) {
     }
 
     // 更新状态
-    Store.dispatch({
+    window.Store.dispatch({
       type: 'records/update',
       payload: { id, updates: { ...updates, updatedAt: Date.now() } }
     });
 
     // 触发事件
     if (window.EventBus) {
-      EventBus.emit('records:updated', { id, updates });
+      window.EventBus.emit('records:updated', { id, updates });
     }
   },
 
@@ -298,14 +302,14 @@ if (!window.RecordsPlugin) {
     }
 
     // 更新状态
-    Store.dispatch({
+    window.Store.dispatch({
       type: 'records/delete',
       payload: id
     });
 
     // 触发事件
     if (window.EventBus) {
-      EventBus.emit('records:deleted', { id });
+      window.EventBus.emit('records:deleted', { id });
     }
   },
 
@@ -314,7 +318,7 @@ if (!window.RecordsPlugin) {
    * @param {Object} filters
    */
   filterRecords(filters) {
-    Store.dispatch({
+    window.Store.dispatch({
       type: 'records/filter',
       payload: filters
     });
@@ -356,7 +360,7 @@ if (!window.RecordsPlugin) {
   _bindEvents() {
     // 监听存储变化
     if (window.EventBus) {
-      EventBus.on('storage:changed', () => {
+      window.EventBus.on('storage:changed', () => {
         this.loadRecords();
       });
     }

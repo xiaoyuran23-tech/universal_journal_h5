@@ -242,7 +242,7 @@ const TemplatesPlugin = {
       
       // 跳转到首页
       if (window.Router) {
-        Router.navigate('home');
+        window.Router.navigate('home');
       }
     }
   },

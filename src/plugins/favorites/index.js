@@ -38,7 +38,7 @@ const FavoritesPlugin = {
     
     // 订阅记录变化
     if (window.Store) {
-      Store.subscribe((newState, prevState) => {
+      window.Store.subscribe((newState, prevState) => {
         if (newState.records !== prevState.records) {
           this._render();
         }
@@ -92,7 +92,7 @@ const FavoritesPlugin = {
     const container = document.getElementById('favorites-container');
     if (!container) return;
 
-    const records = window.Store ? Store.getState('records.list') : [];
+    const records = window.Store ? window.Store.getState('records.list') : [];
     const favorites = records.filter(item => item.favorite);
 
     if (favorites.length === 0) {
@@ -163,7 +163,7 @@ const FavoritesPlugin = {
    */
   async _toggleFavorite(id) {
     if (window.RecordsPlugin) {
-      const records = Store.getState('records.list');
+      const records = window.Store.getState('records.list');
       const item = records.find(r => r.id === id);
       if (item) {
         await RecordsPlugin.updateRecord(id, { favorite: !item.favorite });

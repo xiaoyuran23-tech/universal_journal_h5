@@ -82,8 +82,15 @@ class Store {
    */
   _handleAction(action) {
     const { type, payload } = action;
-    
-    // 支持嵌套路径更新
+
+    // 优先检查动态 reducer (支持 'records/add' 等格式)
+    const reducerKey = type.replace(/\//g, '.');
+    if (this._reducers && this._reducers[reducerKey]) {
+      this._state = this._reducers[reducerKey](this._state, payload);
+      return;
+    }
+
+    // 支持嵌套路径更新 (如 'app.currentPage')
     if (type.includes('.')) {
       this._setNestedState(type, payload);
       return;
@@ -96,16 +103,9 @@ class Store {
           this._state = { ...this._state, ...payload };
         }
         break;
-      
+
       case 'RESET_STATE':
         this._state = { ...payload };
-        break;
-      
-      default:
-        // 支持动态 reducer
-        if (this._reducers && this._reducers[type]) {
-          this._state = this._reducers[type](this._state, payload);
-        }
         break;
     }
   }
@@ -227,7 +227,7 @@ class Store {
   async hydrate() {
     try {
       if (window.StorageService) {
-        const records = await StorageService.getAll();
+        const records = await window.StorageService.getAll();
         if (records && records.length > 0) {
           this._state.records = {
             ...this._state.records,

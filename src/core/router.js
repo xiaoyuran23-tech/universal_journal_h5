@@ -193,32 +193,32 @@ class Router {
 window.Router = new Router();
 
 // 注册默认路由
-Router.register('home', {
+window.Router.register('home', {
   title: '记录',
   component: 'records-list'
 });
 
-Router.register('calendar', {
+window.Router.register('calendar', {
   title: '日历',
   component: 'calendar-view'
 });
 
-Router.register('timeline', {
+window.Router.register('timeline', {
   title: '故事',
   component: 'timeline-view'
 });
 
-Router.register('favorites', {
+window.Router.register('favorites', {
   title: '收藏',
   component: 'favorites-list'
 });
 
-Router.register('profile', {
+window.Router.register('profile', {
   title: '我',
   component: 'profile-view'
 });
 
-Router.register('editor', {
+window.Router.register('editor', {
   title: '编辑',
   component: 'record-editor',
   guard: ({ params }) => {

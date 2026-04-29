@@ -49,24 +49,27 @@ class PluginLoader {
     this._kernel.registerPlugin(name, {
       load: async () => {
         await plugin.init();
-        
+
         // 注册路由
         if (plugin.routes && window.Router) {
           plugin.routes.forEach(route => {
-            Router.register(route.path, route);
+            window.Router.register(route.path, route);
           });
         }
 
         // 注册 Action (到 Store)
         if (plugin.actions && window.Store) {
           Object.entries(plugin.actions).forEach(([type, handler]) => {
-            Store._reducers = Store._reducers || {};
-            Store._reducers[`${name}.${type}`] = handler;
+            window.Store._reducers = window.Store._reducers || {};
+            // type 已经是 'records/add' 格式，不需要再加 name 前缀
+            // 转换为 'records.add' 格式 (slash → dot)
+            const key = type.replace(/\//g, '.');
+            window.Store._reducers[key] = handler;
           });
         }
       },
-      start: plugin.start,
-      stop: plugin.stop
+      start: plugin.start.bind(plugin),
+      stop: plugin.stop.bind(plugin)
     });
 
     console.log(`[PluginLoader] Plugin "${name}" loaded to Kernel`);

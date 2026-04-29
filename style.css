@@ -1269,7 +1269,6 @@ a {
 
 .modal.active .modal-content {
   transform: scale(1);
-}
   max-height: 80vh;
   overflow-y: auto;
 }

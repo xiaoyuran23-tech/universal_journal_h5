@@ -510,7 +510,7 @@ const TemplateManager = {
     });
     
     if (window.App) App.showToast('✅ 模板已保存');
-  }
+  },
 
   bindTemplateManagerEvents() {
     const container = document.getElementById('template-manager-container');
@@ -688,7 +688,7 @@ const TemplateManager = {
     });
     
     if (window.App) App.showToast('✅ 模板已保存');
-  }
+  },
 
   bindTemplateManagerEvents() {
     // 使用全局事件委托，避免重复绑定

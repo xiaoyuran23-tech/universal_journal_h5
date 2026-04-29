@@ -284,7 +284,7 @@ class SyncService {
     }
     // 回退到 Store
     if (window.Store) {
-      return Store.getState('records.list') || [];
+      return window.Store.getState('records.list') || [];
     }
     return [];
   }
@@ -344,7 +344,7 @@ class SyncService {
     if (window.StorageService && StorageService.put) {
       await StorageService.put(record);
     } else if (window.Store) {
-      Store.dispatch({ type: 'records/update', id: record.id, payload: record });
+      window.Store.dispatch({ type: 'records/update', id: record.id, payload: record });
     }
   }
 

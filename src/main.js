@@ -21,7 +21,7 @@ async function initApp() {
     // 2. 注册插件 - 关键依赖失败时阻断流程
     try {
       if (window.PluginLoader && window.Kernel) {
-        const loader = new PluginLoader(Kernel);
+        const loader = new PluginLoader(window.Kernel);
         
         // 注册核心插件 (跳过未定义的插件)
         const pluginMap = {
@@ -66,7 +66,7 @@ async function initApp() {
     // 3. 启动 Kernel (包含 Store 初始化) - 关键依赖失败时阻断
     if (window.Kernel) {
       try {
-        await Kernel.boot({
+        await window.Kernel.boot({
           theme: 'light',
           language: 'zh-CN'
         });
@@ -82,7 +82,7 @@ async function initApp() {
     // 4. 启动迁移适配器 (解决双重状态冲突) - 容错处理
     try {
       if (window.MigrationAdapter && window.App) {
-        const adapter = new MigrationAdapter(Kernel, App);
+        const adapter = new MigrationAdapter(window.Kernel, App);
         await adapter.start();
         console.log('[App] MigrationAdapter started');
       }
@@ -121,7 +121,7 @@ function initUI() {
   if (fabBtn) {
     fabBtn.addEventListener('click', () => {
       if (window.Router) {
-        Router.navigate('editor', { mode: 'create' });
+        window.Router.navigate('editor', { mode: 'create' });
       }
     });
   }
@@ -131,14 +131,14 @@ function initUI() {
     tab.addEventListener('click', () => {
       const page = tab.dataset.page;
       if (page && window.Router) {
-        Router.navigate(page);
+        window.Router.navigate(page);
       }
     });
   });
 
   // 监听路由变化，更新 UI
   if (window.Router) {
-    Router.subscribe(route => {
+    window.Router.subscribe(route => {
       if (route && route.path) {
         // 更新 Tab 高亮
         document.querySelectorAll('.tab-item').forEach(tab => {
@@ -218,9 +218,10 @@ function updatePageVisibility(page) {
  * 初始化新手引导
  */
 function initOnboarding() {
-  if (window.Onboarding && Onboarding.shouldShow()) {
-    Onboarding.init(Onboarding.DEFAULT_STEPS);
-    setTimeout(() => Onboarding.start(), 1000);
+  const onboarding = window.Onboarding;
+  if (onboarding && Onboarding.shouldShow()) {
+    onboarding.init(Onboarding.DEFAULT_STEPS);
+    setTimeout(() => onboarding.start(), 1000);
   }
 }
 

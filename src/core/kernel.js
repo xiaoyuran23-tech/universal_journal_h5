@@ -111,10 +111,10 @@ class Kernel {
     // 初始化 Store
     if (window.Store) {
       // 尝试从本地存储恢复状态
-      const hydrated = Store.hydrate('journal_v6_state');
+      const hydrated = await window.Store.hydrate();
       if (!hydrated) {
         // 初始化默认状态
-        Store.dispatch({
+        window.Store.dispatch({
           type: 'SET_STATE',
           payload: {
             app: {
@@ -129,7 +129,7 @@ class Kernel {
 
     // 初始化 Router
     if (window.Router) {
-      Router.init();
+      window.Router.init();
     }
   }
 
@@ -179,9 +179,9 @@ class Kernel {
     if (!window.Router) return;
 
     // 订阅路由变化
-    Router.subscribe(route => {
+    window.Router.subscribe(route => {
       if (route && route.path) {
-        Store.dispatch({
+        window.Store.dispatch({
           type: 'app.currentPage',
           payload: route.path
         });
@@ -194,9 +194,9 @@ class Kernel {
     });
 
     // 解析初始路由
-    const initial = Router.parseURL();
+    const initial = window.Router.parseURL();
     if (initial.path) {
-      Router.navigate(initial.path, {}, initial.query);
+      window.Router.navigate(initial.path, {}, initial.query);
     }
   }
 
@@ -208,31 +208,31 @@ class Kernel {
     // 错误处理
     window.onerror = (msg, url, line, col, error) => {
       console.error('[Kernel] Global error:', { msg, url, line, col, error });
-      
+
       if (window.EventBus) {
-        EventBus.emit('app:error', { msg, url, line, col, error });
+        window.EventBus.emit('app:error', { msg, url, line, col, error });
       }
     };
 
     // 未处理的 Promise rejection
     window.addEventListener('unhandledrejection', event => {
       console.error('[Kernel] Unhandled rejection:', event.reason);
-      
+
       if (window.EventBus) {
-        EventBus.emit('app:unhandledRejection', { reason: event.reason });
+        window.EventBus.emit('app:unhandledRejection', { reason: event.reason });
       }
     });
 
     // 页面可见性变化
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
-        Store.persist('journal_v6_state');
+        window.Store.persist('journal_v6_state');
       }
     });
 
     // 页面卸载前保存状态
     window.addEventListener('beforeunload', () => {
-      Store.persist('journal_v6_state');
+      window.Store.persist('journal_v6_state');
     });
   }
 
@@ -243,7 +243,7 @@ class Kernel {
     console.log('[Kernel] Shutting down...');
 
     // 保存状态
-    Store.persist('journal_v6_state');
+    window.Store.persist('journal_v6_state');
 
     // 停止插件
     for (const [name, plugin] of this._plugins) {

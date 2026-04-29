@@ -4,6 +4,9 @@
  * @version 6.0.0
  */
 
+// 幂等加载
+if (!window.StatusStates) {
+
 // ===================================
 // EmptyState Component
 // ===================================
@@ -166,5 +169,9 @@ window.StatusStates = {
   LoadingState,
   ErrorState
 };
+window.EmptyState = EmptyState;
 
 console.log('[StatusStates] 状态组件已加载');
+} else {
+  console.log('[StatusStates] 已存在，跳过重复加载');
+}

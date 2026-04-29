@@ -282,28 +282,103 @@ class HomePage {
     console.log('[HomePage] Search clicked');
     // 可集成 Router 导航到搜索页
     if (window.Router) {
-      Router.navigate('/search');
+      window.Router.navigate('/search');
     }
   }
 
   _handleCreate() {
     console.log('[HomePage] Create clicked');
     if (window.Router) {
-      Router.navigate('/create');
+      window.Router.navigate('/create');
     }
   }
 
   _handleTabChange(tab) {
     console.log('[HomePage] Tab changed:', tab);
     if (window.Router) {
-      Router.navigate(`/${tab}`);
+      window.Router.navigate(`/${tab}`);
     }
   }
 
   _handleRecordClick(id) {
     console.log('[HomePage] Record clicked:', id);
-    if (window.Router) {
-      Router.navigate(`/record/${id}`);
+    const detailPage = document.getElementById('page-detail');
+    if (!detailPage) return;
+
+    // 切换页面显示
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    detailPage.classList.add('active');
+
+    // 加载记录数据
+    const store = window.Store;
+    if (!store) return;
+    const records = store.getState('records.list') || [];
+    const record = records.find(r => r.id === id);
+    if (!record) return;
+
+    const body = document.getElementById('detail-body');
+    if (body) {
+      body.innerHTML = `
+        <h3 class="detail-item-title">${this._escape(record.name)}</h3>
+        ${record.notes ? `<p class="detail-item-notes">${this._escape(record.notes)}</p>` : ''}
+        <div class="detail-item-meta">
+          <span>${this._formatDate(record.createdAt)}</span>
+          ${record.tags && record.tags.length > 0 ? `<span>${record.tags.join(' ')}</span>` : ''}
+        </div>
+      `;
+    }
+
+    // 绑定详情页第按钮事件
+    this._bindDetailButtons(id);
+  }
+
+  /**
+   * 绑定详情页按钮
+   * @private
+   */
+  _bindDetailButtons(recordId) {
+    const backBtn = document.getElementById('detail-back-btn');
+    if (backBtn) {
+      backBtn.onclick = () => {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById('page-home')?.classList.add('active');
+      };
+    }
+
+    const favBtn = document.getElementById('detail-favorite-btn');
+    if (favBtn) {
+      favBtn.onclick = async () => {
+        const store = window.Store;
+        if (store) {
+          const records = store.getState('records.list') || [];
+          const record = records.find(r => r.id === recordId);
+          if (record) {
+            store.dispatch({ type: 'records/update', payload: { id: recordId, updates: { favorite: !record.favorite } } });
+          }
+        }
+      };
+    }
+
+    const editBtn = document.getElementById('detail-edit-btn');
+    if (editBtn) {
+      editBtn.onclick = () => {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById('page-form')?.classList.add('active');
+      };
+    }
+
+    const deleteBtn = document.getElementById('detail-delete-btn');
+    if (deleteBtn) {
+      deleteBtn.onclick = async () => {
+        if (confirm('确定要删除这条记录吗？')) {
+          const store = window.Store;
+          if (store) {
+            store.dispatch({ type: 'records/delete', payload: recordId });
+          }
+          document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+          document.getElementById('page-home')?.classList.add('active');
+        }
+      };
     }
   }
 

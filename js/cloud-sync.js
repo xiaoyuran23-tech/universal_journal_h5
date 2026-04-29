@@ -30,6 +30,10 @@ const CloudSync = {
     window.addEventListener('online', () => this.flushQueue());
   },
 
+  isEnabled() {
+    return this.config.enabled && !!this.config.token && !!this.config.gistId;
+  },
+
   loadConfig() {
     try {
       const saved = localStorage.getItem('cloud_sync_config_v4');

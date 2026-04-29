@@ -38,7 +38,7 @@ const TimelinePlugin = {
     
     // 订阅记录变化
     if (window.Store) {
-      Store.subscribe((newState, prevState) => {
+      window.Store.subscribe((newState, prevState) => {
         if (newState.records !== prevState.records) {
           this._render();
         }
@@ -72,7 +72,7 @@ const TimelinePlugin = {
     const container = document.getElementById('timeline-container');
     if (!container) return;
 
-    const records = window.Store ? Store.getState('records.list') : [];
+    const records = window.Store ? window.Store.getState('records.list') : [];
 
     if (!records || records.length === 0) {
       container.innerHTML = `

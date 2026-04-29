@@ -43,7 +43,7 @@ const CalendarPlugin = {
     
     // 订阅记录变化，自动刷新日历
     if (window.Store) {
-      Store.subscribe((newState, prevState) => {
+      window.Store.subscribe((newState, prevState) => {
         if (newState.records !== prevState.records) {
           this._render();
         }
@@ -78,7 +78,7 @@ const CalendarPlugin = {
     if (!container) return;
 
     // 从 Store 获取记录
-    const records = window.Store ? Store.getState('records.list') : [];
+    const records = window.Store ? window.Store.getState('records.list') : [];
 
     if (this._viewMode === 'month') {
       container.innerHTML = this._renderMonthView(records);
@@ -396,7 +396,7 @@ const CalendarPlugin = {
         break;
       case 'add-record-date':
         if (window.Router) {
-          Router.navigate('editor', { mode: 'create', date: this._selectedDate.toISOString() });
+          window.Router.navigate('editor', { mode: 'create', date: this._selectedDate.toISOString() });
         }
         break;
     }

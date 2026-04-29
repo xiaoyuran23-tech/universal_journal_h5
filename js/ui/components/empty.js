@@ -1,8 +1,11 @@
 /**
- * EmptyState - 空状态组件
+ * EmptyState - 空状态组件 (js compat version)
  * 提供友好的空状态页面，包含引导性内容和操作按钮
  * @version 5.0.0
  */
+
+// 幂等加载：防止与 src/components/base/status-states.js 重复声明
+if (!window.EmptyState) {
 class EmptyState {
   /**
    * 渲染空状态
@@ -112,3 +115,6 @@ class EmptyState {
 window.EmptyState = EmptyState;
 
 console.log('[EmptyState] 空状态组件已初始化');
+} else {
+  console.log('[EmptyState] 已存在，跳过重复加载');
+}

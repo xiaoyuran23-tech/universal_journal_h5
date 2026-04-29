@@ -63,7 +63,7 @@ const SettingsPlugin = {
     const container = document.getElementById('settings-container');
     if (!container) return;
 
-    const records = window.Store ? Store.getState('records.list') : [];
+    const records = window.Store ? window.Store.getState('records.list') : [];
     const favorites = records.filter(r => r.favorite);
 
     container.innerHTML = `
@@ -229,7 +229,7 @@ const SettingsPlugin = {
    * @private
    */
   _exportData() {
-    const records = window.Store ? Store.getState('records.list') : [];
+    const records = window.Store ? window.Store.getState('records.list') : [];
     const data = {
       version: '6.0.0',
       exportDate: new Date().toISOString(),
@@ -294,7 +294,7 @@ const SettingsPlugin = {
       if (confirm('⚠️ 再次确认：真的要清空所有记录吗？')) {
         // 清空 Store
         if (window.Store) {
-          Store.dispatch({
+          window.Store.dispatch({
             type: 'SET_STATE',
             payload: {
               records: {
