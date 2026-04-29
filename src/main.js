@@ -125,8 +125,15 @@ function initUXViews() {
 
   console.log('[UX Views] Dependencies ready, initializing...');
 
-  // 在首页容器中渲染 UX 视图
-  // 直接替换 page-home 内容（旧版 search-bar/tag-filter/items-container 会被覆盖）
+  // 1. 隐藏旧版 UI 容器，防止重叠
+  // 旧版 Header 和 Nav 是 body 的直接子元素，不在 #page-home 内
+  const oldHeader = document.querySelector('header.header');
+  if (oldHeader) oldHeader.style.display = 'none';
+  
+  const oldNav = document.querySelector('nav.tab-bar');
+  if (oldNav) oldNav.style.display = 'none';
+  
+  // 2. 在首页容器中渲染 UX 视图
   const homeContainer = document.getElementById('page-home');
   
   if (!homeContainer) {
@@ -137,7 +144,7 @@ function initUXViews() {
   console.log('[UX Views] Found #page-home, clearing and rendering...');
   
   try {
-    // 清空旧内容
+    // 清空旧内容 (search-bar, tag-filter 等)
     homeContainer.innerHTML = '';
     
     window.homePageInstance = new HomePage(homeContainer);
