@@ -204,11 +204,11 @@ await loader.loadAll();
 - [x] 组件样式文件 (components.css)
 - [x] 所有插件集成 UI 组件
 
-### Phase 4: 服务层
-- [ ] Storage Service
-- [ ] Sync Service
-- [ ] Crypto Service
-- [ ] Image Service
+### Phase 4: 服务层 (已完成 ✅)
+- [x] Storage Service (原生 IndexedDB 重写，零依赖)
+- [x] Sync Service (云端同步、冲突解决、状态管理)
+- [x] Crypto Service (AES-GCM 加密、PBKDF2 密钥派生、SHA-256 Hash)
+- [x] Image Service (压缩、缩略图、EXIF 旋转、Base64 转换)
 
 ### Phase 5: 测试与优化
 - [ ] 单元测试
