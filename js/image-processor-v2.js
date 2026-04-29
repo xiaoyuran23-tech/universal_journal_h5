@@ -159,3 +159,4 @@ const ImageProcessorV2 = {
 
 // 全局暴露
 window.ImageProcessorV2 = ImageProcessorV2;
+window.ImageProcessor = ImageProcessorV2; // 兼容别名
