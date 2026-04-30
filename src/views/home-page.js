@@ -280,23 +280,20 @@ class HomePage {
    */
   _handleSearch() {
     console.log('[HomePage] Search clicked');
-    // 可集成 Router 导航到搜索页
-    if (window.Router) {
-      window.Router.navigate('/search');
-    }
+    // 搜索功能在首页内部实现，不导航到其他页面
   }
 
   _handleCreate() {
     console.log('[HomePage] Create clicked');
     if (window.Router) {
-      window.Router.navigate('/create');
+      window.Router.navigate('editor');
     }
   }
 
   _handleTabChange(tab) {
     console.log('[HomePage] Tab changed:', tab);
     if (window.Router) {
-      window.Router.navigate(`/${tab}`);
+      window.Router.navigate(tab);
     }
   }
 

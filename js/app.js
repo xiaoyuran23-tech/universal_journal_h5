@@ -1070,6 +1070,11 @@ const App = {
     this.renderTagFilter();
     this.renderItems();
     this.switchPage('home');
+
+    // 同步 v6 Router 状态，避免浏览器前进/后退异常
+    if (window.Router && window.Router._currentRoute?.path === 'editor') {
+      try { Router.navigate('home'); } catch (e) {}
+    }
   },
   
   currentPhotos: [],

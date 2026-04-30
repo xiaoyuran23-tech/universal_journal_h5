@@ -823,6 +823,7 @@ a {
 .fab svg {
   width: 24px;
   height: 24px;
+  stroke-width: 2.5;
 }
 
 /* 移动端 FAB 位置调整 */
@@ -981,16 +982,220 @@ a {
   }
 }
 
+/* ===================================
+   桌面端响应式优化 (v6.3)
+   设计理念：居中对齐、自适应宽度、多列网格
+   =================================== */
+
+/* ---- 平板端 (768px+) ---- */
 @media (min-width: 768px) {
   .main-content {
-    max-width: 800px;
+    max-width: 960px;
     margin: 0 auto;
   }
-  
+
+  /* 底部标签栏居中约束 */
+  .tab-bar {
+    max-width: 560px;
+    width: 100%;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    border-radius: var(--border-radius-xl) var(--border-radius-xl) 0 0;
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.06);
+  }
+
   .items-container {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-lg);
+  }
+
+  /* 卡片 hover 效果增强 */
+  .item-card {
+    transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+  }
+
+  .item-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+  }
+
+  /* 设置项最大宽度 */
+  .settings-item {
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* 表单页居中 */
+  #page-form .form-layout {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  /* 详情页居中 */
+  #page-detail {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  /* 回收站页居中 */
+  #page-trash {
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  /* 统计页居中 */
+  #page-stats {
+    max-width: 960px;
+    margin: 0 auto;
+  }
+}
+
+/* ---- 桌面端 (1024px+) ---- */
+@media (min-width: 1024px) {
+  .main-content {
+    max-width: 1100px;
+  }
+
+  .tab-bar {
+    max-width: 640px;
+  }
+
+  .items-container {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-xl);
+  }
+
+  /* 增大卡片间距 */
+  .record-list {
+    gap: var(--spacing-lg) !important;
+  }
+}
+
+/* ---- 宽屏桌面 (1280px+) ---- */
+@media (min-width: 1280px) {
+  .main-content {
+    max-width: 1200px;
+  }
+
+  .tab-bar {
+    max-width: 720px;
+  }
+
+  .items-container {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* ---- 大屏 (1600px+) ---- */
+@media (min-width: 1600px) {
+  .main-content {
+    max-width: 1400px;
+  }
+
+  .tab-bar {
+    max-width: 800px;
+  }
+
+  .items-container {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-xl);
+  }
+
+  /* 放大字号 */
+  body {
+    font-size: 16px;
+  }
+
+  .header-bar-title {
+    font-size: 24px;
+  }
+}
+
+/* ---- 桌面端 UX 组件适配 ---- */
+@media (min-width: 768px) {
+  /* HeaderBar 撑满内容区 */
+  .header-bar {
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+
+  /* 分类标签居中排列 */
+  #category-tabs-container {
+    display: flex;
+    justify-content: center;
+    padding: var(--spacing-sm) 0;
+  }
+
+  .category-tabs {
     gap: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  /* 精选卡片居中 */
+  .featured-card {
+    margin: var(--spacing-lg) auto;
+    max-width: 600px;
+  }
+
+  /* 记录列表 (UX HomePage 版) 居中 */
+  .record-list {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 var(--spacing-lg) var(--spacing-xl);
+  }
+
+  /* 空状态居中 */
+  .empty-state,
+  .loading-state,
+  .error-state {
+    padding: var(--spacing-xl);
+  }
+
+  /* 个人页面居中 */
+  .profile-container {
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  /* 可视化区域居中 */
+  #visuals-container {
+    max-width: 700px;
+    margin: 0 auto;
+  }
+}
+
+/* ---- 桌面端 FAB 按钮跟随内容区 ---- */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .fab {
+    right: calc((100vw - 960px) / 2 + 24px);
+    bottom: 100px;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .fab {
+    right: calc((100vw - 1100px) / 2 + 24px);
+    bottom: 100px;
+  }
+}
+
+@media (min-width: 1280px) and (max-width: 1599px) {
+  .fab {
+    right: calc((100vw - 1200px) / 2 + 24px);
+    bottom: 100px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .fab {
+    right: calc((100vw - 1400px) / 2 + 24px);
+    bottom: 100px;
   }
 }
 
@@ -3088,47 +3293,7 @@ a {
    v3.4.0 UX 改进
    =================================== */
 
-/* 全局悬浮新建按钮 (FAB) */
-.fab {
-  position: fixed;
-  bottom: calc(80px + env(safe-area-inset-bottom));
-  right: 20px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--primary, #007AFF);
-  color: white;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.4);
-  transition: transform 0.2s var(--ease-spring),
-              box-shadow 0.2s ease,
-              background 0.2s ease;
-  z-index: 100;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
-
-.fab:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 16px rgba(0, 122, 255, 0.5);
-}
-
-.fab:active {
-  transform: scale(0.95);
-  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
-}
-
-.fab svg {
-  width: 24px;
-  height: 24px;
-  stroke-width: 2.5;
-}
-
-/* 在编辑/详情页面隐藏 FAB */
+/* 在编辑/详情页面隐藏 FAB (v3.4.0 改进) */
 .page-form.active ~ .fab,
 .page-detail.active ~ .fab,
 body:has(.page-form.active) .fab,

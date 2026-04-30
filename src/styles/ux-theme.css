@@ -414,3 +414,41 @@
     margin: var(--ux-space-md);
   }
 }
+
+/* ---- 桌面端适配 ---- */
+@media (min-width: 768px) {
+  .record-list {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: var(--ux-space-lg) !important;
+  }
+
+  .record-list-item-cover {
+    height: 160px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .record-list {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: var(--ux-space-lg) !important;
+    max-width: 1050px;
+    margin: 0 auto;
+  }
+
+  .record-list-item-cover {
+    height: 180px;
+  }
+
+  .header-bar {
+    padding: var(--ux-space-md) var(--ux-space-xl);
+  }
+
+  .category-tabs {
+    padding: var(--ux-space-md) var(--ux-space-xl);
+  }
+
+  .featured-card {
+    margin: var(--ux-space-lg) auto;
+    max-width: 640px;
+  }
+}

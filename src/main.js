@@ -228,9 +228,15 @@ function initUXViews() {
  * 更新页面可见性
  */
 function updatePageVisibility(page) {
+  // 路由名到页面 ID 的映射
+  const routeMap = {
+    editor: 'form'
+  };
+  const targetPage = routeMap[page] || page;
+
   document.querySelectorAll('.page').forEach(p => {
     const pageId = p.id.replace('page-', '');
-    p.classList.toggle('active', pageId === page);
+    p.classList.toggle('active', pageId === targetPage);
   });
 }
 
@@ -285,6 +291,14 @@ function initLegacyModules() {
   // 时间线管理
   if (window.TimelineManager) {
     TimelineManager.init();
+  }
+
+  // 设置页事件绑定（关键！App.init() 未被调用，需手动绑定设置页按钮事件）
+  if (window.App) {
+    App.bindSettingsEvents();
+    App.bindPasswordEvents();
+    // bindEvents 中的 tab/FAB 已由 v6 initUI() 接管，但全局事件委托（空状态按钮、模板选择器等）仍需绑定
+    App.bindEvents();
   }
 }
 
