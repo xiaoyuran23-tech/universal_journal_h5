@@ -227,4 +227,9 @@ window.Router.register('editor', {
   }
 });
 
+window.Router.register('trash', {
+  title: '回收站',
+  component: 'trash-view'
+});
+
 console.log('[Router] 路由系统已初始化');

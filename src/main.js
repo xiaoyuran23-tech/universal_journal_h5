@@ -96,6 +96,11 @@ async function initApp() {
     // 5.5 初始化 UX 视图 (v6.1 新增) - 关键！必须执行
     initUXViews();
 
+    // 5.6 初始化遗留功能模块 (v6.2 新增)
+    // 确保草稿/回收站/批量/可视化/标签/主题等功能在 v6 初始化链路中被正确初始化
+    // 这些模块由 js/app.js 的 App.init() 也会调用，因此设置了全局防重复标志
+    initLegacyModules();
+
     // 6. 检查新手引导
     initOnboarding();
 
@@ -126,6 +131,20 @@ function initUI() {
     });
   }
 
+  // 绑定回收站入口 (v6.2 新增)
+  const trashBtn = document.getElementById('settings-trash');
+  if (trashBtn) {
+    trashBtn.addEventListener('click', () => {
+      if (window.Router) {
+        window.Router.navigate('trash');
+      }
+      // 渲染回收站列表
+      if (window.TrashManager) {
+        TrashManager.renderTrashList('trash-container');
+      }
+    });
+  }
+
   // 绑定底部导航
   document.querySelectorAll('.tab-item').forEach(tab => {
     tab.addEventListener('click', () => {
@@ -147,6 +166,11 @@ function initUI() {
 
         // 更新页面显示
         updatePageVisibility(route.path);
+
+        // 回收站页面渲染
+        if (route.path === 'trash' && window.TrashManager) {
+          TrashManager.renderTrashList('trash-container');
+        }
       }
     });
   }
@@ -174,13 +198,9 @@ function initUXViews() {
   document.documentElement.setAttribute('data-theme', 'warm');
   document.body.setAttribute('data-theme', 'warm');
 
-  // 2. 隐藏旧版 UI 容器，防止重叠
-  // 旧版 Header 和 Nav 是 body 的直接子元素，不在 #page-home 内
+  // 2. 隐藏旧版 Header（旧 TabBar 保留，旧架构仍需要它导航到各页面）
   const oldHeader = document.querySelector('header.header');
   if (oldHeader) oldHeader.style.display = 'none';
-  
-  const oldNav = document.querySelector('nav.tab-bar');
-  if (oldNav) oldNav.style.display = 'none';
   
   // 3. 在首页容器中渲染 UX 视图
   const homeContainer = document.getElementById('page-home');
@@ -212,6 +232,60 @@ function updatePageVisibility(page) {
     const pageId = p.id.replace('page-', '');
     p.classList.toggle('active', pageId === page);
   });
+}
+
+/**
+ * 初始化遗留功能模块 (v6.2 新增)
+ * 显式调用旧模块的 init 方法，确保 v6 初始化链路不依赖 js/app.js 的 App.init()
+ * 设置 __legacyModulesInitialized 标志，防止 App.init() 重复初始化
+ */
+function initLegacyModules() {
+  // 防止 App.init() 重复调用这些模块
+  if (window.__legacyModulesInitialized) return;
+  window.__legacyModulesInitialized = true;
+
+  // 主题管理
+  if (window.ThemeManager) {
+    ThemeManager.init();
+    if (typeof ThemeManager.renderOptions === 'function') {
+      ThemeManager.renderOptions();
+    }
+  }
+
+  // 草稿自动保存
+  if (window.DraftManager) {
+    DraftManager.init();
+  }
+
+  // 回收站系统
+  if (window.TrashManager) {
+    TrashManager.init();
+  }
+
+  // 批量操作
+  if (window.BatchManager) {
+    BatchManager.init();
+  }
+
+  // 标签管理
+  if (window.TagManager) {
+    TagManager.init();
+  }
+
+  // 数据可视化
+  if (window.VisualsManager) {
+    VisualsManager.init();
+  }
+
+  // 模板管理
+  if (window.TemplateManager) {
+    TemplateManager.init();
+  }
+
+  // 时间线管理
+  if (window.TimelineManager) {
+    TimelineManager.init();
+  }
 }
 
 /**

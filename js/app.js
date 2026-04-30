@@ -31,16 +31,17 @@ const App = {
 
     }
     
-    // 初始化各模块
-    ThemeManager.init();
-    ThemeManager.renderOptions();
-    
-    if (window.TrashManager) TrashManager.init();
-    if (window.DraftManager) DraftManager.init();
-    if (window.BatchManager) BatchManager.init();
-    if (window.TemplateManager) TemplateManager.init();
-    if (window.TimelineManager) TimelineManager.init();
-    if (window.VisualsManager) VisualsManager.init();
+    // 初始化各模块 (v6.2: 由 src/main.js 的 initLegacyModules() 统一初始化，避免重复绑定)
+    if (!window.__legacyModulesInitialized) {
+      ThemeManager.init();
+      ThemeManager.renderOptions();
+      if (window.TrashManager) TrashManager.init();
+      if (window.DraftManager) DraftManager.init();
+      if (window.BatchManager) BatchManager.init();
+      if (window.TemplateManager) TemplateManager.init();
+      if (window.TimelineManager) TimelineManager.init();
+      if (window.VisualsManager) VisualsManager.init();
+    }
     
     this.bindEvents();
     this.bindPasswordEvents();

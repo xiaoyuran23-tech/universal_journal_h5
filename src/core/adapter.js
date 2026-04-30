@@ -1,7 +1,7 @@
 /**
  * MigrationAdapter - 迁移适配器
  * 负责在新旧系统之间同步数据和事件，确保迁移期体验一致
- * @version 6.1.0
+ * @version 6.2.0
  */
 
 class MigrationAdapter {
@@ -18,12 +18,10 @@ class MigrationAdapter {
   async start() {
     console.log('[MigrationAdapter] Starting synchronization...');
 
-    // 1. 单向同步：旧 -> 新
-    // 监听旧 App 的数据变化，更新到新 Store
-    this._bindOldToNew();
+    // 1. 拦截 StorageBackend 方法，实现旧 → 新的数据同步
+    this._interceptStorageBackend();
 
-    // 2. 单向同步：新 -> 旧
-    // 监听新 Store 的变化，触发旧 App 刷新
+    // 2. 订阅 Store 变化，触发旧 App 刷新
     this._bindNewToOld();
 
     // 3. 初始数据同步
@@ -33,39 +31,49 @@ class MigrationAdapter {
   }
 
   /**
-   * 绑定旧 -> 新
+   * 拦截 StorageBackend 的 put/delete/save 方法
+   * 所有数据变更都经过这里，确保同步到 v6 Store
    * @private
    */
-  _bindOldToNew() {
-    if (!this._oldApp) return;
+  _interceptStorageBackend() {
+    if (!window.StorageBackend) {
+      console.warn('[MigrationAdapter] StorageBackend not found, skipping interception');
+      return;
+    }
 
-    // 假设旧 App 暴露了 EventBus 或特定方法
-    // 这里通过 EventBus 监听（如果旧 App 支持）
-    // 或者直接劫持旧 App 的方法
-    
-    // 方案 A: 劫持旧 App 的方法 (更可靠)
-    const originalSave = this._oldApp.saveItem?.bind(this._oldApp);
-    if (originalSave) {
-      this._oldApp.saveItem = async (...args) => {
-        const result = await originalSave(...args);
-        // 同步到新 Store
-        const item = args[0];
+    // 拦截 put (create/update)
+    const originalPut = StorageBackend.put?.bind(StorageBackend);
+    if (originalPut) {
+      StorageBackend.put = async (item) => {
+        const result = await originalPut(item);
         if (item && item.id) {
-          window.StorageService?.put(item).catch(e => console.error(e));
-          this._store.dispatch({ type: 'records/add', payload: item });
+          this._syncItemToStore(item);
         }
         return result;
       };
     }
 
-    const originalDelete = this._oldApp.deleteItem?.bind(this._oldApp);
+    // 拦截 delete
+    const originalDelete = StorageBackend.delete?.bind(StorageBackend);
     if (originalDelete) {
-      this._oldApp.deleteItem = async (...args) => {
-        const result = await originalDelete(...args);
-        const id = args[0];
+      StorageBackend.delete = async (id) => {
+        const result = await originalDelete(id);
         if (id) {
-          window.StorageService?.delete(id).catch(e => console.error(e));
           this._store.dispatch({ type: 'records/delete', payload: id });
+        }
+        return result;
+      };
+    }
+
+    // 拦截 save (批量保存，用于导入/同步)
+    const originalSave = StorageBackend.save?.bind(StorageBackend);
+    if (originalSave) {
+      StorageBackend.save = async (items) => {
+        const result = await originalSave(items);
+        if (items && Array.isArray(items)) {
+          this._store.dispatch({ type: 'SET_STATE', payload: {
+            records: { list: [...items], filtered: [...items], loading: false }
+          }});
         }
         return result;
       };
@@ -73,21 +81,43 @@ class MigrationAdapter {
   }
 
   /**
-   * 绑定新 -> 旧
+   * 将单条记录同步到 v6 Store
+   * @private
+   */
+  _syncItemToStore(item) {
+    const currentList = this._store.getState('records.list') || [];
+    const existingIndex = currentList.findIndex(r => r.id === item.id);
+
+    if (existingIndex >= 0) {
+      // 更新：替换现有项
+      const newList = [...currentList];
+      newList[existingIndex] = { ...item };
+      this._store.dispatch({
+        type: 'SET_STATE',
+        payload: { records: { list: newList, filtered: [...newList], loading: false } }
+      });
+    } else {
+      // 新增：添加到列表
+      const newList = [...currentList, { ...item }];
+      this._store.dispatch({
+        type: 'SET_STATE',
+        payload: { records: { list: newList, filtered: [...newList], loading: false } }
+      });
+    }
+  }
+
+  /**
+   * 绑定新 → 旧
+   * 订阅 Store 变化，将数据注入旧 App 并触发重新渲染
    * @private
    */
   _bindNewToOld() {
-    // 订阅 Store 变化
     this._store.subscribe((newState, prevState) => {
-      // 检测 records 是否变化
       const recordsChanged = newState.records !== prevState.records;
       if (recordsChanged && this._oldApp) {
-        // 触发旧 App 重新渲染
-        // 假设旧 App 有 renderItems 方法
+        this._oldApp.items = newState.records.list;
+        this._oldApp.filteredItems = newState.records.filtered;
         if (typeof this._oldApp.renderItems === 'function') {
-          // 将新 Store 的数据注入旧 App
-          this._oldApp.items = newState.records.list;
-          this._oldApp.filteredItems = newState.records.filtered;
           this._oldApp.renderItems();
         }
       }
@@ -96,31 +126,30 @@ class MigrationAdapter {
 
   /**
    * 初始数据同步
+   * 优先使用 StorageBackend (IndexedDB)，降级到 localStorage
    * @private
    */
   async _initialSync() {
     try {
       console.log('[MigrationAdapter] Initial sync starting...');
-      
-      // 从旧存储加载数据 (兼容逻辑)
-      let oldData = [];
+
+      let data = [];
       if (window.StorageBackend) {
-        oldData = await window.StorageBackend.getAll();
+        data = await StorageBackend.getAll();
       }
 
-      // 导入到新 Store
-      if (oldData && oldData.length > 0) {
+      if (data && data.length > 0) {
         this._store.dispatch({
           type: 'SET_STATE',
           payload: {
             records: {
-              list: oldData,
-              filtered: oldData,
+              list: [...data],
+              filtered: [...data],
               loading: false
             }
           }
         });
-        console.log(`[MigrationAdapter] Synced ${oldData.length} items from legacy`);
+        console.log(`[MigrationAdapter] Synced ${data.length} items from storage`);
       }
     } catch (error) {
       console.error('[MigrationAdapter] Initial sync failed:', error);
