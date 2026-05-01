@@ -59,6 +59,7 @@ const EditorPlugin = {
     console.log('[EditorPlugin] Starting...');
     this._bindToolbarEvents();
     this._bindSaveHandler();
+    this._bindPhotoEvents();
 
     if (window.Router) {
       window.Router.subscribe(route => {
@@ -144,7 +145,7 @@ const EditorPlugin = {
       preview.innerHTML = this._photos.map((photo, idx) => `
         <div class="photo-preview-item">
           <img src="${photo}" alt="预览" />
-          <button type="button" class="photo-remove" data-idx="×">×</button>
+          <button type="button" class="photo-remove" data-idx="${idx}">×</button>
         </div>
       `).join('');
     }
@@ -252,6 +253,100 @@ const EditorPlugin = {
       }
       btn.classList.toggle('active', !!active);
     });
+  },
+
+  /**
+   * 绑定照片上传事件
+   * @private
+   */
+  _bindPhotoEvents() {
+    const photoBtn = document.getElementById('create-photo-btn');
+    const photoInput = document.getElementById('create-photo-input');
+    if (!photoBtn || !photoInput) return;
+
+    // 按钮点击触发文件选择
+    photoBtn.addEventListener('click', () => photoInput.click());
+
+    // 文件选择后处理
+    photoInput.addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files);
+      if (files.length === 0) return;
+
+      const progressEl = document.getElementById('photo-upload-progress');
+      if (progressEl) progressEl.style.display = 'block';
+
+      for (const file of files) {
+        try {
+          if (window.ImageService) {
+            const base64 = await ImageService.compress(file, { quality: 0.7 });
+            this._photos.push(base64);
+          } else {
+            // Fallback: read as base64 without compression
+            const base64 = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result);
+              reader.onerror = reject;
+              reader.readAsDataURL(file);
+            });
+            this._photos.push(base64);
+          }
+        } catch (err) {
+          console.error('[EditorPlugin] Photo compress failed:', err);
+        }
+      }
+
+      this._renderPhotoPreview();
+      photoInput.value = ''; // 重置 input
+
+      if (progressEl) {
+        setTimeout(() => { progressEl.style.display = 'none'; }, 1000);
+      }
+    });
+
+    // 照片删除 (事件委托)
+    const preview = document.getElementById('photo-preview');
+    if (preview) {
+      preview.addEventListener('click', (e) => {
+        const removeBtn = e.target.closest('.photo-remove');
+        if (!removeBtn) return;
+        const idx = parseInt(removeBtn.dataset.idx, 10);
+        if (!isNaN(idx) && idx >= 0 && idx < this._photos.length) {
+          this._photos.splice(idx, 1);
+          this._renderPhotoPreview();
+        }
+      });
+    }
+  },
+
+  /**
+   * 渲染照片预览
+   * @private
+   */
+  _renderPhotoPreview() {
+    const preview = document.getElementById('photo-preview');
+    const summary = document.getElementById('photo-summary');
+    if (!preview) return;
+
+    if (this._photos.length === 0) {
+      preview.innerHTML = '';
+      if (summary) summary.style.display = 'none';
+      return;
+    }
+
+    preview.innerHTML = this._photos.map((photo, idx) => `
+      <div class="photo-preview-item">
+        <img src="${photo}" alt="预览" />
+        <button type="button" class="photo-remove" data-idx="${idx}">×</button>
+      </div>
+    `).join('');
+
+    if (summary) {
+      summary.style.display = 'block';
+      const countEl = summary.querySelector('.summary-count');
+      const savedEl = summary.querySelector('.summary-total');
+      if (countEl) countEl.textContent = this._photos.length;
+      if (savedEl) savedEl.textContent = '0 KB';
+    }
   },
 
   /**

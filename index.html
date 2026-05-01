@@ -54,6 +54,9 @@
             }
         };
 
+        // API 地址配置 (dev 使用 Vite 代理到远程，production 使用同源)
+        window.JOURNAL_API_URL = '/api';
+
         // PWA Service Worker 注册
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {

@@ -128,6 +128,13 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// 静态文件服务 (前端)
+if (process.env.SERVE_FRONTEND === 'true') {
+  const frontendDir = process.env.FRONTEND_DIR || path.join(__dirname, '..', 'dist');
+  app.use(express.static(frontendDir));
+  console.log(`[Static] Serving frontend from ${frontendDir}`);
+}
+
 // 日志
 app.use((req, res, next) => {
   const start = Date.now();
@@ -232,13 +239,18 @@ app.get('/api/records', authMiddleware, (req, res) => {
   query += ' ORDER BY updated_at DESC';
   const records = db.prepare(query).all(...params);
 
-  // 解析 JSON 字段
+  // 解析 JSON 字段 + 字段名转换
   records.forEach(r => {
     r.tags = JSON.parse(r.tags || '[]');
     r.photos = JSON.parse(r.photos || '[]');
     r.links = JSON.parse(r.links || '[]');
     r.metadata = JSON.parse(r.metadata || '{}');
     r.blocks = JSON.parse(r.blocks || '[]');
+    // 转换为前端期望的驼峰命名
+    r.createdAt = new Date(r.created_at).getTime();
+    r.updatedAt = new Date(r.updated_at).getTime();
+    delete r.created_at;
+    delete r.updated_at;
   });
 
   res.json({ records });
@@ -337,6 +349,10 @@ app.post('/api/sync/pull', authMiddleware, (req, res) => {
     r.links = JSON.parse(r.links || '[]');
     r.metadata = JSON.parse(r.metadata || '{}');
     r.blocks = JSON.parse(r.blocks || '[]');
+    r.createdAt = new Date(r.created_at).getTime();
+    r.updatedAt = new Date(r.updated_at).getTime();
+    delete r.created_at;
+    delete r.updated_at;
   });
 
   const user = db.prepare('SELECT max_usn FROM users WHERE id = ?').get(req.userId);
@@ -445,6 +461,10 @@ app.post('/api/sync/full', authMiddleware, async (req, res) => {
     r.links = JSON.parse(r.links || '[]');
     r.metadata = JSON.parse(r.metadata || '{}');
     r.blocks = JSON.parse(r.blocks || '[]');
+    r.createdAt = new Date(r.created_at).getTime();
+    r.updatedAt = new Date(r.updated_at).getTime();
+    delete r.created_at;
+    delete r.updated_at;
   });
 
   const serverMaxUsn = db.prepare('SELECT max_usn FROM users WHERE id = ?').get(req.userId).max_usn;
@@ -455,6 +475,15 @@ app.get('/api/sync/status', authMiddleware, (req, res) => {
   const user = db.prepare('SELECT max_usn, created_at FROM users WHERE id = ?').get(req.userId);
   const recordCount = db.prepare('SELECT COUNT(*) as count FROM records WHERE user_id = ? AND deleted = 0').get(req.userId);
   res.json({ maxUsn: user.max_usn, recordCount: recordCount.count, connectedAt: user.created_at });
+});
+
+// SPA 回退：所有非 API 路由返回 index.html
+app.use((req, res, next) => {
+  if (process.env.SERVE_FRONTEND === 'true' && !req.path.startsWith('/api')) {
+    const frontendDir = process.env.FRONTEND_DIR || path.join(__dirname, '..', 'dist');
+    return res.sendFile(path.join(frontendDir, 'index.html'));
+  }
+  next();
 });
 
 // 404

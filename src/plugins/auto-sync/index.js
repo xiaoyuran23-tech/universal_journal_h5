@@ -106,12 +106,12 @@ const AutoSyncPlugin = {
 
       if (pullRes.ok) {
         const pullResult = await pullRes.json();
-        this._lastSyncUsn = pullResult.serverUsn;
+        this._lastSyncUsn = pullResult.serverMaxUsn || this._lastSyncUsn;
         localStorage.setItem('journal_last_sync_usn', String(this._lastSyncUsn));
 
         // 合并服务端变更到本地
-        if (pullResult.changes?.length > 0) {
-          await this._mergeServerChanges(pullResult.changes);
+        if (pullResult.records?.length > 0) {
+          await this._mergeServerChanges(pullResult.records);
         }
       }
 
@@ -135,7 +135,7 @@ const AutoSyncPlugin = {
    * @param {Object} data - 记录数据
    */
   recordChange(action, data) {
-    this._pendingChanges.push({ action, data, timestamp: Date.now() });
+    this._pendingChanges.push(data);
     localStorage.setItem('journal_pending_changes', JSON.stringify(this._pendingChanges));
   },
 
@@ -146,7 +146,7 @@ const AutoSyncPlugin = {
   async _mergeServerChanges(serverChanges) {
     if (!window.Store) return;
 
-    const currentList = Store.getState('records.list') || [];
+    const currentList = window.Store?.getState('records.list') || [];
     const localMap = new Map(currentList.map(r => [r.id, r]));
     let merged = false;
 
@@ -180,7 +180,7 @@ const AutoSyncPlugin = {
       const newList = Array.from(localMap.values()).sort((a, b) =>
         new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()
       );
-      Store.dispatch({
+      window.Store.dispatch({
         type: 'SET_STATE',
         payload: { records: { list: newList, filtered: [...newList], loading: false } }
       });

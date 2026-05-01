@@ -39,7 +39,13 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    open: true,
+    open: false,
+    proxy: {
+      '/api': {
+        target: 'http://47.236.199.100:4000',
+        changeOrigin: true
+      }
+    },
     fs: {
       strict: false,
       allow: ['.']
