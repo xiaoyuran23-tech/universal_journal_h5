@@ -1,33 +1,54 @@
 /**
- * Editor Plugin - 编辑器插件
- * 提供记录的新建和编辑功能
- * @version 6.1.0
+ * Editor Plugin - 编辑器插件 (v2: 富文本编辑器 + 工具栏)
+ * 提供记录的新建、编辑、保存功能，内置轻量级富文本工具栏
+ * @version 6.2.0
  */
 
 // 幂等加载保护
 if (!window.EditorPlugin) {
 const EditorPlugin = {
   name: 'editor',
-  version: '1.0.0',
+  version: '2.0.0',
   dependencies: ['records'],
-  
+
   _currentRecord: null,
   _isEditing: false,
   _photos: [],
+  _eventsBound: false,
+
+  // 工具栏按钮配置
+  TOOLBAR_ITEMS: [
+    { action: 'undo', icon: '↩', title: '撤销 (Ctrl+Z)' },
+    { action: 'redo', icon: '↪', title: '重做 (Ctrl+Shift+Z)' },
+    { sep: true },
+    { cmd: 'bold', icon: 'B', title: '加粗', style: 'font-weight:bold' },
+    { cmd: 'italic', icon: 'I', title: '斜体', style: 'font-style:italic' },
+    { cmd: 'underline', icon: 'U', title: '下划线', style: 'text-decoration:underline' },
+    { cmd: 'strikeThrough', icon: 'S', title: '删除线', style: 'text-decoration:line-through' },
+    { sep: true },
+    { cmd: 'insertUnorderedList', icon: '•', title: '无序列表' },
+    { cmd: 'insertOrderedList', icon: '1.', title: '有序列表' },
+    { sep: true },
+    { cmd: 'formatBlock', value: 'blockquote', icon: '"', title: '引用' },
+    { cmd: 'formatBlock', value: 'h3', icon: 'H', title: '标题' },
+    { sep: true },
+    { cmd: 'removeFormat', icon: '✕', title: '清除格式' },
+  ],
+
+  // AI 工具栏按钮配置
+  AI_TOOLBAR_ITEMS: [
+    { action: 'ai-summary', icon: '✨ 摘要', title: 'AI 自动生成摘要' },
+    { action: 'ai-tags', icon: '🏷️ 标签建议', title: 'AI 推荐标签' },
+    { action: 'ai-prompt', icon: '💡 灵感', title: '随机写作灵感' },
+  ],
 
   /**
    * 初始化插件
    */
   async init() {
     console.log('[EditorPlugin] Initializing...');
-    
     this.routes = [
-      {
-        path: 'editor',
-        title: '编辑记录',
-        component: 'record-editor',
-        guard: () => true
-      }
+      { path: 'editor', title: '编辑记录', component: 'record-editor', guard: () => true }
     ];
   },
 
@@ -36,8 +57,9 @@ const EditorPlugin = {
    */
   async start() {
     console.log('[EditorPlugin] Starting...');
+    this._bindToolbarEvents();
+    this._bindSaveHandler();
 
-    // 监听路由变化，自动加载记录
     if (window.Router) {
       window.Router.subscribe(route => {
         if (route && route.path === 'editor') {
@@ -47,21 +69,12 @@ const EditorPlugin = {
     }
   },
 
-  /**
-   * 停止插件
-   */
   stop() {
     console.log('[EditorPlugin] Stopping...');
+    this._eventsBound = false;
   },
 
-  /**
-   * 路由定义
-   */
   routes: [],
-
-  /**
-   * Actions
-   */
   actions: {},
 
   /**
@@ -71,108 +84,291 @@ const EditorPlugin = {
    */
   async _loadRecord(params) {
     const { id, mode, date } = params || {};
-
     this._isEditing = !!id;
     this._photos = [];
 
     if (id) {
-      // 编辑模式：从 Store 加载
       const records = window.Store ? window.Store.getState('records.list') : [];
       this._currentRecord = records.find(r => r.id === id);
     } else {
-      // 新建模式：创建空记录
       this._currentRecord = {
-        id: null,
-        name: '',
-        tags: [],
-        notes: '',
-        photos: [],
-        location: null,
-        favorite: false,
-        status: 'active',
+        id: null, name: '', tags: [], notes: '', photos: [],
+        location: null, favorite: false, status: 'active',
         createdAt: date ? new Date(date).getTime() : Date.now(),
         updatedAt: Date.now()
       };
     }
 
-    // 延迟到下一个微任务执行，确保 legacy App 的 resetForm() 先完成
-    // （legacy App 和 v6 都绑定了 FAB 按钮，legacy 后绑定但会先清空表单）
     Promise.resolve().then(() => {
       this._populateForm();
-      this._bindEvents();
+      this._bindAutoSave();
+      this._initEditorToolbar();
+      this._initAIToolbar();
+      this._initWritingAssistant();
+      this._bindAIEvents();
     });
   },
 
   /**
-   * 填充已有表单字段（复用 #page-form 中的表单）
+   * 填充已有表单字段
    * @private
    */
   _populateForm() {
     const record = this._currentRecord;
     if (!record) return;
 
-    // 更新标题
     const titleEl = document.getElementById('create-title');
     if (titleEl) titleEl.textContent = this._isEditing ? '编辑记录' : '新建记录';
 
-    // 名称
     const nameEl = document.getElementById('create-name');
     if (nameEl) nameEl.value = record.name || '';
 
-    // 标签
     const tagsEl = document.getElementById('create-tags');
     if (tagsEl) tagsEl.value = (record.tags || []).join(', ');
 
-    // 备注 (contenteditable div)
     const notesEl = document.getElementById('create-rich-content');
-    if (notesEl) notesEl.innerHTML = this._escapeHtml(record.notes || '');
+    if (notesEl) notesEl.innerHTML = record.notes || '';
 
-    // 状态
     const statusEl = document.getElementById('create-status');
     if (statusEl) statusEl.value = record.status || 'in-use';
 
-    // 日期
     const dateEl = document.getElementById('create-date');
     if (dateEl && record.createdAt) {
       const d = new Date(record.createdAt);
       dateEl.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }
 
-    // 照片预览
     this._photos = [...(record.photos || [])];
     const preview = document.getElementById('photo-preview');
     if (preview && this._photos.length > 0) {
       preview.innerHTML = this._photos.map((photo, idx) => `
         <div class="photo-preview-item">
           <img src="${photo}" alt="预览" />
-          <button type="button" class="photo-remove" data-idx="${idx}">×</button>
+          <button type="button" class="photo-remove" data-idx="×">×</button>
         </div>
       `).join('');
     }
 
-    // 设置 App.editingId 以便 legacy 表单能正确更新
     if (window.App && this._currentRecord?.id) {
       window.App.editingId = this._currentRecord.id;
     }
   },
 
   /**
-   * 绑定事件（监听自动保存草稿）
+   * 初始化工具栏 (动态插入 DOM)
    * @private
    */
-  _bindEvents() {
-    const container = document.getElementById('page-form');
-    if (!container) return;
+  _initEditorToolbar() {
+    const editor = document.getElementById('create-rich-content');
+    if (!editor) return;
 
-    // 自动保存草稿（监听 legacy 表单字段）
+    // 移除已存在的工具栏
+    const existing = document.getElementById('rich-editor-toolbar');
+    if (existing) existing.remove();
+
+    // 创建工具栏
+    const toolbar = document.createElement('div');
+    toolbar.id = 'rich-editor-toolbar';
+    toolbar.className = 'rich-editor-toolbar';
+
+    this.TOOLBAR_ITEMS.forEach(item => {
+      if (item.sep) {
+        const sep = document.createElement('span');
+        sep.className = 'rich-toolbar-sep';
+        toolbar.appendChild(sep);
+        return;
+      }
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'rich-toolbar-btn';
+      btn.title = item.title;
+      btn.dataset.cmd = item.cmd;
+      if (item.value) btn.dataset.value = item.value;
+      btn.innerHTML = item.icon;
+      toolbar.appendChild(btn);
+    });
+
+    // 插入到编辑器上方
+    editor.parentNode.insertBefore(toolbar, editor);
+  },
+
+  /**
+   * 绑定工具栏事件
+   * @private
+   */
+  _bindToolbarEvents() {
+    if (this._eventsBound) return;
+    this._eventsBound = true;
+
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.rich-toolbar-btn');
+      if (!btn) return;
+
+      e.preventDefault();
+      const cmd = btn.dataset.cmd;
+      const value = btn.dataset.value || null;
+      const action = btn.dataset.action;
+
+      // 处理撤销/重做
+      if (action === 'undo' && window.Store) {
+        Store.undo();
+        return;
+      }
+      if (action === 'redo' && window.Store) {
+        Store.redo();
+        return;
+      }
+
+      // 确保编辑器获得焦点
+      const editor = document.getElementById('create-rich-content');
+      if (editor) editor.focus();
+
+      // 执行格式化命令
+      if (cmd === 'formatBlock' && value) {
+        document.execCommand(cmd, false, `<${value}>`);
+      } else {
+        document.execCommand(cmd, false, value);
+      }
+
+      this._updateToolbarState();
+    });
+  },
+
+  /**
+   * 更新工具栏按钮激活状态
+   * @private
+   */
+  _updateToolbarState() {
+    const toolbar = document.getElementById('rich-editor-toolbar');
+    if (!toolbar) return;
+
+    toolbar.querySelectorAll('.rich-toolbar-btn').forEach(btn => {
+      const cmd = btn.dataset.cmd;
+      let active = false;
+      if (cmd === 'formatBlock') {
+        active = document.queryCommandValue('formatBlock')?.toLowerCase().includes(btn.dataset.value?.toLowerCase());
+      } else {
+        active = document.queryCommandState(cmd);
+      }
+      btn.classList.toggle('active', !!active);
+    });
+  },
+
+  /**
+   * 绑定自动保存
+   * @private
+   */
+  _bindAutoSave() {
     const nameInput = document.getElementById('create-name');
     const notesInput = document.getElementById('create-rich-content');
 
-    if (nameInput) {
-      nameInput.addEventListener('input', () => this._autoSave());
+    if (nameInput) nameInput.addEventListener('input', () => this._autoSave());
+    if (notesInput) notesInput.addEventListener('input', () => this._autoSave());
+  },
+
+  /**
+   * 绑定保存按钮
+   * @private
+   */
+  _bindSaveHandler() {
+    const saveBtn = document.getElementById('create-save-btn');
+    if (!saveBtn) return;
+
+    // 移除旧的事件监听 (防止重复绑定)
+    const newBtn = saveBtn.cloneNode(true);
+    saveBtn.parentNode.replaceChild(newBtn, saveBtn);
+
+    newBtn.addEventListener('click', async () => {
+      await this._saveRecord();
+    });
+  },
+
+  /**
+   * 保存记录
+   * @private
+   */
+  async _saveRecord() {
+    const name = document.getElementById('create-name')?.value?.trim();
+    const notes = document.getElementById('create-rich-content')?.innerHTML || '';
+    const tagsStr = document.getElementById('create-tags')?.value || '';
+    const status = document.getElementById('create-status')?.value || 'in-use';
+    const dateStr = document.getElementById('create-date')?.value;
+
+    if (!name && !notes) {
+      this._showToast('请至少填写名称或备注');
+      return;
     }
-    if (notesInput) {
-      notesInput.addEventListener('input', () => this._autoSave());
+
+    // 解析标签
+    const tags = tagsStr.split(/[,，\s]+/).map(t => t.trim()).filter(Boolean);
+
+    // XSS 过滤: 清理 notes 中的危险标签
+    const cleanNotes = this._sanitizeHTML(notes);
+
+    const now = Date.now();
+    const baseRecord = {
+      id: this._currentRecord?.id || `rec_${now}_${Math.random().toString(36).slice(2, 8)}`,
+      name: name || '未命名记录',
+      tags,
+      notes: cleanNotes,
+      photos: this._photos,
+      location: this._currentRecord?.location || null,
+      favorite: this._currentRecord?.favorite || false,
+      status,
+      createdAt: this._currentRecord?.createdAt || now,
+      updatedAt: now
+    };
+
+    // 自动提取元数据
+    const metadata = window.MetadataService ? MetadataService.extract(baseRecord) : {};
+
+    // P2-1: 自动解析 blocks
+    const blocks = window.BlockParser ? BlockParser.parseBlocks(cleanNotes) : [];
+
+    // P2-2: 自动解析双向链接
+    const allRecords = window.Store ? (Store.getState('records.list') || []) : [];
+    const links = window.LinkParser ? LinkParser.parseLinks(cleanNotes, allRecords, baseRecord.id) : [];
+    // 填充 sourceName
+    links.forEach(link => { link.sourceName = baseRecord.name; });
+
+    const record = { ...baseRecord, metadata, blocks, links };
+
+    try {
+      // 保存到 IndexedDB
+      if (window.StorageBackend) {
+        await StorageBackend.put(record);
+      } else if (window.StorageService) {
+        await StorageService.put(record);
+      }
+
+      // 更新 Store
+      if (window.Store) {
+        const list = [...(Store.getState('records.list') || [])];
+        const idx = list.findIndex(r => r.id === record.id);
+        if (idx >= 0) {
+          list[idx] = record;
+        } else {
+          list.push(record);
+        }
+        Store.dispatch({
+          type: 'SET_STATE',
+          payload: { records: { list, filtered: [...list], loading: false } }
+        });
+      }
+
+      // 清除草稿
+      localStorage.removeItem('editor_draft');
+      if (window.DraftPlugin) DraftPlugin.clearDraft();
+
+      this._showToast(this._isEditing ? '记录已更新' : '记录已保存');
+
+      // 返回列表页
+      if (window.Router) {
+        setTimeout(() => Router.navigate('home'), 500);
+      }
+    } catch (error) {
+      console.error('[EditorPlugin] Save failed:', error);
+      this._showToast('保存失败: ' + error.message);
     }
   },
 
@@ -190,36 +386,391 @@ const EditorPlugin = {
   },
 
   /**
-   * 显示 Toast
-   * @param {string} message
+   * XSS 过滤: 清理危险标签和属性
+   * @param {string} html
+   * @returns {string}
    * @private
    */
+  _sanitizeHTML(html) {
+    if (!html) return '';
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    // 移除危险标签
+    const dangerous = doc.querySelectorAll('script, iframe, object, embed, link, style, form, input, button, select, textarea');
+    dangerous.forEach(el => el.remove());
+
+    // 移除所有元素的事件属性和 javascript: 链接
+    const allEls = doc.body.querySelectorAll('*');
+    allEls.forEach(el => {
+      const attrs = el.attributes;
+      for (let i = attrs.length - 1; i >= 0; i--) {
+        const name = attrs[i].name.toLowerCase();
+        const value = attrs[i].value;
+        if (name.startsWith('on') || value.toLowerCase().startsWith('javascript:')) {
+          el.removeAttribute(attrs[i].name);
+        }
+      }
+    });
+
+    return doc.body.innerHTML;
+  },
+
+  /**
+   * 初始化 AI 工具栏 (在富文本工具栏后追加)
+   * @private
+   */
+  _initAIToolbar() {
+    const toolbar = document.getElementById('rich-editor-toolbar');
+    if (!toolbar || !window.AILiteService) return;
+
+    // 移除已有的 AI 工具栏
+    const existing = document.getElementById('ai-editor-toolbar');
+    if (existing) existing.remove();
+
+    const aiToolbar = document.createElement('div');
+    aiToolbar.id = 'ai-editor-toolbar';
+    aiToolbar.className = 'ai-editor-toolbar';
+
+    this.AI_TOOLBAR_ITEMS.forEach(item => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ai-toolbar-btn';
+      btn.title = item.title;
+      btn.dataset.action = item.action;
+      btn.innerHTML = item.icon;
+      aiToolbar.appendChild(btn);
+    });
+
+    toolbar.parentNode.insertBefore(aiToolbar, toolbar.nextSibling);
+  },
+
+  /**
+   * 初始化写作助手面板
+   * @private
+   */
+  _initWritingAssistant() {
+    if (!window.AILiteService) return;
+
+    const existing = document.getElementById('writing-assistant');
+    if (existing) existing.remove();
+
+    const assistant = document.createElement('div');
+    assistant.id = 'writing-assistant';
+    assistant.className = 'writing-assistant';
+    assistant.innerHTML = `
+      <div class="writing-assistant-header">
+        <button type="button" class="writing-assistant-toggle" id="writing-assistant-toggle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+            <path d="M2 17l10 5 10-5"></path>
+            <path d="M2 12l10 5 10-5"></path>
+          </svg>
+          写作助手
+          <span class="writing-assistant-arrow">▼</span>
+        </button>
+      </div>
+      <div class="writing-assistant-body" id="writing-assistant-body" style="display:none;">
+        <div class="assistant-section">
+          <div class="assistant-label">情绪检测</div>
+          <div class="assistant-value" id="assistant-mood">
+            <span class="mood-indicator mood-neutral">--</span>
+          </div>
+        </div>
+        <div class="assistant-section">
+          <div class="assistant-label">字数统计</div>
+          <div class="assistant-value" id="assistant-wordcount">0 字</div>
+        </div>
+        <div class="assistant-section" id="assistant-tips-section" style="display:none;">
+          <div class="assistant-label">写作建议</div>
+          <div class="assistant-tips" id="assistant-tips"></div>
+        </div>
+      </div>
+    `;
+
+    // 插入到标签建议区域下方
+    const tagWrapper = document.getElementById('tag-input-wrapper');
+    if (tagWrapper) {
+      tagWrapper.parentNode.insertBefore(assistant, tagWrapper.nextSibling);
+    }
+  },
+
+  /**
+   * 绑定 AI 按钮事件
+   * @private
+   */
+  _bindAIEvents() {
+    // AI 工具栏按钮
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.ai-toolbar-btn');
+      if (!btn) return;
+
+      e.preventDefault();
+      const action = btn.dataset.action;
+
+      if (action === 'ai-summary') {
+        this._handleAISummary();
+      } else if (action === 'ai-tags') {
+        this._handleAITags();
+      } else if (action === 'ai-prompt') {
+        this._handleAIPrompt();
+      }
+    });
+
+    // 写作助手折叠
+    const toggle = document.getElementById('writing-assistant-toggle');
+    if (toggle) {
+      toggle.addEventListener('click', () => {
+        const body = document.getElementById('writing-assistant-body');
+        const arrow = toggle.querySelector('.writing-assistant-arrow');
+        if (body && arrow) {
+          const isVisible = body.style.display !== 'none';
+          body.style.display = isVisible ? 'none' : 'block';
+          arrow.textContent = isVisible ? '▼' : '▲';
+        }
+      });
+    }
+
+    // 实时情绪检测 + 写作建议
+    const notesInput = document.getElementById('create-rich-content');
+    if (notesInput && window.AILiteService) {
+      // 防抖
+      let moodTimer = null;
+      notesInput.addEventListener('input', () => {
+        if (moodTimer) clearTimeout(moodTimer);
+        moodTimer = setTimeout(() => {
+          this._updateMoodDetection();
+          this._updateWordCount();
+          this._updateWritingTips();
+        }, 500);
+      });
+    }
+  },
+
+  /**
+   * 处理 AI 摘要生成
+   * @private
+   */
+  _handleAISummary() {
+    if (!window.AILiteService) return;
+    const notesEl = document.getElementById('create-rich-content');
+    if (!notesEl) return;
+
+    const text = notesEl.innerText || notesEl.textContent || '';
+    if (text.length < 20) {
+      this._showToast('内容太少，先多写点再生成摘要吧');
+      return;
+    }
+
+    const summary = AILiteService.generateSummary(text);
+    if (!summary) {
+      this._showToast('无法生成摘要');
+      return;
+    }
+
+    // 在内容顶部插入摘要块
+    const summaryHTML = `<div class="ai-summary-block" contenteditable="false"><strong>[AI 摘要]</strong> ${this._escapeHTML(summary)}</div>`;
+    notesEl.innerHTML = summaryHTML + notesEl.innerHTML;
+    this._showToast('摘要已插入到顶部');
+    this._autoSave();
+  },
+
+  /**
+   * 处理 AI 标签建议
+   * @private
+   */
+  _handleAITags() {
+    if (!window.AILiteService) return;
+    const notesEl = document.getElementById('create-rich-content');
+    const tagsEl = document.getElementById('create-tags');
+    if (!notesEl || !tagsEl) return;
+
+    const text = notesEl.innerText || notesEl.textContent || '';
+    if (text.length < 10) {
+      this._showToast('内容太少，先多写点再生成标签吧');
+      return;
+    }
+
+    // 获取现有标签
+    const existingTags = tagsEl.value.split(/[,，\s]+/).map(t => t.trim()).filter(Boolean);
+    const suggested = AILiteService.suggestTags(text, existingTags);
+
+    if (suggested.length === 0) {
+      this._showToast('没有找到更多标签建议');
+      return;
+    }
+
+    // 移除旧的建议 chips
+    const oldChips = document.getElementById('ai-tag-suggestions');
+    if (oldChips) oldChips.remove();
+
+    // 创建建议 chips 容器
+    const chipsContainer = document.createElement('div');
+    chipsContainer.id = 'ai-tag-suggestions';
+    chipsContainer.className = 'ai-tag-suggestions';
+    chipsContainer.innerHTML = '<span class="ai-tag-label">建议标签：</span>' +
+      suggested.map(tag =>
+        `<button type="button" class="ai-tag-chip" data-tag="${this._escapeHTML(tag)}">${this._escapeHTML(tag)}</button>`
+      ).join('');
+
+    // 插入到标签输入框下方
+    const tagWrapper = document.getElementById('tag-input-wrapper');
+    if (tagWrapper) {
+      tagWrapper.parentNode.insertBefore(chipsContainer, tagWrapper.nextSibling);
+    }
+
+    // 绑定点击事件
+    chipsContainer.querySelectorAll('.ai-tag-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const tag = chip.dataset.tag;
+        const currentTags = tagsEl.value.split(/[,，\s]+/).map(t => t.trim()).filter(Boolean);
+        if (!currentTags.includes(tag)) {
+          currentTags.push(tag);
+          tagsEl.value = currentTags.join(', ');
+          chip.classList.add('applied');
+          chip.textContent = tag + ' ✓';
+          chip.disabled = true;
+        }
+      });
+    });
+
+    this._showToast(`找到 ${suggested.length} 个标签建议，点击可添加`);
+  },
+
+  /**
+   * 处理 AI 灵感生成
+   * @private
+   */
+  _handleAIPrompt() {
+    if (!window.AILiteService) return;
+
+    const prompt = AILiteService.generateWritingPrompt();
+    const notesEl = document.getElementById('create-rich-content');
+    if (!notesEl) return;
+
+    // 获取光标位置或追加到末尾
+    const sel = window.getSelection();
+    if (sel.rangeCount > 0 && notesEl.contains(sel.anchorNode)) {
+      const range = sel.getRangeAt(0);
+      range.deleteContents();
+      const textNode = document.createTextNode(prompt + '\n');
+      range.insertNode(textNode);
+      range.setStartAfter(textNode);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } else {
+      notesEl.innerHTML += `<div>${this._escapeHTML(prompt)}</div>`;
+    }
+
+    notesEl.focus();
+    this._showToast('灵感已插入到光标位置');
+    this._autoSave();
+  },
+
+  /**
+   * 更新情绪检测显示
+   * @private
+   */
+  _updateMoodDetection() {
+    if (!window.AILiteService) return;
+    const notesEl = document.getElementById('create-rich-content');
+    const moodEl = document.getElementById('assistant-mood');
+    if (!notesEl || !moodEl) return;
+
+    const text = notesEl.innerText || notesEl.textContent || '';
+    const mood = AILiteService.detectMood(text);
+
+    let moodClass = 'mood-neutral';
+    if (mood.mood === '非常积极' || mood.mood === '积极') {
+      moodClass = 'mood-positive';
+    } else if (mood.mood === '非常消极' || mood.mood === '消极') {
+      moodClass = 'mood-negative';
+    }
+
+    const moodEmoji = {
+      '非常积极': '😊',
+      '积极': '🙂',
+      '中性': '😐',
+      '消极': '😟',
+      '非常消极': '😢'
+    }[mood.mood] || '';
+
+    moodEl.innerHTML = `
+      <span class="mood-indicator ${moodClass}">${moodEmoji} ${mood.mood}</span>
+      <span class="mood-confidence">(置信度 ${(mood.confidence * 100).toFixed(0)}%)</span>
+    `;
+  },
+
+  /**
+   * 更新字数统计显示
+   * @private
+   */
+  _updateWordCount() {
+    const notesEl = document.getElementById('create-rich-content');
+    const wcEl = document.getElementById('assistant-wordcount');
+    if (!notesEl || !wcEl) return;
+
+    const text = notesEl.innerText || notesEl.textContent || '';
+    const chineseChars = (text.match(/[一-鿿㐀-䶿]/g) || []).length;
+    const englishWords = (text.match(/[a-zA-Z0-9]+/g) || []).length;
+    const total = chineseChars + englishWords;
+
+    wcEl.textContent = `${total} 字 (中文 ${chineseChars} / 英文 ${englishWords})`;
+  },
+
+  /**
+   * 更新写作建议显示
+   * @private
+   */
+  _updateWritingTips() {
+    if (!window.AILiteService) return;
+    const notesEl = document.getElementById('create-rich-content');
+    const tipsSection = document.getElementById('assistant-tips-section');
+    const tipsEl = document.getElementById('assistant-tips');
+    if (!notesEl || !tipsSection || !tipsEl) return;
+
+    const text = notesEl.innerText || notesEl.textContent || '';
+    const tips = AILiteService.writingTips(text);
+
+    if (tips.length === 0) {
+      tipsSection.style.display = 'none';
+      return;
+    }
+
+    tipsSection.style.display = 'block';
+    tipsEl.innerHTML = tips.slice(0, 5).map(tip =>
+      `<div class="assistant-tip-item">
+        <span class="tip-type">${this._escapeHTML(tip.type)}</span>
+        <span class="tip-text">${this._escapeHTML(tip.suggestion)}</span>
+      </div>`
+    ).join('');
+  },
+
+  /**
+   * HTML 转义
+   * @private
+   */
+  _escapeHTML(str) {
+    const div = document.createElement('div');
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+  },
+
   _showToast(message) {
     if (window.App && typeof App.showToast === 'function') {
       App.showToast(message);
     } else {
       console.log('[EditorPlugin] Toast:', message);
     }
-  },
-
-  /**
-   * HTML 转义
-   * @param {string} str
-   * @returns {string}
-   * @private
-   */
-  _escapeHtml(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
   }
 };
 
 // 全局暴露
 window.EditorPlugin = EditorPlugin;
 
-console.log('[EditorPlugin] 编辑器插件已定义');
+console.log('[EditorPlugin] 编辑器插件 v2 已定义 (富文本工具栏 + 保存处理)');
 } else {
   console.log('[EditorPlugin] 已存在，跳过加载');
 }

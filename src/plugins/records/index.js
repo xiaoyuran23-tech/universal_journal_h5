@@ -233,29 +233,44 @@ if (!window.RecordsPlugin) {
       status: recordData.status || 'active',
       createdAt: Date.now(),
       updatedAt: Date.now(),
-      _dataVersion: '6.0.0'
+      _dataVersion: '6.0.0',
+      metadata: window.MetadataService ? MetadataService.extract(recordData) : {
+        wordCount: 0, readingTime: 0, emotionTags: [], summary: '', hasPhotos: false, hasLocation: false
+      },
+      _justCreated: true
     };
+
+    // 运行 beforeSave 钩子 (可修改记录或抛出异常中止)
+    let processedRecord = record;
+    if (window.Hooks) {
+      processedRecord = Hooks.run('record:beforeSave', record);
+    }
 
     // 保存到存储
     if (window.StorageBackend) {
-      await StorageBackend.put(record);
+      await StorageBackend.put(processedRecord);
     } else if (window.IDBModule) {
-      await IDBModule.put(record);
+      await IDBModule.put(processedRecord);
     }
 
     // 更新状态
     window.Store.dispatch({
       type: 'records/add',
-      payload: record
+      payload: processedRecord
     });
+
+    // 运行 afterSave 钩子
+    if (window.Hooks) {
+      Hooks.run('record:afterSave', processedRecord);
+    }
 
     // 触发事件
     if (window.EventBus) {
-      window.EventBus.emit('records:created', record);
+      window.EventBus.emit('records:created', processedRecord);
     }
 
-    console.log('[RecordsPlugin] Record created:', record.id);
-    return record;
+    console.log('[RecordsPlugin] Record created:', processedRecord.id);
+    return processedRecord;
   },
 
   /**
@@ -264,28 +279,54 @@ if (!window.RecordsPlugin) {
    * @param {Object} updates
    */
   async updateRecord(id, updates) {
+    // 如果 notes/photos/location 有变更，重新提取元数据
+    let metadataUpdate = {};
+    if ((updates.notes !== undefined || updates.photos !== undefined || updates.location !== undefined) && window.MetadataService) {
+      if (window.StorageBackend) {
+        const existing = await StorageBackend.get(id);
+        if (existing) {
+          const merged = { ...existing, ...updates };
+          metadataUpdate.metadata = MetadataService.extract(merged);
+        }
+      }
+    }
+
+    const finalUpdates = { ...updates, ...metadataUpdate, updatedAt: Date.now() };
+
+    // 运行 beforeSave 钩子 (更新也用 beforeSave)
+    let processedUpdates = finalUpdates;
+    if (window.Hooks) {
+      processedUpdates = Hooks.run('record:beforeSave', { id, updates: finalUpdates });
+      processedUpdates = processedUpdates.updates || processedUpdates;
+    }
+
     // 保存到存储
     if (window.StorageBackend) {
       const existing = await StorageBackend.get(id);
       if (existing) {
-        await StorageBackend.put({ ...existing, ...updates, updatedAt: Date.now() });
+        await StorageBackend.put({ ...existing, ...processedUpdates, updatedAt: Date.now() });
       }
     } else if (window.IDBModule) {
       const existing = await IDBModule.get(id);
       if (existing) {
-        await IDBModule.put({ ...existing, ...updates, updatedAt: Date.now() });
+        await IDBModule.put({ ...existing, ...processedUpdates, updatedAt: Date.now() });
       }
     }
 
     // 更新状态
     window.Store.dispatch({
       type: 'records/update',
-      payload: { id, updates: { ...updates, updatedAt: Date.now() } }
+      payload: { id, updates: { ...processedUpdates, updatedAt: Date.now() } }
     });
+
+    // 运行 afterSave 钩子
+    if (window.Hooks) {
+      Hooks.run('record:afterSave', { id, updates: processedUpdates });
+    }
 
     // 触发事件
     if (window.EventBus) {
-      window.EventBus.emit('records:updated', { id, updates });
+      window.EventBus.emit('records:updated', { id, updates: processedUpdates });
     }
   },
 
@@ -294,6 +335,11 @@ if (!window.RecordsPlugin) {
    * @param {string} id
    */
   async deleteRecord(id) {
+    // 运行 beforeDelete 钩子 (可抛出异常中止删除)
+    if (window.Hooks) {
+      Hooks.run('record:beforeDelete', { id });
+    }
+
     // 从存储删除
     if (window.StorageBackend) {
       await StorageBackend.delete(id);
@@ -306,6 +352,11 @@ if (!window.RecordsPlugin) {
       type: 'records/delete',
       payload: id
     });
+
+    // 运行 afterDelete 钩子
+    if (window.Hooks) {
+      Hooks.run('record:afterDelete', { id });
+    }
 
     // 触发事件
     if (window.EventBus) {
@@ -330,7 +381,7 @@ if (!window.RecordsPlugin) {
    */
   _normalizeRecord(record) {
     // 确保必要字段存在
-    return {
+    const normalized = {
       id: record.id || this._generateId(),
       name: record.name || '未命名',
       tags: Array.isArray(record.tags) ? record.tags : [],
@@ -343,6 +394,24 @@ if (!window.RecordsPlugin) {
       updatedAt: record.updatedAt || Date.now(),
       _dataVersion: record._dataVersion || '6.0.0'
     };
+
+    // 向后兼容: 确保 metadata 字段存在
+    normalized.metadata = record.metadata || {
+      wordCount: 0,
+      readingTime: 0,
+      emotionTags: [],
+      summary: '',
+      hasPhotos: false,
+      hasLocation: false
+    };
+
+    // P2-1: 确保 blocks 字段存在
+    normalized.blocks = Array.isArray(record.blocks) ? record.blocks : [];
+
+    // P2-2: 确保 links 字段存在
+    normalized.links = Array.isArray(record.links) ? record.links : [];
+
+    return normalized;
   },
 
   /**

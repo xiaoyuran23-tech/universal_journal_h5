@@ -1,14 +1,14 @@
 /**
  * Store - 集中式状态管理 (类似 Redux)
  * 单一数据源，状态变更必须通过 Action
- * @version 6.1.0
+ * @version 6.2.0
  */
 class Store {
   constructor(initialState = {}) {
-    this._state = { ...initialState };
+    this._state = this._deepClone(initialState);
     this._listeners = new Set();
     this._middlewares = [];
-    
+
     // 初始化历史记录 (用于撤销/重做)
     this._history = [JSON.stringify(this._state)];
     this._historyIndex = 0;
@@ -20,8 +20,8 @@ class Store {
    * @returns {*}
    */
   getState(path) {
-    if (!path) return { ...this._state };
-    
+    if (!path) return this._state;
+
     return path.split('.').reduce((obj, key) => {
       return obj && obj[key] !== undefined ? obj[key] : undefined;
     }, this._state);
@@ -63,17 +63,57 @@ class Store {
       }
     }
 
-    // 获取变更前的状态
-    const prevState = JSON.parse(JSON.stringify(this._state));
-    
+    // 获取变更前的状态引用 (浅拷贝，不再深拷贝整个状态)
+    const prevState = this._snapshot();
+
     // 处理 Action
     this._handleAction(processedAction);
-    
-    // 记录历史 (用于撤销)
+
+    // 记录历史 (仅序列化关键数据，避免序列化大对象)
     this._recordHistory();
-    
-    // 通知订阅者
+
+    // 通知订阅者 (传递引用，由订阅者自行决定是否需要深拷贝)
     this._notify(prevState);
+  }
+
+  /**
+   * 创建状态快照 (结构化克隆，优于 JSON 往返)
+   * @private
+   */
+  _snapshot() {
+    // 仅快照 records.list 的元数据 (不含 photos base64)
+    const recordsSnapshot = {
+      loading: this._state.records?.loading,
+      error: this._state.records?.error,
+      list: (this._state.records?.list || []).map(r => ({
+        id: r.id,
+        name: r.name,
+        tags: r.tags,
+        status: r.status,
+        favorite: r.favorite,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt
+        // 排除 photos、notes 等大字段
+      })),
+      count: this._state.records?.list?.length || 0
+    };
+
+    return {
+      app: { ...this._state.app },
+      records: recordsSnapshot,
+      ui: { ...this._state.ui }
+    };
+  }
+
+  /**
+   * 深克隆 (使用 structuredClone 或 JSON 回退)
+   * @private
+   */
+  _deepClone(obj) {
+    if (typeof structuredClone === 'function') {
+      return structuredClone(obj);
+    }
+    return JSON.parse(JSON.stringify(obj));
   }
 
   /**
@@ -117,14 +157,14 @@ class Store {
   _setNestedState(path, value) {
     const keys = path.split('.');
     let target = this._state;
-    
+
     for (let i = 0; i < keys.length - 1; i++) {
       if (!target[keys[i]]) {
         target[keys[i]] = {};
       }
       target = target[keys[i]];
     }
-    
+
     target[keys[keys.length - 1]] = value;
   }
 
@@ -133,10 +173,9 @@ class Store {
    * @private
    */
   _notify(prevState) {
-    const newState = { ...this._state };
     this._listeners.forEach(listener => {
       try {
-        listener(newState, prevState);
+        listener(this._state, prevState);
       } catch (error) {
         console.error('[Store] Listener error:', error);
       }
@@ -150,11 +189,25 @@ class Store {
   _recordHistory() {
     // 删除当前索引之后的历史
     this._history = this._history.slice(0, this._historyIndex + 1);
-    
-    // 添加新状态
-    this._history.push(JSON.stringify(this._state));
+
+    // 仅序列化轻量级状态快照 (不含 photos 等大字段)
+    const lightweight = {
+      app: this._state.app,
+      records: {
+        list: (this._state.records?.list || []).map(r => ({
+          id: r.id, name: r.name, tags: r.tags,
+          status: r.status, favorite: r.favorite,
+          createdAt: r.createdAt, updatedAt: r.updatedAt
+        })),
+        filtered: this._state.records?.filtered?.map(r => r.id) || [],
+        loading: this._state.records?.loading
+      },
+      ui: { ...this._state.ui, toasts: [], modals: [] }
+    };
+
+    this._history.push(JSON.stringify(lightweight));
     this._historyIndex++;
-    
+
     // 限制历史记录数量
     if (this._history.length > 50) {
       this._history.shift();
@@ -169,7 +222,21 @@ class Store {
   undo() {
     if (this._historyIndex > 0) {
       this._historyIndex--;
-      this._state = JSON.parse(this._history[this._historyIndex]);
+      const restored = JSON.parse(this._history[this._historyIndex]);
+      // 恢复轻量字段，保留 notes/photos 等大字段
+      if (restored.records?.list) {
+        const currentList = this._state.records?.list || [];
+        const restoredIds = new Set(restored.records.list.map(r => r.id));
+        // 合并: 恢复元数据 + 保留当前大字段
+        restored.records.list = restored.records.list.map(restoredItem => {
+          const current = currentList.find(r => r.id === restoredItem.id);
+          return current ? { ...restoredItem, notes: current.notes, photos: current.photos } : restoredItem;
+        });
+        // 保留不在恢复列表中的记录
+        const extraItems = currentList.filter(r => !restoredIds.has(r.id));
+        restored.records.list = [...restored.records.list, ...extraItems];
+      }
+      this._state = { ...this._state, ...restored };
       this._notify();
       return true;
     }
@@ -183,7 +250,15 @@ class Store {
   redo() {
     if (this._historyIndex < this._history.length - 1) {
       this._historyIndex++;
-      this._state = JSON.parse(this._history[this._historyIndex]);
+      const restored = JSON.parse(this._history[this._historyIndex]);
+      if (restored.records?.list) {
+        const currentList = this._state.records?.list || [];
+        restored.records.list = restored.records.list.map(restoredItem => {
+          const current = currentList.find(r => r.id === restoredItem.id);
+          return current ? { ...restoredItem, notes: current.notes, photos: current.photos } : restoredItem;
+        });
+      }
+      this._state = { ...this._state, ...restored };
       this._notify();
       return true;
     }
@@ -195,10 +270,9 @@ class Store {
    * @param {Function} updates - 返回多个 action 的函数
    */
   batch(updates) {
-    // 临时禁用通知
     const originalNotify = this._notify.bind(this);
     this._notify = () => {};
-    
+
     try {
       updates(this.dispatch.bind(this));
     } finally {
@@ -248,23 +322,18 @@ class Store {
 
 // 全局单例
 window.Store = new Store({
-  // 应用状态
   app: {
     currentPage: 'home',
     theme: 'light',
     language: 'zh-CN',
     locked: false
   },
-  
-  // 记录数据
   records: {
     list: [],
     filtered: [],
     loading: false,
     error: null
   },
-  
-  // UI 状态
   ui: {
     toasts: [],
     modals: [],
@@ -273,4 +342,4 @@ window.Store = new Store({
   }
 });
 
-console.log('[Store] 状态管理已初始化');
+console.log('[Store] 状态管理已初始化 (v6.2.0: 结构化快照优化)');

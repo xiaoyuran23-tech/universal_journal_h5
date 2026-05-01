@@ -92,7 +92,7 @@ const SyncPlugin = {
    */
   async configure(config) {
     if (window.SyncService) {
-      SyncService.saveConfig(config);
+      await SyncService.saveConfig(config);
       this._showToast('配置已保存', { type: 'success' });
     }
   },

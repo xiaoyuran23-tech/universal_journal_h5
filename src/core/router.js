@@ -232,4 +232,19 @@ window.Router.register('trash', {
   component: 'trash-view'
 });
 
+window.Router.register('graph', {
+  title: '关系图谱',
+  component: 'graph-view'
+});
+
+window.Router.register('review/on-this-day', {
+  title: '那年今日',
+  component: 'on-this-day-view'
+});
+
+window.Router.register('review/weekly', {
+  title: '每周回顾',
+  component: 'weekly-view'
+});
+
 console.log('[Router] 路由系统已初始化');

@@ -281,6 +281,98 @@ const TemplatesPlugin = {
   },
 
   /**
+   * 保存模板 (公共方法，供 ControllerPlugin 调用)
+   * @param {Object} templateData - { name, notes }
+   */
+  async saveTemplate(templateData) {
+    const tpl = {
+      id: 'tpl_custom_' + Date.now(),
+      name: templateData.name,
+      icon: '📝',
+      category: '自定义',
+      description: '自定义模板',
+      fields: [
+        { label: '内容', type: 'textarea', value: templateData.notes || '' }
+      ]
+    };
+    this._templates.push(tpl);
+    await this._saveTemplates();
+    this._showToast('模板已保存');
+  },
+
+  /**
+   * 渲染模板管理器 (公共方法)
+   * @param {string} containerId
+   */
+  renderTemplateManager(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    let html = '<div class="template-manager">';
+    html += '<h3>模板管理</h3>';
+    html += '<div class="template-list">';
+
+    this._templates.forEach(tpl => {
+      html += `
+        <div class="template-item" data-id="${tpl.id}">
+          <span class="template-item-icon">${tpl.icon || '📝'}</span>
+          <div class="template-item-content">
+            <strong>${this._escapeHtml(tpl.name)}</strong>
+            <span class="template-item-category">${this._escapeHtml(tpl.category || '')}</span>
+          </div>
+          <button class="template-delete-btn" data-action="delete-tpl" data-id="${tpl.id}">×</button>
+        </div>
+      `;
+    });
+
+    html += '</div></div>';
+    container.innerHTML = html;
+
+    // 绑定删除按钮
+    container.querySelectorAll('[data-action="delete-tpl"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        this._templates = this._templates.filter(t => t.id !== id);
+        await this._saveTemplates();
+        this.renderTemplateManager(containerId);
+        this._showToast('模板已删除');
+      });
+    });
+  },
+
+  /**
+   * 渲染底部模板抽屉 (公共方法)
+   * @private
+   */
+  _renderBottomSheet() {
+    const listContainer = document.getElementById('template-sheet-list');
+    if (!listContainer) return;
+
+    let html = '';
+    this._templates.forEach(tpl => {
+      html += `
+        <div class="template-sheet-item" data-id="${tpl.id}">
+          <span class="template-sheet-icon">${tpl.icon || '📝'}</span>
+          <span class="template-sheet-name">${this._escapeHtml(tpl.name)}</span>
+        </div>
+      `;
+    });
+
+    listContainer.innerHTML = html;
+
+    // 绑定点击
+    listContainer.querySelectorAll('.template-sheet-item').forEach(item => {
+      item.addEventListener('click', async () => {
+        const id = item.dataset.id;
+        await this._useTemplate(id);
+        // 关闭抽屉
+        const overlay = document.getElementById('template-bottom-sheet');
+        if (overlay) overlay.style.display = 'none';
+      });
+    });
+  },
+
+  /**
    * HTML 转义
    * @private
    */

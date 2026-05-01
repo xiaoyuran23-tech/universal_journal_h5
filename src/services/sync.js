@@ -6,6 +6,7 @@
 
 class SyncService {
   static CONFIG_KEY = 'journal_sync_config';
+  static TOKEN_KEY = 'journal_sync_token_enc'; // 加密后的 Token
   static STATUS = {
     IDLE: 'idle',
     UPLOADING: 'uploading',
@@ -75,11 +76,37 @@ class SyncService {
 
   /**
    * 保存同步配置
+   * Token 单独加密存储，其他配置明文存储
    */
-  static saveConfig(config) {
+  static async saveConfig(config) {
     const existing = this.getConfig() || {};
     const merged = { ...existing, ...config };
+
+    // 如果提供了 token，异步加密后单独存储
+    if (config.token) {
+      await this._encryptToken(config.token);
+      delete merged.token; // 从明文配置中移除 token
+    }
+
     localStorage.setItem(this.CONFIG_KEY, JSON.stringify(merged));
+  }
+
+  /**
+   * 获取存储的 Token (自动解密)
+   */
+  static getToken() {
+    const encrypted = localStorage.getItem(this.TOKEN_KEY);
+    if (!encrypted) return null;
+
+    try {
+      const deviceKey = localStorage.getItem('_uj_device_key');
+      if (!deviceKey) return null;
+      // deviceKey 是 Base64 编码的 AES-GCM 密钥
+      return this._decryptToken(encrypted, deviceKey);
+    } catch (e) {
+      console.warn('[SyncService] Token 解密失败:', e);
+      return null;
+    }
   }
 
   /**
@@ -87,7 +114,70 @@ class SyncService {
    */
   static isConfigured() {
     const config = this.getConfig();
-    return !!(config && config.token && config.gistId);
+    const token = this.getToken();
+    return !!(config && config.gistId && token);
+  }
+
+  /**
+   * 加密 Token 并异步存储
+   * @param {string} token - GitHub Token
+   * @private
+   */
+  static async _encryptToken(token) {
+    let deviceKey = localStorage.getItem('_uj_device_key');
+    if (!deviceKey) {
+      const rawKey = new Uint8Array(32);
+      crypto.getRandomValues(rawKey);
+      deviceKey = btoa(String.fromCharCode(...rawKey));
+      localStorage.setItem('_uj_device_key', deviceKey);
+    }
+
+    const keyBytes = new Uint8Array(atob(deviceKey).split('').map(c => c.charCodeAt(0)));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const encoder = new TextEncoder();
+
+    const key = await crypto.subtle.importKey('raw', keyBytes, 'AES-GCM', false, ['encrypt']);
+    const ciphertext = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      encoder.encode(token)
+    );
+    const combined = new Uint8Array(iv.length + ciphertext.byteLength);
+    combined.set(iv, 0);
+    combined.set(new Uint8Array(ciphertext), iv.length);
+    localStorage.setItem(this.TOKEN_KEY, btoa(String.fromCharCode(...combined)));
+  }
+
+  /**
+   * 解密 Token
+   * @param {string} encrypted - Base64 编码的密文
+   * @param {string} deviceKey - Base64 编码的设备密钥
+   * @returns {string}
+   * @private
+   */
+  static _decryptToken(encrypted, deviceKey) {
+    return new Promise((resolve, reject) => {
+      // 检查是否为降级明文
+      if (encrypted.startsWith('plaintext:')) {
+        resolve(encrypted.slice(10));
+        return;
+      }
+
+      const data = new Uint8Array(atob(encrypted).split('').map(c => c.charCodeAt(0)));
+      const keyBytes = new Uint8Array(atob(deviceKey).split('').map(c => c.charCodeAt(0)));
+      const iv = data.slice(0, 12);
+      const ciphertext = data.slice(12);
+
+      crypto.subtle.importKey('raw', keyBytes, 'AES-GCM', false, ['decrypt']).then(async (key) => {
+        const plaintext = await crypto.subtle.decrypt(
+          { name: 'AES-GCM', iv },
+          key,
+          ciphertext
+        );
+        const decoder = new TextDecoder();
+        resolve(decoder.decode(plaintext));
+      }).catch(reject);
+    });
   }
 
   /**
@@ -109,6 +199,7 @@ class SyncService {
 
     try {
       const config = this.getConfig();
+      const token = this.getToken();
       const records = await this._getAllRecords();
       
       // 构建数据包
@@ -143,7 +234,7 @@ class SyncService {
       const response = await fetch(`https://api.github.com/gists/${config.gistId}`, {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${config.token}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(gistData)
@@ -194,11 +285,12 @@ class SyncService {
 
     try {
       const config = this.getConfig();
+      const token = this.getToken();
 
       // 从 GitHub Gist 下载
       const response = await fetch(`https://api.github.com/gists/${config.gistId}`, {
         headers: {
-          'Authorization': `Bearer ${config.token}`
+          'Authorization': `Bearer ${token}`
         }
       });
 
@@ -258,9 +350,10 @@ class SyncService {
 
     try {
       const config = this.getConfig();
+      const token = this.getToken();
       const response = await fetch(`https://api.github.com/gists/${config.gistId}`, {
         headers: {
-          'Authorization': `Bearer ${config.token}`
+          'Authorization': `Bearer ${token}`
         }
       });
 
@@ -358,6 +451,7 @@ class SyncService {
 
     try {
       const config = this.getConfig();
+      const token = this.getToken();
       const gistData = {
         description: '万物手札备份 (自动创建)',
         public: false,
@@ -369,7 +463,7 @@ class SyncService {
       const response = await fetch('https://api.github.com/gists', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${config.token}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(gistData)

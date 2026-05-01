@@ -114,6 +114,11 @@ class HomePage {
       onCreate: () => this._handleCreate()
     });
 
+    // 搜索输入框 (由 SearchPlugin 绑定)
+    const searchBar = document.createElement('div');
+    searchBar.className = 'search-bar';
+    searchBar.innerHTML = `<input type="text" class="search-input" id="search-input" placeholder="搜索记录...">`;
+
     // CategoryTabs 容器
     const tabsContainer = document.createElement('div');
     tabsContainer.id = 'category-tabs-container';
@@ -124,6 +129,7 @@ class HomePage {
     contentContainer.className = 'home-content';
 
     main.appendChild(header);
+    main.appendChild(searchBar);
     main.appendChild(tabsContainer);
     main.appendChild(contentContainer);
 
@@ -207,6 +213,13 @@ class HomePage {
       return;
     }
 
+    // 渲染回顾区域 (那年今日 → 每周回顾 → 月度总结)
+    const reviewContainer = document.createElement('div');
+    reviewContainer.id = 'home-review-section';
+    reviewContainer.className = 'home-review-section';
+    contentContainer.appendChild(reviewContainer);
+    this._renderReviewSections(reviewContainer);
+
     // 空状态
     if (!state.records.length) {
       const empty = window.StatusStates.EmptyState.render({
@@ -242,6 +255,36 @@ class HomePage {
   }
 
   /**
+   * 渲染回顾区域
+   * @private
+   */
+  async _renderReviewSections(container) {
+    if (!window.ReviewPlugin) return;
+
+    try {
+      // 那年今日 (有记录时才显示)
+      const onThisDayContainer = document.createElement('div');
+      onThisDayContainer.id = 'review-container-on-this-day';
+      container.appendChild(onThisDayContainer);
+      ReviewPlugin.renderOnThisDay(onThisDayContainer);
+
+      // 每周回顾
+      const weeklyContainer = document.createElement('div');
+      weeklyContainer.id = 'review-container-weekly';
+      container.appendChild(weeklyContainer);
+      ReviewPlugin.renderWeeklyReview(weeklyContainer);
+
+      // 月度总结 (始终显示)
+      const monthlyContainer = document.createElement('div');
+      monthlyContainer.id = 'review-container-monthly';
+      container.appendChild(monthlyContainer);
+      ReviewPlugin.renderMonthlySummary(monthlyContainer);
+    } catch (e) {
+      console.error('[HomePage] Failed to render review sections:', e);
+    }
+  }
+
+  /**
    * 渲染单条记录
    * @private
    */
@@ -255,6 +298,7 @@ class HomePage {
     const city = record.city || '';
     const likes = record.likes || 0;
     const date = record.date || this._formatDate(record.createdAt);
+    const metadata = record.metadata || null;
 
     item.innerHTML = `
       <div class="record-list-item-cover">
@@ -264,8 +308,9 @@ class HomePage {
         <h4 class="record-list-item-title">${this._escape(title)}</h4>
         <div class="record-list-item-meta">
           <span>${city}</span>
-          <span>♥ ${likes}</span>
+          <span>${likes > 0 ? '♥ ' + likes : ''}</span>
         </div>
+        ${this._renderMetadataBadges(metadata)}
       </div>
     `;
 
@@ -377,6 +422,47 @@ class HomePage {
         }
       };
     }
+  }
+
+  /**
+   * 渲染元数据徽章
+   * @private
+   */
+  _renderMetadataBadges(metadata) {
+    if (!metadata) return '';
+
+    const badges = [];
+
+    // 字数 + 阅读时间徽章
+    if (metadata.wordCount > 0 || metadata.readingTime > 0) {
+      const wc = metadata.wordCount || 0;
+      const rt = metadata.readingTime || 0;
+      badges.push(`<span class="metadata-badge">${wc}字 ${rt}分钟</span>`);
+    }
+
+    // 照片/位置图标
+    const iconBadges = [];
+    if (metadata.hasPhotos) iconBadges.push('photos');
+    if (metadata.hasLocation) iconBadges.push('location');
+    if (iconBadges.length > 0) {
+      badges.push(`<span class="metadata-badge metadata-icon-badges">${iconBadges.map(t => {
+        if (t === 'photos') return '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>';
+        if (t === 'location') return '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>';
+        return '';
+      }).join('')}</span>`);
+    }
+
+    // 情绪标签 chips
+    if (metadata.emotionTags && metadata.emotionTags.length > 0) {
+      const chips = metadata.emotionTags.map(tag => {
+        const colorClass = `emotion-${tag}`;
+        return `<span class="emotion-chip ${colorClass}">${tag}</span>`;
+      }).join('');
+      badges.push(`<span class="emotion-chips">${chips}</span>`);
+    }
+
+    if (badges.length === 0) return '';
+    return `<div class="metadata-badges">${badges.join('')}</div>`;
   }
 
   /**

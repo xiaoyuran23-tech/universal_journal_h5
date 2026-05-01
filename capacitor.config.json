@@ -1,0 +1,21 @@
+{
+  "appId": "com.journal.universal",
+  "appName": "万物手札",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#F5F0EB",
+      "androidSplashResourceType": "drawable",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "LIGHT",
+      "backgroundColor": "#F5F0EB"
+    }
+  }
+}

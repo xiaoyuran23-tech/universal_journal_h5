@@ -18,12 +18,24 @@ async function initApp() {
       }
     }
 
+    // 1.5 执行 DB Schema 迁移
+    if (window.MigrationService && MigrationService.needsMigration()) {
+      try {
+        const result = await MigrationService.migrate();
+        if (result.migrated) {
+          console.log(`[App] Schema migrated: ${result.from} → ${result.to}`);
+        }
+      } catch (e) {
+        console.warn('[App] Schema migration failed, continuing anyway:', e);
+      }
+    }
+
     // 2. 注册插件 - 关键依赖失败时阻断流程
     try {
       if (window.PluginLoader && window.Kernel) {
         const loader = new PluginLoader(window.Kernel);
         
-        // 注册核心插件 (跳过未定义的插件)
+        // 注册核心插件 + Phase 2 新增插件
         const pluginMap = {
           records: window.RecordsPlugin,
           calendar: window.CalendarPlugin,
@@ -32,14 +44,29 @@ async function initApp() {
           favorites: window.FavoritesPlugin,
           templates: window.TemplatesPlugin,
           sync: window.SyncPlugin,
-          settings: window.SettingsPlugin
+          settings: window.SettingsPlugin,
+          // Phase 2 新增插件
+          security: window.SecurityPlugin,
+          trash: window.TrashPlugin,
+          batch: window.BatchPlugin,
+          draft: window.DraftPlugin,
+          tags: window.TagsPlugin,
+          visuals: window.VisualsPlugin,
+          theme: window.ThemePlugin,
+          search: window.SearchPlugin,
+          hotkeys: window.HotkeysPlugin,
+          controller: window.ControllerPlugin,
+          markdown: window.MarkdownPlugin,
+          review: window.ReviewPlugin,
+          graph: window.GraphPlugin,
+          example: window.ExamplePlugin
         };
-        
+
         // 检查核心依赖
         if (!pluginMap.records) {
           throw new Error('RecordsPlugin is not loaded - critical dependency missing');
         }
-        
+
         // 只注册已加载的插件
         Object.entries(pluginMap).forEach(([name, plugin]) => {
           if (plugin) {
@@ -48,11 +75,13 @@ async function initApp() {
             console.warn(`[App] Skipping plugin "${name}" - not loaded`);
           }
         });
-        
+
         // 加载所有插件 (自动处理依赖)
         await loader.loadAll([
           'records', 'calendar', 'timeline', 'editor',
-          'favorites', 'templates', 'sync', 'settings'
+          'favorites', 'templates', 'sync', 'settings',
+          'security', 'trash', 'batch', 'draft',
+          'tags', 'visuals', 'theme', 'search', 'hotkeys', 'controller', 'markdown', 'review', 'graph'
         ]);
         
         console.log('[App] Plugin loading completed');
@@ -79,29 +108,16 @@ async function initApp() {
       throw new Error('Kernel is not available');
     }
 
-    // 4. 启动迁移适配器 (解决双重状态冲突) - 容错处理
-    try {
-      if (window.MigrationAdapter && window.App) {
-        const adapter = new MigrationAdapter(window.Kernel, App);
-        await adapter.start();
-        console.log('[App] MigrationAdapter started');
-      }
-    } catch (e) {
-      console.warn('[App] MigrationAdapter failed, continuing anyway:', e);
-    }
+    // 5. 启动迁移适配器 (解决双重状态冲突) - 已废弃，旧架构已移除
+    // MigrationAdapter 不再需要
 
-    // 5. 初始化 UI
+    // 6. 初始化 UI
     initUI();
 
-    // 5.5 初始化 UX 视图 (v6.1 新增) - 关键！必须执行
+    // 7. 初始化 UX 视图 (v6.1 新增)
     initUXViews();
 
-    // 5.6 初始化遗留功能模块 (v6.2 新增)
-    // 确保草稿/回收站/批量/可视化/标签/主题等功能在 v6 初始化链路中被正确初始化
-    // 这些模块由 js/app.js 的 App.init() 也会调用，因此设置了全局防重复标志
-    initLegacyModules();
-
-    // 6. 检查新手引导
+    // 8. 检查新手引导
     initOnboarding();
 
     console.log('[App] Application initialized successfully');
@@ -155,6 +171,34 @@ function initUI() {
     });
   });
 
+  // 绑定表单返回按钮（确保在 ControllerPlugin 之前绑定）
+  const formBackBtn = document.getElementById('create-back-btn');
+  if (formBackBtn) {
+    formBackBtn.addEventListener('click', () => {
+      if (window.Router) window.Router.navigate('home');
+    });
+  }
+
+  // 绑定详情页返回按钮
+  const detailBackBtn = document.getElementById('detail-back-btn');
+  if (detailBackBtn) {
+    detailBackBtn.addEventListener('click', () => {
+      if (window.Router) window.Router.navigate('home');
+    });
+  }
+
+  // 绑定云同步弹窗关闭（背景点击关闭）
+  const cloudModal = document.getElementById('cloud-modal');
+  if (cloudModal) {
+    cloudModal.addEventListener('click', (e) => {
+      if (e.target === cloudModal) cloudModal.style.display = 'none';
+    });
+    const closeBtn = document.getElementById('cloud-modal-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => { cloudModal.style.display = 'none'; });
+    }
+  }
+
   // 监听路由变化，更新 UI
   if (window.Router) {
     window.Router.subscribe(route => {
@@ -170,6 +214,16 @@ function initUI() {
         // 回收站页面渲染
         if (route.path === 'trash' && window.TrashManager) {
           TrashManager.renderTrashList('trash-container');
+        }
+
+        // 那年今日全屏页
+        if (route.path === 'review/on-this-day' && window.ReviewPlugin) {
+          ReviewPlugin.renderOnThisDayFull(document.getElementById('on-this-day-container'));
+        }
+
+        // 每周回顾全屏页
+        if (route.path === 'review/weekly' && window.ReviewPlugin) {
+          ReviewPlugin.renderWeeklyFull(document.getElementById('weekly-review-container'));
         }
       }
     });
@@ -230,7 +284,9 @@ function initUXViews() {
 function updatePageVisibility(page) {
   // 路由名到页面 ID 的映射
   const routeMap = {
-    editor: 'form'
+    editor: 'form',
+    'review/on-this-day': 'on-this-day',
+    'review/weekly': 'weekly-review'
   };
   const targetPage = routeMap[page] || page;
 
@@ -238,68 +294,6 @@ function updatePageVisibility(page) {
     const pageId = p.id.replace('page-', '');
     p.classList.toggle('active', pageId === targetPage);
   });
-}
-
-/**
- * 初始化遗留功能模块 (v6.2 新增)
- * 显式调用旧模块的 init 方法，确保 v6 初始化链路不依赖 js/app.js 的 App.init()
- * 设置 __legacyModulesInitialized 标志，防止 App.init() 重复初始化
- */
-function initLegacyModules() {
-  // 防止 App.init() 重复调用这些模块
-  if (window.__legacyModulesInitialized) return;
-  window.__legacyModulesInitialized = true;
-
-  // 主题管理
-  if (window.ThemeManager) {
-    ThemeManager.init();
-    if (typeof ThemeManager.renderOptions === 'function') {
-      ThemeManager.renderOptions();
-    }
-  }
-
-  // 草稿自动保存
-  if (window.DraftManager) {
-    DraftManager.init();
-  }
-
-  // 回收站系统
-  if (window.TrashManager) {
-    TrashManager.init();
-  }
-
-  // 批量操作
-  if (window.BatchManager) {
-    BatchManager.init();
-  }
-
-  // 标签管理
-  if (window.TagManager) {
-    TagManager.init();
-  }
-
-  // 数据可视化
-  if (window.VisualsManager) {
-    VisualsManager.init();
-  }
-
-  // 模板管理
-  if (window.TemplateManager) {
-    TemplateManager.init();
-  }
-
-  // 时间线管理
-  if (window.TimelineManager) {
-    TimelineManager.init();
-  }
-
-  // 设置页事件绑定（关键！App.init() 未被调用，需手动绑定设置页按钮事件）
-  if (window.App) {
-    App.bindSettingsEvents();
-    App.bindPasswordEvents();
-    // bindEvents 中的 tab/FAB 已由 v6 initUI() 接管，但全局事件委托（空状态按钮、模板选择器等）仍需绑定
-    App.bindEvents();
-  }
 }
 
 /**

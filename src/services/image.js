@@ -252,9 +252,31 @@ class ImageService {
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
   }
+
+  /**
+   * 兼容旧版 ImageProcessor API
+   * @param {File} file
+   * @param {Object} options
+   * @returns {Promise<{dataUrl: string, originalSize: number, compressedSize: number, ratio: number}>}
+   */
+  static async compressWithInfo(file, options = {}) {
+    const originalSize = file.size;
+    const dataUrl = await this.compress(file, options);
+    const compressedSize = this.estimateSize(dataUrl);
+    const ratio = originalSize > 0 ? Math.round((1 - compressedSize / originalSize) * 100) : 0;
+    return { dataUrl, originalSize, compressedSize, ratio };
+  }
 }
 
 // 全局暴露
 window.ImageService = ImageService;
+
+// 兼容旧版 ImageProcessor API (Phase 1 过渡期)
+window.ImageProcessor = {
+  compress: (file, options) => ImageService.compressWithInfo(file, options),
+  formatSize: (bytes) => ImageService.formatSize(bytes),
+  process: (file) => ImageService.compress(file)
+};
+window.ImageProcessorV2 = window.ImageProcessor;
 
 console.log('[ImageService] 图片处理服务已加载');

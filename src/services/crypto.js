@@ -193,6 +193,43 @@ class CryptoService {
   }
 
   /**
+   * 验证密码强度
+   * @param {string} password
+   * @returns {{valid: boolean, error?: string}}
+   */
+  static validatePassword(password) {
+    if (!password || password.length < 4) {
+      return { valid: false, error: '密码至少 4 位' };
+    }
+    if (password.length > 128) {
+      return { valid: false, error: '密码不能超过 128 位' };
+    }
+    return { valid: true };
+  }
+
+  /**
+   * 兼容旧版 XOR 加密的 decryptData 方法
+   * 用于迁移：如果数据是旧格式，尝试解密后返回
+   * @param {string} encrypted - 旧版 XOR 加密的 Base64 数据
+   * @param {string} key - 密码
+   * @returns {string|null}
+   * @deprecated 仅用于数据迁移
+   */
+  static legacyDecrypt(encrypted, key) {
+    try {
+      const text = decodeURIComponent(escape(atob(encrypted)));
+      let result = '';
+      for (let i = 0; i < text.length; i++) {
+        result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+      }
+      return result;
+    } catch (e) {
+      console.warn('[CryptoService] Legacy decrypt failed:', e);
+      return null;
+    }
+  }
+
+  /**
    * 工具: ArrayBuffer -> Base64
    */
   static _arrayBufferToBase64(buffer) {
