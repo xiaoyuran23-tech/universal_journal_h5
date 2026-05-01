@@ -1,4 +1,4 @@
-const CACHE_NAME = 'journal-v6.3.0';
+const CACHE_NAME = 'journal-v7.0.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -18,6 +18,8 @@ const ASSETS_TO_CACHE = [
   './src/services/sync-merge.js',
   './src/services/sync.js',
   './src/services/image.js',
+  './src/services/streak.js',
+  './src/services/mood.js',
   './src/services/metadata.js',
   './src/services/block-parser.js',
   './src/services/link-parser.js',
@@ -61,7 +63,9 @@ const ASSETS_TO_CACHE = [
   './src/hooks/records-hook.js',
   './src/views/home-page.js',
   './src/styles/ux-theme.css',
-  // v6.1 Entry
+  // v7.0.0 新增
+  './src/plugins/auth/index.js',
+  './src/plugins/mood/index.js',
   './src/main.js'
 ];
 

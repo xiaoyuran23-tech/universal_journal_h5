@@ -59,7 +59,10 @@ async function initApp() {
           markdown: window.MarkdownPlugin,
           review: window.ReviewPlugin,
           graph: window.GraphPlugin,
-          example: window.ExamplePlugin
+          example: window.ExamplePlugin,
+          // v7.0.0 新增
+          auth: window.AuthPlugin,
+          mood: window.MoodPlugin
         };
 
         // 检查核心依赖
@@ -81,7 +84,7 @@ async function initApp() {
           'records', 'calendar', 'timeline', 'editor',
           'favorites', 'templates', 'sync', 'settings',
           'security', 'trash', 'batch', 'draft',
-          'tags', 'visuals', 'theme', 'search', 'hotkeys', 'controller', 'markdown', 'review', 'graph'
+          'tags', 'visuals', 'theme', 'search', 'hotkeys', 'controller', 'markdown', 'review', 'graph', 'auth', 'mood'
         ]);
         
         console.log('[App] Plugin loading completed');

@@ -235,6 +235,18 @@
                 <div class="visuals-container" id="visuals-container">
                     <!-- 动态渲染热力图、趋势图等 -->
                 </div>
+
+                <!-- v7.0.0 新增：心情打卡 + 连续记录 -->
+                <div class="profile-mood-section" style="padding:16px;display:flex;gap:12px;align-items:center;justify-content:space-between;">
+                    <button class="settings-item" data-mood-checkin style="flex:1;margin:0;">
+                        <span>心情打卡</span>
+                        <span style="font-size:20px;">😊</span>
+                    </button>
+                    <div id="streak-badge-container" style="min-width:80px;"></div>
+                </div>
+
+                <!-- 心情趋势区域 -->
+                <div id="mood-trend-container" style="margin:0 16px 16px;border-radius:12px;background:#f8f8f8;"></div>
                 
                 <div class="settings-container">
                     <div class="settings-section">
@@ -625,6 +637,8 @@
     <script src="src/services/sync.js?v=6.4.0"></script>
     <script src="src/services/migration.js?v=6.3.0"></script>
     <script src="src/services/image.js?v=6.1.0"></script>
+    <script src="src/services/streak.js?v=7.0.0"></script>
+    <script src="src/services/mood.js?v=7.0.0"></script>
     
     <!-- v6.0.0 核心基础设施 (微内核架构) -->
     <script src="src/core/hooks.js?v=6.3.0"></script>
@@ -659,6 +673,10 @@
     <script src="src/plugins/review/index.js?v=6.3.0"></script>
     <script src="src/plugins/graph/index.js?v=6.3.0"></script>
     <script src="src/plugins/example/index.js?v=6.3.0"></script>
+
+    <!-- v7.0.0 新增 -->
+    <script src="src/plugins/auth/index.js?v=7.0.0"></script>
+    <script src="src/plugins/mood/index.js?v=7.0.0"></script>
     
     <!-- v6.0.0 UI 组件库 -->
     <script src="src/components/base/index.js?v=6.1.0"></script>

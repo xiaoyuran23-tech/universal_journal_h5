@@ -333,6 +333,10 @@ const EditorPlugin = {
 
     const record = { ...baseRecord, metadata, blocks, links };
 
+    // v7.0: 保存心情 (从 todayMood 获取)
+    const todayMood = window.MoodService?.getTodayMood();
+    if (todayMood) record.mood = todayMood.mood;
+
     try {
       // 保存到 IndexedDB
       if (window.StorageBackend) {
@@ -359,6 +363,10 @@ const EditorPlugin = {
       // 清除草稿
       localStorage.removeItem('editor_draft');
       if (window.DraftPlugin) DraftPlugin.clearDraft();
+
+      // v7.0: 更新连续记录天数
+      const dateStr = document.getElementById('create-date')?.value;
+      window.StreakService?.recordToday(dateStr);
 
       this._showToast(this._isEditing ? '记录已更新' : '记录已保存');
 
