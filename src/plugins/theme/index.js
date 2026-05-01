@@ -15,7 +15,11 @@ const ThemePlugin = {
     { id: 'light', name: '明亮' },
     { id: 'dark', name: '暗黑' },
     { id: 'warm', name: '暖光' },
-    { id: 'ink', name: '墨影' }
+    { id: 'ink', name: '墨影' },
+    { id: 'cyan-mountain', name: '青绿' },
+    { id: 'plum-blossom', name: '梅花' },
+    { id: 'bamboo-rain', name: '竹青' },
+    { id: 'distant-water', name: '淡彩' }
   ],
 
   _eventsBound: false,

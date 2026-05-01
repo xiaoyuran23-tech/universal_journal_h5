@@ -1,11 +1,11 @@
 /**
  * Main - 应用入口
  * 初始化所有核心模块并启动应用
- * @version 6.1.0
+ * @version 7.0.2
  */
 
 async function initApp() {
-  console.log('[App] Initializing v6.1.0...');
+  console.log('[App] Initializing v7.0.2...');
 
   try {
     // 1. 初始化存储服务 (IndexedDB) - 容错处理

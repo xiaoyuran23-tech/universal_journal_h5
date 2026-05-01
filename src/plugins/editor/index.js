@@ -275,6 +275,7 @@ const EditorPlugin = {
       const progressEl = document.getElementById('photo-upload-progress');
       if (progressEl) progressEl.style.display = 'block';
 
+      let failedCount = 0;
       for (const file of files) {
         try {
           if (window.ImageService) {
@@ -292,6 +293,7 @@ const EditorPlugin = {
           }
         } catch (err) {
           console.error('[EditorPlugin] Photo compress failed:', err);
+          failedCount++;
         }
       }
 
@@ -299,7 +301,10 @@ const EditorPlugin = {
       photoInput.value = ''; // 重置 input
 
       if (progressEl) {
-        setTimeout(() => { progressEl.style.display = 'none'; }, 1000);
+        setTimeout(() => { progressEl.style.display = 'none'; }, 500);
+      }
+      if (failedCount > 0) {
+        this._showToast(`${failedCount} 张图片处理失败`);
       }
     });
 

@@ -19,12 +19,12 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     
-    <title>万物手札 v6.1.0 - 记录世间万物</title>
-    <link rel="stylesheet" href="style.css?v=6.1.0">
-    <link rel="stylesheet" href="animations.css?v=6.1.0">
+    <title>万物手札 v7.0.2 - 记录世间万物</title>
+    <link rel="stylesheet" href="style.css?v=7.0.2">
+    <link rel="stylesheet" href="animations.css?v=7.0.2">
 
     <!-- Content Security Policy (CSP) - 仅允许同源资源 + ECharts CDN -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; font-src 'self'; media-src 'self' blob:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com http://47.236.199.100:* http://localhost:*; font-src 'self'; media-src 'self' blob:;">
 
     <!-- ECharts CDN (带 SRI 完整性校验) -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"
@@ -60,7 +60,7 @@
         // PWA Service Worker 注册
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=6.1.0').then(reg => {
+                navigator.serviceWorker.register('sw.js?v=7.0.2').then(reg => {
                     console.log('SW registered: ', reg);
                 }).catch(err => {
                     console.log('SW registration failed: ', err);
@@ -237,6 +237,15 @@
                     </div>
                     <input type="text" class="profile-name-input" id="profile-name-input" placeholder="输入昵称" style="display:none;" />
                     <button class="profile-save-btn" id="profile-save-btn" style="display:none;">保存</button>
+                    <!-- 登录按钮 (未登录时显示) -->
+                    <button class="profile-login-btn" id="profile-login-btn" style="display:none;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                            <polyline points="10 17 15 12 10 7"></polyline>
+                            <line x1="15" y1="12" x2="3" y2="12"></line>
+                        </svg>
+                        登录/注册
+                    </button>
                 </div>
                 
                 <!-- 数据可视化区域 -->
@@ -367,7 +376,7 @@
                         <h3 class="settings-section-title">关于</h3>
                         <button class="settings-item" id="settings-about">
                             <span>关于万物手札</span>
-                            <span class="about-version">v6.1.0</span>
+                            <span class="about-version">v7.0.2</span>
                         </button>
                     </div>
                 </div>
@@ -635,76 +644,76 @@
     <!-- JavaScript 模块 (v6.0.0 重构版) -->
     
     <!-- v6.0.0 服务层 -->
-    <script src="src/services/storage.js?v=6.1.0"></script>
-    <script src="src/services/metadata.js?v=6.3.0"></script>
-    <script src="src/services/block-parser.js?v=6.3.0"></script>
-    <script src="src/services/link-parser.js?v=6.3.0"></script>
-    <script src="src/services/ai-lite.js?v=6.3.0"></script>
-    <script src="src/services/crypto.js?v=6.1.0"></script>
+    <script src="src/services/storage.js?v=7.0.2"></script>
+    <script src="src/services/metadata.js?v=7.0.2"></script>
+    <script src="src/services/block-parser.js?v=7.0.2"></script>
+    <script src="src/services/link-parser.js?v=7.0.2"></script>
+    <script src="src/services/ai-lite.js?v=7.0.2"></script>
+    <script src="src/services/crypto.js?v=7.0.2"></script>
     <script src="src/services/sync-merge.js?v=6.4.0"></script>
     <script src="src/services/sync.js?v=6.4.0"></script>
-    <script src="src/services/migration.js?v=6.3.0"></script>
-    <script src="src/services/image.js?v=6.1.0"></script>
-    <script src="src/services/streak.js?v=7.0.0"></script>
-    <script src="src/services/mood.js?v=7.0.0"></script>
+    <script src="src/services/migration.js?v=7.0.2"></script>
+    <script src="src/services/image.js?v=7.0.2"></script>
+    <script src="src/services/streak.js?v=7.0.2"></script>
+    <script src="src/services/mood.js?v=7.0.2"></script>
     
     <!-- v6.0.0 核心基础设施 (微内核架构) -->
-    <script src="src/core/hooks.js?v=6.3.0"></script>
-    <script src="src/core/store.js?v=6.1.0"></script>
-    <script src="src/core/router.js?v=6.1.0"></script>
-    <script src="src/core/event-bus.js?v=6.1.0"></script>
-    <script src="src/core/plugin-loader.js?v=6.1.0"></script>
-    <script src="src/core/kernel.js?v=6.1.0"></script>
+    <script src="src/core/hooks.js?v=7.0.2"></script>
+    <script src="src/core/store.js?v=7.0.2"></script>
+    <script src="src/core/router.js?v=7.0.2"></script>
+    <script src="src/core/event-bus.js?v=7.0.2"></script>
+    <script src="src/core/plugin-loader.js?v=7.0.2"></script>
+    <script src="src/core/kernel.js?v=7.0.2"></script>
     
     <!-- v6.0.0 插件 -->
-    <script src="src/plugins/records/index.js?v=6.1.0"></script>
-    <script src="src/plugins/calendar/index.js?v=6.1.0"></script>
-    <script src="src/plugins/timeline/index.js?v=6.1.0"></script>
-    <script src="src/plugins/editor/index.js?v=6.1.0"></script>
-    <script src="src/plugins/favorites/index.js?v=6.1.0"></script>
-    <script src="src/plugins/templates/index.js?v=6.1.0"></script>
-    <script src="src/plugins/sync/index.js?v=6.1.0"></script>
-    <script src="src/plugins/settings/index.js?v=6.1.0"></script>
+    <script src="src/plugins/records/index.js?v=7.0.2"></script>
+    <script src="src/plugins/calendar/index.js?v=7.0.2"></script>
+    <script src="src/plugins/timeline/index.js?v=7.0.2"></script>
+    <script src="src/plugins/editor/index.js?v=7.0.2"></script>
+    <script src="src/plugins/favorites/index.js?v=7.0.2"></script>
+    <script src="src/plugins/templates/index.js?v=7.0.2"></script>
+    <script src="src/plugins/sync/index.js?v=7.0.2"></script>
+    <script src="src/plugins/settings/index.js?v=7.0.2"></script>
 
     <!-- Phase 2 新增插件 -->
-    <script src="src/plugins/security/index.js?v=6.1.0"></script>
-    <script src="src/plugins/trash/index.js?v=6.1.0"></script>
-    <script src="src/plugins/batch/index.js?v=6.1.0"></script>
-    <script src="src/plugins/draft/index.js?v=6.1.0"></script>
-    <script src="src/plugins/tags/index.js?v=6.1.0"></script>
-    <script src="src/plugins/visuals/index.js?v=6.1.0"></script>
-    <script src="src/plugins/theme/index.js?v=6.1.0"></script>
-    <script src="src/plugins/search/index.js?v=6.1.0"></script>
-    <script src="src/plugins/hotkeys/index.js?v=6.2.0"></script>
-    <script src="src/plugins/controller/index.js?v=6.1.0"></script>
-    <script src="src/plugins/markdown/index.js?v=6.2.0"></script>
-    <script src="src/plugins/review/index.js?v=6.3.0"></script>
-    <script src="src/plugins/graph/index.js?v=6.3.0"></script>
-    <script src="src/plugins/example/index.js?v=6.3.0"></script>
+    <script src="src/plugins/security/index.js?v=7.0.2"></script>
+    <script src="src/plugins/trash/index.js?v=7.0.2"></script>
+    <script src="src/plugins/batch/index.js?v=7.0.2"></script>
+    <script src="src/plugins/draft/index.js?v=7.0.2"></script>
+    <script src="src/plugins/tags/index.js?v=7.0.2"></script>
+    <script src="src/plugins/visuals/index.js?v=7.0.2"></script>
+    <script src="src/plugins/theme/index.js?v=7.0.2"></script>
+    <script src="src/plugins/search/index.js?v=7.0.2"></script>
+    <script src="src/plugins/hotkeys/index.js?v=7.0.2"></script>
+    <script src="src/plugins/controller/index.js?v=7.0.2"></script>
+    <script src="src/plugins/markdown/index.js?v=7.0.2"></script>
+    <script src="src/plugins/review/index.js?v=7.0.2"></script>
+    <script src="src/plugins/graph/index.js?v=7.0.2"></script>
+    <script src="src/plugins/example/index.js?v=7.0.2"></script>
 
     <!-- v7.0.0 新增 -->
-    <script src="src/plugins/auth/index.js?v=7.0.0"></script>
-    <script src="src/plugins/mood/index.js?v=7.0.0"></script>
-    <script src="src/plugins/auto-sync/index.js?v=7.0.0"></script>
-    <script src="src/plugins/transitions/index.js?v=7.0.0"></script>
+    <script src="src/plugins/auth/index.js?v=7.0.2"></script>
+    <script src="src/plugins/mood/index.js?v=7.0.2"></script>
+    <script src="src/plugins/auto-sync/index.js?v=7.0.2"></script>
+    <script src="src/plugins/transitions/index.js?v=7.0.2"></script>
     
     <!-- v6.0.0 UI 组件库 -->
-    <script src="src/components/base/index.js?v=6.1.0"></script>
-    <script src="src/components/list/index.js?v=6.1.0"></script>
-    <script src="src/components/layout/index.js?v=6.1.0"></script>
-    <link rel="stylesheet" href="src/components/components.css?v=6.1.0">
+    <script src="src/components/base/index.js?v=7.0.2"></script>
+    <script src="src/components/list/index.js?v=7.0.2"></script>
+    <script src="src/components/layout/index.js?v=7.0.2"></script>
+    <link rel="stylesheet" href="src/components/components.css?v=7.0.2">
     
     <!-- v6.1 UX 迁移组件 (新增) -->
-    <script src="src/components/base/status-states.js?v=6.1.0"></script>
-    <script src="src/components/list/featured-card.js?v=6.1.0"></script>
-    <script src="src/components/layout/category-tabs.js?v=6.1.0"></script>
-    <script src="src/components/layout/header-bar.js?v=6.1.0"></script>
-    <script src="src/hooks/records-hook.js?v=6.1.0"></script>
-    <script src="src/views/home-page.js?v=6.1.0"></script>
-    <link rel="stylesheet" href="src/styles/ux-theme.css?v=6.1.0">
+    <script src="src/components/base/status-states.js?v=7.0.2"></script>
+    <script src="src/components/list/featured-card.js?v=7.0.2"></script>
+    <script src="src/components/layout/category-tabs.js?v=7.0.2"></script>
+    <script src="src/components/layout/header-bar.js?v=7.0.2"></script>
+    <script src="src/hooks/records-hook.js?v=7.0.2"></script>
+    <script src="src/views/home-page.js?v=7.0.2"></script>
+    <link rel="stylesheet" href="src/styles/ux-theme.css?v=7.0.2">
     
     <!-- 主应用入口 -->
-    <script src="src/main.js?v=6.1.0"></script>
+    <script src="src/main.js?v=7.0.2"></script>
     
     <!-- 全局悬浮新建按钮 (FAB) -->
     <button class="fab" id="fab-add" aria-label="新建记录">

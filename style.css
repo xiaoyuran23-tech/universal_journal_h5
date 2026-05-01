@@ -1974,6 +1974,91 @@ a {
   color: var(--primary, #007AFF);
 }
 
+/* 登录按钮 (未登录时显示) */
+.profile-login-btn {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  margin-top: 12px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 44px;
+}
+.profile-login-btn:hover { opacity: 0.9; transform: scale(1.02); }
+.profile-login-btn:active { transform: scale(0.97); }
+.profile-login-btn svg { flex-shrink: 0; }
+
+/* ===================================
+   水墨风主题 (4 个)
+   =================================== */
+
+/* 青山绿水 - 青绿山水 */
+[data-theme="cyan-mountain"] {
+  --bg: #F7FBF8;
+  --bg-alt: #E8F5E9;
+  --bg-card: #F7FBF8;
+  --text-main: #1B3A2D;
+  --text-secondary: #4A7C5F;
+  --text-muted: #7BAF8F;
+  --primary: #2D6A4F;
+  --primary-light: #D8F3DC;
+  --border: #B7E4C7;
+  --grid-line: 1px solid #B7E4C7;
+  --grid-line-dark: 1px solid #95D5B2;
+}
+
+/* 暗香疏影 - 梅花 */
+[data-theme="plum-blossom"] {
+  --bg: #FFF5F7;
+  --bg-alt: #FFE8EE;
+  --bg-card: #FFF5F7;
+  --text-main: #3D1C2F;
+  --text-secondary: #8B4567;
+  --text-muted: #B87A9A;
+  --primary: #C2185B;
+  --primary-light: #FCE4EC;
+  --border: #F8BBD0;
+  --grid-line: 1px solid #F8BBD0;
+  --grid-line-dark: 1px solid #F48FB1;
+}
+
+/* 竹雨松风 - 竹青 */
+[data-theme="bamboo-rain"] {
+  --bg: #F5FFF5;
+  --bg-alt: #E0F7E0;
+  --bg-card: #F5FFF5;
+  --text-main: #1A3320;
+  --text-secondary: #3E6B48;
+  --text-muted: #6B9E7A;
+  --primary: #2E7D32;
+  --primary-light: #E8F5E9;
+  --border: #A5D6A7;
+  --grid-line: 1px solid #A5D6A7;
+  --grid-line-dark: 1px solid #81C784;
+}
+
+/* 远水含烟 - 水墨淡彩 */
+[data-theme="distant-water"] {
+  --bg: #F8F9FA;
+  --bg-alt: #ECEFF1;
+  --bg-card: #F8F9FA;
+  --text-main: #263238;
+  --text-secondary: #546E7A;
+  --text-muted: #90A4AE;
+  --primary: #455A64;
+  --primary-light: #ECEFF1;
+  --border: #CFD8DC;
+  --grid-line: 1px solid #CFD8DC;
+  --grid-line-dark: 1px solid #B0BEC5;
+}
+
 /* ===================================
    响应式优化
    =================================== */

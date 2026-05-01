@@ -167,11 +167,14 @@ const AuthPlugin = {
     // 更新个人页面昵称显示
     const displayName = document.getElementById('profile-display-name');
     const container = document.querySelector('.profile-name-container');
+    const loginBtn = document.getElementById('profile-login-btn');
     if (isLoggedIn && this._user) {
       if (displayName) displayName.textContent = this._user.nickname || '手札用户';
       if (container) container.style.display = 'block';
+      if (loginBtn) loginBtn.style.display = 'none';
     } else {
       if (displayName) displayName.textContent = '未登录';
+      if (loginBtn) loginBtn.style.display = 'flex';
     }
 
     // 显示/隐藏需要同步设置的按钮提示
@@ -183,6 +186,14 @@ const AuthPlugin = {
   },
 
   _bindEvents() {
+    // 登录按钮点击事件
+    const loginBtn = document.getElementById('profile-login-btn');
+    if (loginBtn) {
+      loginBtn.addEventListener('click', () => {
+        this._showLoginModal();
+      });
+    }
+
     // 点击昵称区域触发登录/注册
     const nameContainer = document.querySelector('.profile-name-container');
     if (nameContainer) {
@@ -237,6 +248,9 @@ const AuthPlugin = {
     modal.querySelector('.auth-register-tab').classList.toggle('active', tab === 'register');
     modal.querySelector('.auth-login-form').style.display = tab === 'login' ? 'block' : 'none';
     modal.querySelector('.auth-register-form').style.display = tab === 'register' ? 'block' : 'none';
+    // 更新提交按钮文字
+    const submitBtn = modal.querySelector('[data-auth-submit]');
+    if (submitBtn) submitBtn.textContent = tab === 'login' ? '登录' : '注册';
   },
 
   _toggleAuthForm() {
