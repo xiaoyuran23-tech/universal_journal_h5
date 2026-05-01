@@ -108,8 +108,7 @@ async function initApp() {
       throw new Error('Kernel is not available');
     }
 
-    // 5. 启动迁移适配器 (解决双重状态冲突) - 已废弃，旧架构已移除
-    // MigrationAdapter 不再需要
+    // 5. [已移除] 迁移适配器 (旧架构已不存在)
 
     // 6. 初始化 UI
     initUI();

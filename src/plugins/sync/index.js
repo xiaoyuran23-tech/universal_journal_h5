@@ -80,7 +80,8 @@ const SyncPlugin = {
     const result = await SyncService.download();
     
     if (result.success) {
-      this._showToast(`下载成功，合并 ${result.merged || 0} 条记录`, { type: 'success' });
+      const conflictMsg = result.conflicts > 0 ? `，${result.conflicts} 处冲突已字段合并` : '';
+      this._showToast(`下载成功，合并 ${result.merged || 0} 条记录${conflictMsg}`, { type: 'success' });
     } else {
       this._showToast(result.error || '下载失败', { type: 'error' });
     }
@@ -125,16 +126,12 @@ const SyncPlugin = {
 
     SyncService.subscribe((status) => {
       const STATUS_MAP = {
-        idle: '',
-        uploading: '正在上传...',
-        downloading: '正在下载...',
-        merging: '正在合并...',
-        success: '同步完成',
+        syncing: '正在同步...',
         error: '同步失败'
       };
 
       const message = STATUS_MAP[status];
-      if (message && status !== 'idle') {
+      if (message) {
         // 更新同步按钮状态
         const syncBtn = document.querySelector('[data-sync-action]');
         if (syncBtn) {

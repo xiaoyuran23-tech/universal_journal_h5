@@ -12,12 +12,11 @@ const ASSETS_TO_CACHE = [
   './src/core/plugin-loader.js',
   './src/core/hooks.js',
   './src/core/kernel.js',
-  './src/core/adapter.js',
   // v6.0.0+ Services
   './src/services/storage.js',
   './src/services/crypto.js',
+  './src/services/sync-merge.js',
   './src/services/sync.js',
-  './src/services/git-sync.js',
   './src/services/image.js',
   './src/services/metadata.js',
   './src/services/block-parser.js',
