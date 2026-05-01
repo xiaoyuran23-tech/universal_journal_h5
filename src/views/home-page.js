@@ -532,9 +532,12 @@ class HomePage {
     try {
       if (window.StorageService) await StorageService.put(record);
       if (window.Store) {
-        const list = [...(Store.getState('records.list') || [])];
+        const list = [...(window.Store.getState('records.list') || [])];
         list.unshift(record);
-        Store.dispatch({ type: 'SET_STATE', payload: { records: { list, filtered: [...list], loading: false } } });
+        window.Store.dispatch({ type: 'SET_STATE', payload: { records: { list, filtered: [...list], loading: false } } });
+        console.log('[HomePage] Quick saved:', text, 'total:', list.length);
+      } else {
+        console.warn('[HomePage] Store not available for quick save');
       }
       window.StreakService?.recordToday();
       const toast = document.getElementById('toast');

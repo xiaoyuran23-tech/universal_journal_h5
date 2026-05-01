@@ -5152,6 +5152,10 @@ input:focus, textarea:focus {
 .streak-flame { animation: streak-flicker 1.5s ease-in-out infinite alternate; }
 @keyframes streak-flicker { 0% { transform: scale(1) rotate(-3deg); } 50% { transform: scale(1.15) rotate(3deg); } 100% { transform: scale(1) rotate(-1deg); } }
 
+/* Toast 提示 */
+.toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px); padding: 10px 20px; background: rgba(0,0,0,0.75); color: white; border-radius: 20px; font-size: 14px; z-index: 9999; opacity: 0; pointer-events: none; transition: all 0.3s ease; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: none; }
+
 /* ========== v7.0.0 页面过渡动画 ========== */
 .page {
   transition: opacity 0.25s ease, transform 0.25s ease;

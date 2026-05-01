@@ -64,7 +64,13 @@ const ReviewPlugin = {
     const today = new Date();
     const month = today.getMonth() + 1;
     const day = today.getDate();
-    return StorageService.getByMonthDay(month, day);
+    const currentYear = today.getFullYear();
+    const records = window.Store?.getState('records.list') || [];
+    return records.filter(record => {
+      const date = new Date(record.createdAt);
+      if (isNaN(date.getTime())) return false;
+      return date.getMonth() + 1 === month && date.getDate() === day && date.getFullYear() !== currentYear;
+    }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   },
 
   /**
@@ -164,7 +170,9 @@ const ReviewPlugin = {
   async getWeeklyRecords() {
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    return StorageService.getByDateRange(sevenDaysAgo.getTime(), now.getTime() + 86400000);
+    const records = window.Store?.getState('records.list') || [];
+    return records.filter(r => (r.createdAt || 0) >= sevenDaysAgo.getTime())
+                   .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   },
 
   /**
@@ -394,7 +402,11 @@ const ReviewPlugin = {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).getTime();
-    return StorageService.getByDateRange(monthStart, monthEnd);
+    const records = window.Store?.getState('records.list') || [];
+    return records.filter(r => {
+      const t = r.createdAt || 0;
+      return t >= monthStart && t <= monthEnd;
+    }).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   },
 
   /**

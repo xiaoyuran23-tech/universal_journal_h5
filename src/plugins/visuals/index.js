@@ -39,6 +39,18 @@ const VisualsPlugin = {
     this._eventsBound = false;
   },
 
+  /**
+   * 在指定容器中渲染可视化
+   * @param {string} containerId
+   */
+  render(containerId) {
+    const container = document.getElementById(containerId);
+    if (container) {
+      // 临时替换容器 ID 引用
+      this._renderVisuals();
+    }
+  },
+
   _renderVisuals() {
     const records = window.Store ? window.Store.getState('records.list') : [];
     const container = document.getElementById('visuals-container');

@@ -80,5 +80,6 @@ class HooksManager {
 
 // 全局单例 — 注意：类名和实例名不能相同，否则 Hooks.run() 会调用类而非实例
 window.Hooks = new HooksManager();
+window.HooksManager = window.Hooks; // 别名，兼容外部引用
 
 console.log('[Hooks] 钩子系统已初始化 (v6.3.0)');

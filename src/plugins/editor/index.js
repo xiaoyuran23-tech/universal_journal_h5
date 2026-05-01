@@ -211,11 +211,11 @@ const EditorPlugin = {
 
       // 处理撤销/重做
       if (action === 'undo' && window.Store) {
-        Store.undo();
+        window.Store.undo();
         return;
       }
       if (action === 'redo' && window.Store) {
-        Store.redo();
+        window.Store.redo();
         return;
       }
 
@@ -326,7 +326,7 @@ const EditorPlugin = {
     const blocks = window.BlockParser ? BlockParser.parseBlocks(cleanNotes) : [];
 
     // P2-2: 自动解析双向链接
-    const allRecords = window.Store ? (Store.getState('records.list') || []) : [];
+    const allRecords = window.Store ? (window.Store.getState('records.list') || []) : [];
     const links = window.LinkParser ? LinkParser.parseLinks(cleanNotes, allRecords, baseRecord.id) : [];
     // 填充 sourceName
     links.forEach(link => { link.sourceName = baseRecord.name; });
@@ -347,14 +347,14 @@ const EditorPlugin = {
 
       // 更新 Store
       if (window.Store) {
-        const list = [...(Store.getState('records.list') || [])];
+        const list = [...(window.Store.getState('records.list') || [])];
         const idx = list.findIndex(r => r.id === record.id);
         if (idx >= 0) {
           list[idx] = record;
         } else {
           list.push(record);
         }
-        Store.dispatch({
+        window.Store.dispatch({
           type: 'SET_STATE',
           payload: { records: { list, filtered: [...list], loading: false } }
         });
@@ -375,7 +375,7 @@ const EditorPlugin = {
 
       // 返回列表页
       if (window.Router) {
-        setTimeout(() => Router.navigate('home'), 500);
+        setTimeout(() => window.Router.navigate('home'), 500);
       }
     } catch (error) {
       console.error('[EditorPlugin] Save failed:', error);
@@ -773,7 +773,12 @@ const EditorPlugin = {
     if (window.App && typeof App.showToast === 'function') {
       App.showToast(message);
     } else {
-      console.log('[EditorPlugin] Toast:', message);
+      const toast = document.getElementById('toast');
+      if (toast) {
+        toast.textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2000);
+      }
     }
   }
 };

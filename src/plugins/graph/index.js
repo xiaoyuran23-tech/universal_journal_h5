@@ -74,7 +74,7 @@ const GraphPlugin = {
     this._chart = echarts.init(container);
 
     // 获取所有记录
-    const records = window.Store ? (Store.getState('records.list') || []) : [];
+    const records = window.Store ? (window.Store.getState('records.list') || []) : [];
 
     if (records.length === 0) {
       container.innerHTML = `
@@ -355,7 +355,7 @@ const GraphPlugin = {
   _navigateToRecord(recordId) {
     // 关闭 graph 页面，显示详情页
     if (window.Router) {
-      Router.navigate('home');
+      window.Router.navigate('home');
     }
 
     // 触发记录点击
@@ -372,8 +372,8 @@ const GraphPlugin = {
    */
   _bindEvents() {
     // 导航到 graph 页面时渲染
-    if (window.Router) {
-      Router.subscribe(route => {
+    if (window.Router && typeof window.Router.subscribe === 'function') {
+      window.Router.subscribe(route => {
         if (route && route.path === 'graph') {
           setTimeout(() => this.render('graph-container'), 100);
         }

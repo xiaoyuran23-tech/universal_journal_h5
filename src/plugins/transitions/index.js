@@ -33,12 +33,12 @@ const TransitionsPlugin = {
    * @private
    */
   _wrapRouter() {
-    if (!window.Router) return;
+    if (!window.Router || typeof window.Router.navigate !== 'function') return;
 
-    const originalNavigate = Router.navigate.bind(Router);
+    const originalNavigate = window.Router.navigate.bind(window.Router);
     const self = this;
 
-    Router.navigate = async function(...args) {
+    window.Router.navigate = async function(...args) {
       const newPage = args[0];
       const currentPage = document.querySelector('.page.active');
 
@@ -62,9 +62,9 @@ const TransitionsPlugin = {
     };
 
     // 拦截 back 方法
-    if (Router.back) {
-      const originalBack = Router.back.bind(Router);
-      Router.back = async function(...args) {
+    if (window.Router && typeof window.Router.back === 'function') {
+      const originalBack = window.Router.back.bind(window.Router);
+      window.Router.back = async function(...args) {
         if (document.startViewTransition) {
           const transition = document.startViewTransition(() => {
             originalBack(...args);

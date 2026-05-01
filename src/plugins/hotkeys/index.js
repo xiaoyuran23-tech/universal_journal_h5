@@ -111,7 +111,7 @@ const HotkeysPlugin = {
     let el;
     switch (action) {
       case 'newRecord':
-        if (window.Router) Router.navigate('editor', { mode: 'create' });
+        if (window.Router) window.Router.navigate('editor', { mode: 'create' });
         break;
 
       case 'focusSearch':
@@ -129,18 +129,18 @@ const HotkeysPlugin = {
         break;
 
       case 'undo':
-        if (window.Store) Store.undo();
+        if (window.Store) window.Store.undo();
         break;
 
       case 'redo':
-        if (window.Store) Store.redo();
+        if (window.Store) window.Store.redo();
         break;
 
       case 'goBack':
         if (window.Router) {
-          const current = Router.current();
+          const current = window.Router.getCurrentRoute();
           if (current && current.path !== 'home') {
-            Router.navigate('home');
+            window.Router.navigate('home');
           }
         }
         el = document.getElementById('search-input');
@@ -166,23 +166,23 @@ const HotkeysPlugin = {
         break;
 
       case 'goHome':
-        if (window.Router) Router.navigate('home');
+        if (window.Router) window.Router.navigate('home');
         break;
 
       case 'goCalendar':
-        if (window.Router) Router.navigate('calendar');
+        if (window.Router) window.Router.navigate('calendar');
         break;
 
       case 'goTimeline':
-        if (window.Router) Router.navigate('timeline');
+        if (window.Router) window.Router.navigate('timeline');
         break;
 
       case 'goFavorites':
-        if (window.Router) Router.navigate('favorites');
+        if (window.Router) window.Router.navigate('favorites');
         break;
 
       case 'goProfile':
-        if (window.Router) Router.navigate('profile');
+        if (window.Router) window.Router.navigate('profile');
         break;
     }
   },

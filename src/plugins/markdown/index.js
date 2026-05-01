@@ -134,7 +134,7 @@ const MarkdownPlugin = {
         const result = await StorageService.importMarkdown(content);
         close();
         this._showImportSummary(result);
-        if (window.Router) Router.navigate('home');
+        if (window.Router) window.Router.navigate('home');
       } catch (e) {
         close();
         this._showToast('导入失败: ' + e.message);
