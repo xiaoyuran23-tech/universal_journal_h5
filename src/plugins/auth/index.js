@@ -128,21 +128,24 @@ const AuthPlugin = {
       ...options.headers
     };
 
-    const res = await this._fetch(path, { ...options, headers });
-
-    // 401 = token 过期
-    if (res.error && res.error.includes('令牌')) {
-      this.logout();
-      this._showLoginModal();
-      throw new Error('登录已过期');
+    try {
+      return await this._fetch(path, { ...options, headers });
+    } catch (e) {
+      // 401 = token 过期或无效
+      if (e.message && (e.message.includes('令牌') || e.message.includes('401'))) {
+        this.logout();
+        this._showLoginModal();
+      }
+      throw e;
     }
-
-    return res;
   },
 
   // ==================== 内部方法 ====================
 
   _saveSession(res) {
+    if (!res || !res.token || !res.user) {
+      throw new Error('服务器响应异常，请稍后重试');
+    }
     localStorage.setItem('journal_token', res.token);
     this._user = res.user;
     localStorage.setItem('journal_user', JSON.stringify(this._user));
@@ -174,7 +177,8 @@ const AuthPlugin = {
     // 显示/隐藏需要同步设置的按钮提示
     const syncConfig = document.getElementById('settings-cloud-config');
     if (syncConfig) {
-      syncConfig.querySelector('span').textContent = isLoggedIn ? '云同步设置' : '登录以同步';
+      const span = syncConfig.querySelector('span');
+      if (span) span.textContent = isLoggedIn ? '云同步设置' : '登录以同步';
     }
   },
 

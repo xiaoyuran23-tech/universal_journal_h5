@@ -340,7 +340,7 @@ app.post('/api/sync/pull', authMiddleware, (req, res) => {
   const usn = lastSyncUsn || 0;
 
   const records = db.prepare(
-    'SELECT * FROM records WHERE user_id = ? AND usn > ? AND deleted = 0 ORDER BY usn ASC'
+    'SELECT * FROM records WHERE user_id = ? AND usn > ? ORDER BY usn ASC'
   ).all(req.userId, usn);
 
   records.forEach(r => {
@@ -367,6 +367,18 @@ app.post('/api/sync/push', authMiddleware, (req, res) => {
     const existing = db.prepare('SELECT usn FROM records WHERE id = ? AND user_id = ?').get(change.id, req.userId);
     const user = db.prepare('SELECT max_usn FROM users WHERE id = ?').get(req.userId);
     const newUsn = user.max_usn + 1;
+
+    // 删除操作
+    if (change._deleted) {
+      if (existing) {
+        db.prepare(
+          'UPDATE records SET deleted = 1, deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, usn = ? WHERE id = ? AND user_id = ?'
+        ).run(newUsn, change.id, req.userId);
+      }
+      db.prepare('UPDATE users SET max_usn = ? WHERE id = ?').run(newUsn, req.userId);
+      results.push({ id: change.id, usn: newUsn, deleted: true });
+      continue;
+    }
 
     if (!existing) {
       // 新记录
@@ -452,7 +464,7 @@ app.post('/api/sync/full', authMiddleware, async (req, res) => {
   // 再 pull
   const usn = lastSyncUsn || 0;
   const records = db.prepare(
-    'SELECT * FROM records WHERE user_id = ? AND usn > ? AND deleted = 0 ORDER BY usn ASC'
+    'SELECT * FROM records WHERE user_id = ? AND usn > ? ORDER BY usn ASC'
   ).all(req.userId, usn);
 
   records.forEach(r => {

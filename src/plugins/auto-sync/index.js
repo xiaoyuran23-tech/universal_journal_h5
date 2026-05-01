@@ -25,6 +25,7 @@ const AutoSyncPlugin = {
 
     // 从本地恢复 USN
     this._lastSyncUsn = parseInt(localStorage.getItem('journal_last_sync_usn') || '0');
+    if (isNaN(this._lastSyncUsn)) this._lastSyncUsn = 0;
     this._pendingChanges = JSON.parse(localStorage.getItem('journal_pending_changes') || '[]');
 
     // 已登录则启动自动同步
@@ -33,7 +34,7 @@ const AutoSyncPlugin = {
     }
 
     // 监听登录/登出事件
-    document.addEventListener('auth:login', () => { this._startAutoSync(); this._fullSync(); });
+    document.addEventListener('auth:login', () => { this._startAutoSync(); });
     document.addEventListener('auth:logout', () => { this._stopAutoSync(); });
   },
 
@@ -92,9 +93,14 @@ const AutoSyncPlugin = {
           headers,
           body: JSON.stringify({ changes: this._pendingChanges })
         });
-        if (pushRes.ok) pushResult = await pushRes.json();
-        this._pendingChanges = [];
-        localStorage.removeItem('journal_pending_changes');
+        if (pushRes.ok) {
+          pushResult = await pushRes.json();
+          // 只在推送成功时清除本地变更
+          this._pendingChanges = [];
+          localStorage.removeItem('journal_pending_changes');
+        } else {
+          console.warn('[AutoSyncPlugin] Push failed, changes preserved for retry');
+        }
       }
 
       // 2. 拉取服务端变更
@@ -113,6 +119,12 @@ const AutoSyncPlugin = {
         if (pullResult.records?.length > 0) {
           await this._mergeServerChanges(pullResult.records);
         }
+      } else if (pullRes.status === 401) {
+        // Token 无效或过期，自动登出
+        console.warn('[AutoSyncPlugin] Token expired, logging out');
+        if (window.AuthPlugin) AuthPlugin.logout();
+      } else {
+        console.warn('[AutoSyncPlugin] Pull failed, status:', pullRes.status);
       }
 
       // 3. 同步心情数据 (可选)
@@ -135,7 +147,12 @@ const AutoSyncPlugin = {
    * @param {Object} data - 记录数据
    */
   recordChange(action, data) {
-    this._pendingChanges.push(data);
+    if (action === 'delete') {
+      // 删除操作只需推送 id 和标记
+      this._pendingChanges.push({ id: data.id, _deleted: true });
+    } else {
+      this._pendingChanges.push(data);
+    }
     localStorage.setItem('journal_pending_changes', JSON.stringify(this._pendingChanges));
   },
 
