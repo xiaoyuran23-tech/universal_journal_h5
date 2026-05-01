@@ -230,7 +230,7 @@ if (!window.RecordsPlugin) {
       photos: recordData.photos || [],
       location: recordData.location || null,
       favorite: false,
-      status: recordData.status || 'active',
+      status: recordData.status || 'in-use',
       createdAt: Date.now(),
       updatedAt: Date.now(),
       _dataVersion: '6.0.0',
@@ -354,7 +354,7 @@ if (!window.RecordsPlugin) {
     });
 
     // v7.0: 记录删除变更用于自动同步
-    window.AutoSyncPlugin?.recordChange('delete', { _id: id });
+    window.AutoSyncPlugin?.recordChange('delete', { id });
 
     // 运行 afterDelete 钩子
     if (window.Hooks) {
@@ -392,7 +392,7 @@ if (!window.RecordsPlugin) {
       photos: Array.isArray(record.photos) ? record.photos : [],
       location: record.location || null,
       favorite: !!record.favorite,
-      status: record.status || 'active',
+      status: record.status || 'in-use',
       createdAt: record.createdAt || Date.now(),
       updatedAt: record.updatedAt || Date.now(),
       _dataVersion: record._dataVersion || '6.0.0'

@@ -29,6 +29,45 @@ try {
   process.exit(1);
 }
 
+// ==================== 安全加固 ====================
+
+// 登录/注册频率限制 (防暴力破解)
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 分钟
+const RATE_LIMIT_MAX_LOGIN = 10; // 每窗口最多 10 次登录
+const rateLimitMap = new Map(); // key: IP -> { count, resetTime }
+
+function rateLimitMiddleware(req, res, next) {
+  const ip = req.ip || req.connection.remoteAddress;
+  const now = Date.now();
+  let record = rateLimitMap.get(ip);
+
+  if (!record || now > record.resetTime) {
+    record = { count: 0, resetTime: now + RATE_LIMIT_WINDOW_MS };
+    rateLimitMap.set(ip, record);
+  }
+
+  record.count++;
+  if (record.count > RATE_LIMIT_MAX_LOGIN) {
+    const remaining = Math.ceil((record.resetTime - now) / 1000);
+    return res.status(429).json({ error: `请求过于频繁，请 ${remaining} 秒后重试` });
+  }
+
+  next();
+}
+
+// 清理过期的频率限制记录 (每 5 分钟)
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, record] of rateLimitMap) {
+    if (now > record.resetTime) rateLimitMap.delete(ip);
+  }
+}, 5 * 60 * 1000);
+
+// 邮箱格式校验
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 // 初始化数据库
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
@@ -83,7 +122,7 @@ import { createHash, randomBytes } from 'crypto';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
+const JWT_SECRET = process.env.JWT_SECRET || randomBytes(32).toString('hex');
 const JWT_EXPIRY = '30d';
 
 function hashPassword(password) {
@@ -120,6 +159,15 @@ function authMiddleware(req, res, next) {
 // 中间件
 const app = express();
 const PORT = process.env.PORT || 4000;
+
+// 安全响应头
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '0'); // CSP 已启用，关闭旧式 XSS 过滤
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
 
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
@@ -159,10 +207,12 @@ app.get('/health', (req, res) => {
 
 // ========== Auth ==========
 
-app.post('/api/auth/register', (req, res) => {
+app.post('/api/auth/register', rateLimitMiddleware, (req, res) => {
   const { email, password, nickname } = req.body;
   if (!email || !password) return res.status(400).json({ error: '邮箱和密码必填' });
+  if (!isValidEmail(email)) return res.status(400).json({ error: '邮箱格式不正确' });
   if (password.length < 6) return res.status(400).json({ error: '密码至少 6 位' });
+  if (password.length > 128) return res.status(400).json({ error: '密码过长' });
 
   try {
     const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
@@ -183,9 +233,10 @@ app.post('/api/auth/register', (req, res) => {
   }
 });
 
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', rateLimitMiddleware, (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: '邮箱和密码必填' });
+  if (!isValidEmail(email)) return res.status(400).json({ error: '邮箱格式不正确' });
 
   try {
     const user = db.prepare('SELECT id, email, nickname, password_hash, created_at FROM users WHERE email = ?').get(email);
@@ -210,6 +261,8 @@ app.get('/api/auth/me', authMiddleware, (req, res) => {
 
 app.put('/api/auth/profile', authMiddleware, (req, res) => {
   const { nickname } = req.body;
+  if (!nickname || typeof nickname !== 'string') return res.status(400).json({ error: '昵称格式不正确' });
+  if (nickname.length > 50) return res.status(400).json({ error: '昵称过长' });
   db.prepare('UPDATE users SET nickname = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(nickname, req.userId);
   const user = db.prepare('SELECT id, email, nickname, created_at FROM users WHERE id = ?').get(req.userId);
   res.json({ user });
