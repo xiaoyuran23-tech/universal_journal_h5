@@ -133,6 +133,10 @@ class HomePage {
     main.appendChild(tabsContainer);
     main.appendChild(contentContainer);
 
+    // v7.0: 快捷输入框 (首页底部)
+    const quickInputBar = this._renderQuickInput();
+    if (quickInputBar) main.appendChild(quickInputBar);
+
     // 底部导航（如果存在）
     if (window.BottomTabBar) {
       const tabBar = BottomTabBar.render({
@@ -149,6 +153,9 @@ class HomePage {
       this._renderTabs(state.categories, state.activeKey);
       this._renderContent(state);
     });
+
+    // v7.0: 绑定快捷输入
+    this.bindQuickInput();
 
     this._rendered = true;
   }
@@ -463,6 +470,76 @@ class HomePage {
 
     if (badges.length === 0) return '';
     return `<div class="metadata-badges">${badges.join('')}</div>`;
+  }
+
+  /**
+   * v7.0: 渲染快捷输入框
+   * @private
+   */
+  _renderQuickInput() {
+    const bar = document.createElement('div');
+    bar.className = 'quick-input-bar';
+    bar.id = 'quick-input-bar';
+    bar.innerHTML = `
+      <input type="text" class="quick-input-field" id="quick-input" placeholder="快速记录..." autocomplete="off">
+      <button class="quick-send-btn" id="quick-send-btn" disabled>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
+    `;
+    return bar;
+  }
+
+  /**
+   * v7.0: 绑定快捷输入事件 (在 render 后调用)
+   */
+  bindQuickInput() {
+    const input = document.getElementById('quick-input');
+    const btn = document.getElementById('quick-send-btn');
+    if (!input) return;
+
+    input.addEventListener('input', () => { btn.disabled = !input.value.trim(); });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && input.value.trim()) {
+        this._handleQuickSave(input.value.trim());
+        input.value = '';
+        btn.disabled = true;
+      }
+    });
+    btn.addEventListener('click', () => {
+      if (input.value.trim()) {
+        this._handleQuickSave(input.value.trim());
+        input.value = '';
+        btn.disabled = true;
+      }
+    });
+  }
+
+  /**
+   * v7.0: 处理快捷保存
+   * @private
+   */
+  async _handleQuickSave(text) {
+    const now = Date.now();
+    const record = {
+      id: `rec_${now}_${Math.random().toString(36).slice(2, 8)}`,
+      name: text, notes: '', tags: [], photos: [],
+      status: 'in-use', favorite: false, createdAt: now, updatedAt: now
+    };
+
+    try {
+      if (window.StorageService) await StorageService.put(record);
+      if (window.Store) {
+        const list = [...(Store.getState('records.list') || [])];
+        list.unshift(record);
+        Store.dispatch({ type: 'SET_STATE', payload: { records: { list, filtered: [...list], loading: false } } });
+      }
+      window.StreakService?.recordToday();
+      const toast = document.getElementById('toast');
+      if (toast) { toast.textContent = '已记录'; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 1500); }
+    } catch (e) { console.error('[HomePage] Quick save failed:', e); }
   }
 
   /**
