@@ -13,6 +13,7 @@ const GraphPlugin = {
 
   _chart: null,
   _eventsBound: false,
+  _resizeHandler: null,
 
   /**
    * 初始化插件
@@ -40,11 +41,28 @@ const GraphPlugin = {
       this._chart.dispose();
       this._chart = null;
     }
+    if (this._resizeHandler) {
+      window.removeEventListener('resize', this._resizeHandler);
+      this._resizeHandler = null;
+    }
     this._eventsBound = false;
   },
 
   routes: [],
   actions: {},
+
+  /**
+   * HTML 转义 (防 XSS)
+   * @private
+   */
+  _escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  },
 
   /**
    * 渲染关系图
@@ -67,10 +85,16 @@ const GraphPlugin = {
       return;
     }
 
-    // 初始化/重置 chart
+    // 清理旧 chart 和 resize 监听
     if (this._chart) {
       this._chart.dispose();
+      this._chart = null;
     }
+    if (this._resizeHandler) {
+      window.removeEventListener('resize', this._resizeHandler);
+      this._resizeHandler = null;
+    }
+
     this._chart = echarts.init(container);
 
     // 获取所有记录
@@ -94,7 +118,6 @@ const GraphPlugin = {
     const recordsWithLinks = records.filter(r => r.links && r.links.length > 0);
 
     if (recordsWithLinks.length === 0) {
-      // 没有链接关系，显示孤立节点 + 提示
       this._renderIsolatedNodes(records, container);
       return;
     }
@@ -119,16 +142,19 @@ const GraphPlugin = {
         formatter: (params) => {
           if (params.dataType === 'node') {
             const r = params.data;
-            return `<strong>${r.name}</strong><br/>
-              <span style="color:#999">创建于: ${new Date(r.createdAt).toLocaleDateString()}</span><br/>
-              <span style="color:#999">${r.wordCount || 0} 字</span><br/>
-              ${r.tags && r.tags.length ? `标签: ${r.tags.join(', ')}` : ''}`;
+            const tagsStr = r.tags && r.tags.length
+              ? `标签: ${r.tags.map(t => this._escapeHtml(t)).join(', ')}`
+              : '';
+            return `<strong>${this._escapeHtml(r.name)}</strong><br/>` +
+              `<span style="color:#999">创建于: ${this._escapeHtml(new Date(r.createdAt).toLocaleDateString())}</span><br/>` +
+              `<span style="color:#999">${r.wordCount || 0} 字</span><br/>` +
+              (tagsStr ? `<span style="color:#666">${tagsStr}</span>` : '');
           }
           return '';
         }
       },
       legend: [{
-        data: this._getUniqueTags(records),
+        data: this._getUniqueTags(records).slice(0, 20),
         orient: 'vertical',
         left: 10,
         top: 40
@@ -170,6 +196,7 @@ const GraphPlugin = {
     this._chart.setOption(option);
 
     // 点击节点导航到记录详情
+    this._chart.off('click');
     this._chart.on('click', (params) => {
       if (params.dataType === 'node' && params.data.recordId) {
         this._navigateToRecord(params.data.recordId);
@@ -177,9 +204,10 @@ const GraphPlugin = {
     });
 
     // 响应窗口大小变化
-    window.addEventListener('resize', () => {
+    this._resizeHandler = () => {
       if (this._chart) this._chart.resize();
-    });
+    };
+    window.addEventListener('resize', this._resizeHandler);
   },
 
   /**
@@ -187,7 +215,6 @@ const GraphPlugin = {
    * @private
    */
   _renderIsolatedNodes(records, container) {
-    // 显示所有记录作为孤立节点
     const nodes = records.map(r => ({
       id: r.id,
       name: r.name || '未命名',
@@ -213,8 +240,8 @@ const GraphPlugin = {
         trigger: 'item',
         formatter: (params) => {
           if (params.dataType === 'node') {
-            return `<strong>${params.name}</strong><br/>
-              <span style="color:#999">字数: ${params.data.wordCount || 0}</span>`;
+            return `<strong>${this._escapeHtml(params.name)}</strong><br/>` +
+              `<span style="color:#999">字数: ${params.data.wordCount || 0}</span>`;
           }
           return '';
         }
@@ -245,15 +272,14 @@ const GraphPlugin = {
 
     this._chart.setOption(option);
 
+    this._chart.off('click');
     this._chart.on('click', (params) => {
       if (params.dataType === 'node' && params.data.recordId) {
         this._navigateToRecord(params.data.recordId);
       }
     });
 
-    window.addEventListener('resize', () => {
-      if (this._chart) this._chart.resize();
-    });
+    // resize 监听已在 render() 中统一设置
   },
 
   /**
@@ -275,6 +301,7 @@ const GraphPlugin = {
 
     const nodes = [];
     const edges = [];
+    const edgeSet = new Set(); // 边去重
 
     // 为涉及到的记录创建节点
     involvedIds.forEach(id => {
@@ -297,11 +324,13 @@ const GraphPlugin = {
       });
     });
 
-    // 创建边
+    // 创建边 (去重)
     records.forEach(r => {
       if (!r.links || r.links.length === 0) return;
       r.links.forEach(link => {
-        if (involvedIds.has(link.targetId)) {
+        const edgeKey = `${r.id}->${link.targetId}`;
+        if (involvedIds.has(link.targetId) && !edgeSet.has(edgeKey)) {
+          edgeSet.add(edgeKey);
           edges.push({
             source: r.id,
             target: link.targetId,
@@ -316,7 +345,7 @@ const GraphPlugin = {
   },
 
   /**
-   * 获取所有唯一的标签
+   * 获取所有唯一的标签 (限制数量，避免图例溢出)
    * @private
    */
   _getUniqueTags(records) {
@@ -353,17 +382,15 @@ const GraphPlugin = {
    * @private
    */
   _navigateToRecord(recordId) {
-    // 关闭 graph 页面，显示详情页
     if (window.Router) {
       window.Router.navigate('home');
     }
 
-    // 触发记录点击
     setTimeout(() => {
       if (window.HomePage && window.homePageInstance) {
         window.homePageInstance._handleRecordClick(recordId);
       }
-    }, 100);
+    }, 150);
   },
 
   /**
@@ -371,7 +398,6 @@ const GraphPlugin = {
    * @private
    */
   _bindEvents() {
-    // 导航到 graph 页面时渲染
     if (window.Router && typeof window.Router.subscribe === 'function') {
       window.Router.subscribe(route => {
         if (route && route.path === 'graph') {
