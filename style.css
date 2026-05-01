@@ -5151,3 +5151,41 @@ input:focus, textarea:focus {
 .streak-badge { display: flex; align-items: center; gap: 4px; padding: 4px 10px; background: linear-gradient(135deg, #ff6b35, #ff4444); color: white; border-radius: 16px; font-size: 12px; font-weight: 600; }
 .streak-flame { animation: streak-flicker 1.5s ease-in-out infinite alternate; }
 @keyframes streak-flicker { 0% { transform: scale(1) rotate(-3deg); } 50% { transform: scale(1.15) rotate(3deg); } 100% { transform: scale(1) rotate(-1deg); } }
+
+/* ========== v7.0.0 页面过渡动画 ========== */
+.page {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.page.active {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* View Transitions API 动画 */
+::view-transition-old(root) {
+  animation: fadeOut 0.25s ease forwards;
+}
+::view-transition-new(root) {
+  animation: fadeIn 0.25s ease forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(-20px); }
+}
+
+/* 心跳动画 (连续打卡) */
+@keyframes heartPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+/* 心情选择弹跳 */
+.mood-option {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s, border-color 0.2s;
+}

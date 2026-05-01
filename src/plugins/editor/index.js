@@ -368,6 +368,9 @@ const EditorPlugin = {
       const dateStr = document.getElementById('create-date')?.value;
       window.StreakService?.recordToday(dateStr);
 
+      // v7.0: 记录变更用于自动同步
+      window.AutoSyncPlugin?.recordChange(this._isEditing ? 'update' : 'create', record);
+
       this._showToast(this._isEditing ? '记录已更新' : '记录已保存');
 
       // 返回列表页

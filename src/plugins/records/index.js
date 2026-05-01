@@ -353,6 +353,9 @@ if (!window.RecordsPlugin) {
       payload: id
     });
 
+    // v7.0: 记录删除变更用于自动同步
+    window.AutoSyncPlugin?.recordChange('delete', { _id: id });
+
     // 运行 afterDelete 钩子
     if (window.Hooks) {
       Hooks.run('record:afterDelete', { id });

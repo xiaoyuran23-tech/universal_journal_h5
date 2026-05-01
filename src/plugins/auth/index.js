@@ -71,6 +71,7 @@ const AuthPlugin = {
     });
     this._saveSession(res);
     this._updateUI(true);
+    document.dispatchEvent(new CustomEvent('auth:login', { detail: { user: res.user } }));
     return res;
   },
 
@@ -84,6 +85,7 @@ const AuthPlugin = {
     });
     this._saveSession(res);
     this._updateUI(true);
+    document.dispatchEvent(new CustomEvent('auth:login', { detail: { user: res.user } }));
     return res;
   },
 
@@ -95,6 +97,7 @@ const AuthPlugin = {
     localStorage.removeItem('journal_token');
     localStorage.removeItem('journal_user');
     this._updateUI(false);
+    document.dispatchEvent(new CustomEvent('auth:logout'));
     this._showToast('已退出登录');
   },
 

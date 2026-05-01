@@ -62,7 +62,9 @@ async function initApp() {
           example: window.ExamplePlugin,
           // v7.0.0 新增
           auth: window.AuthPlugin,
-          mood: window.MoodPlugin
+          mood: window.MoodPlugin,
+          autoSync: window.AutoSyncPlugin,
+          transitions: window.TransitionsPlugin
         };
 
         // 检查核心依赖
@@ -84,7 +86,7 @@ async function initApp() {
           'records', 'calendar', 'timeline', 'editor',
           'favorites', 'templates', 'sync', 'settings',
           'security', 'trash', 'batch', 'draft',
-          'tags', 'visuals', 'theme', 'search', 'hotkeys', 'controller', 'markdown', 'review', 'graph', 'auth', 'mood'
+          'tags', 'visuals', 'theme', 'search', 'hotkeys', 'controller', 'markdown', 'review', 'graph', 'auth', 'mood', 'autoSync', 'transitions'
         ]);
         
         console.log('[App] Plugin loading completed');
@@ -119,6 +121,12 @@ async function initApp() {
     // 7. 初始化 UX 视图 (v6.1 新增)
     initUXViews();
 
+    // 7.5 渲染连续打卡徽章 (v7.0)
+    renderStreakBadge();
+
+    // 7.6 渲染心情趋势 (v7.0)
+    setTimeout(() => renderMoodTrend(), 500);
+
     // 8. 检查新手引导
     initOnboarding();
 
@@ -132,6 +140,38 @@ async function initApp() {
     } catch (e) {
       console.error('[App] UX Views also failed:', e);
     }
+  }
+}
+
+/**
+ * 渲染连续打卡徽章
+ */
+function renderStreakBadge() {
+  const container = document.getElementById('streak-badge-container');
+  if (!container || !window.StreakService) return;
+
+  const badge = StreakService.getBadge();
+  if (!badge) {
+    container.innerHTML = '<div style="font-size:12px;color:#999;text-align:center;">今天写一条吧 🔥</div>';
+    return;
+  }
+
+  const flame = badge.isToday ? '' : '<span style="font-size:11px;color:#ff6b35;">今日未写</span>';
+  container.innerHTML = `
+    <div class="streak-badge" style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <span class="streak-flame" style="font-size:20px;">🔥</span>
+      <span style="font-size:14px;font-weight:700;color:white;">${badge.current}</span>
+      ${flame}
+    </div>
+  `;
+}
+
+/**
+ * 渲染心情趋势
+ */
+function renderMoodTrend() {
+  if (window.MoodPlugin) {
+    MoodPlugin.renderMoodTrend('mood-trend-container');
   }
 }
 
