@@ -4,12 +4,11 @@
 
 ### 前置要求
 - Node.js >= 18
-- MongoDB (本地或 Atlas)
 
 ### 快速启动
 ```bash
 cd server
-cp .env.example .env   # 编辑 .env 配置 MongoDB 连接
+cp .env.example .env   # 编辑 .env 配置 JWT 密钥
 npm install
 npm run dev
 ```
@@ -23,45 +22,42 @@ npm run dev
 |------|------|------|
 | POST | `/api/auth/register` | 注册 `{ email, password, nickname }` |
 | POST | `/api/auth/login` | 登录 `{ email, password }` |
-| GET | `/api/auth/me` | 获取当前用户 (Bearer Token) |
-| PUT | `/api/auth/profile` | 更新用户信息 |
-| POST | `/api/auth/register-device` | 注册设备 |
+| GET | `/api/auth/me` | 获取当前用户 (httpOnly cookie) |
+| PUT | `/api/auth/profile` | 更新昵称 `{ nickname }` |
+| PUT | `/api/auth/change-password` | 修改密码 `{ currentPassword, newPassword }` |
+| DELETE | `/api/auth/account` | 删除账号 `{ password }` |
+| POST | `/api/auth/logout` | 登出 (清除 httpOnly cookie) |
 
 #### 记录
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/api/records` | 获取记录列表 (分页/筛选) |
-| GET | `/api/records/:id` | 获取单条记录 |
+| GET | `/api/records` | 获取记录列表 (支持 usn/since/deleted 参数) |
 | POST | `/api/records` | 创建记录 |
 | PUT | `/api/records/:id` | 更新记录 |
-| DELETE | `/api/records/:id` | 删除记录 |
-| GET | `/api/records/on-this-day` | 那年今日 |
-| GET | `/api/records/stats` | 统计信息 |
+| DELETE | `/api/records/:id` | 删除记录 (软删除) |
 
 #### 同步
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| POST | `/api/sync/pull` | 拉取服务端变更 |
-| POST | `/api/sync/push` | 推送本地变更 |
-| POST | `/api/sync/full` | 完整双向同步 |
+| POST | `/api/sync/pull` | 拉取服务端变更 `{ lastSyncUsn }` |
+| POST | `/api/sync/push` | 推送本地变更 `{ changes }` |
 | GET | `/api/sync/status` | 同步状态 |
 
-## 生产部署 (Vercel)
+### 认证说明
+- 所有 `/api/records/*` 和 `/api/sync/*` 端点需要认证
+- 认证方式：httpOnly cookie (`journal_token`)，兼容 `Authorization: Bearer` header
+- Token 有效期：30 天
 
-### 1. 创建 Vercel 项目
-```bash
-cd server
-vercel --prod
-```
+## 生产部署
 
-### 2. 配置环境变量
-在 Vercel Dashboard 设置：
-- `MONGODB_URI` - MongoDB Atlas 连接字符串
-- `JWT_SECRET` - 随机生成的强密钥
-- `FRONTEND_URL` - 前端域名 (GitHub Pages URL)
+### 环境变量
+- `JWT_SECRET` — 随机生成的强密钥（必配）
+- `PORT` — 服务端口 (默认 4000)
+- `FRONTEND_URL` — 前端域名 (CORS)
+- `SERVE_FRONTEND` — 是否提供静态文件 (默认 true)
+- `FRONTEND_DIR` — 前端文件目录
 
-### 3. MongoDB Atlas
-1. 创建免费集群
-2. 创建数据库用户
-3. 允许所有 IP 访问 (0.0.0.0/0)
-4. 获取连接字符串填入 `MONGODB_URI`
+### 安全建议
+1. 使用强随机字符串配置 `JWT_SECRET`，不要使用示例值
+2. 生产环境启用 HTTPS，cookie 会自动添加 `Secure` 标志
+3. 定期轮换 JWT 密钥
