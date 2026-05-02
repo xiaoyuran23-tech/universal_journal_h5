@@ -8,7 +8,7 @@ if (!window.ControllerPlugin) {
 const ControllerPlugin = {
   name: 'controller',
   version: '1.0.0',
-  dependencies: ['records', 'calendar', 'timeline', 'editor', 'favorites', 'templates', 'sync', 'settings', 'security', 'trash', 'batch', 'draft', 'tags', 'visuals', 'theme', 'search'],
+  dependencies: ['records', 'calendar', 'timeline', 'editor', 'favorites', 'templates', 'sync', 'settings', 'trash', 'batch', 'draft', 'tags', 'visuals', 'theme', 'search'],
 
   _eventsBound: false,
   currentPhotos: [],
