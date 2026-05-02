@@ -51,6 +51,10 @@ class EventBus {
         }
       });
     }
+    // warn: emit with no consumer (helps identify dead events)
+    if (!this._events.has(event) || this._events.get(event).size === 0) {
+      console.warn(`[EventBus] Event "${event}" emitted with no consumers`);
+    }
   }
 
   /**
@@ -71,6 +75,14 @@ class EventBus {
    */
   clear() {
     this._events.clear();
+  }
+
+  /**
+   * 移除指定事件的所有监听器
+   * @param {string} event - 事件名称
+   */
+  offAll(event) {
+    this._events.delete(event);
   }
 
   /**

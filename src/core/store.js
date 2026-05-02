@@ -12,6 +12,7 @@ class Store {
     // 初始化历史记录 (用于撤销/重做)
     this._history = [JSON.stringify(this._state)];
     this._historyIndex = 0;
+    this._batchDepth = 0;
   }
 
   /**
@@ -175,6 +176,7 @@ class Store {
    * @private
    */
   _notify(prevState) {
+    if (this._batchDepth > 0) return; // defer until batch completes
     this._listeners.forEach(listener => {
       try {
         listener(this._state, prevState);
@@ -272,18 +274,18 @@ class Store {
   }
 
   /**
-   * 批量更新
+   * 批量更新 (仅一次通知，支持嵌套)
    * @param {Function} updates - 返回多个 action 的函数
    */
   batch(updates) {
-    const originalNotify = this._notify.bind(this);
-    this._notify = () => {};
-
+    this._batchDepth++;
     try {
       updates(this.dispatch.bind(this));
     } finally {
-      this._notify = originalNotify;
-      this._notify();
+      this._batchDepth--;
+      if (this._batchDepth === 0) {
+        this._notify();
+      }
     }
   }
 

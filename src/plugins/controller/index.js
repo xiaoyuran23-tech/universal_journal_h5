@@ -34,22 +34,22 @@ const ControllerPlugin = {
 
     // 启动草稿恢复
     if (window.DraftPlugin) {
-      const draft = DraftPlugin.getDraft();
+      const draft = window.DraftPlugin.getDraft();
       if (draft) {
-        DraftPlugin.showRestorePrompt(() => {
-          if (window.Router) Router.navigate('form');
+        window.DraftPlugin.showRestorePrompt(() => {
+          if (window.Router) window.Router.navigate('form');
         });
       }
     }
 
     // 初始化回收站
     if (window.TrashPlugin) {
-      TrashPlugin.start();
+      window.TrashPlugin.start();
     }
 
     // 重新绑定搜索输入框（HomePage 可能已渲染并创建了 #search-input）
-    if (window.SearchPlugin && SearchPlugin.rebind) {
-      SearchPlugin.rebind();
+    if (window.SearchPlugin && window.SearchPlugin.rebind) {
+      window.SearchPlugin.rebind();
     }
   },
 
@@ -71,12 +71,12 @@ const ControllerPlugin = {
         tab.classList.add('active');
 
         if (window.Router) {
-          Router.navigate(page);
+          window.Router.navigate(page);
         }
 
         // 退出批量模式
-        if (window.BatchPlugin && BatchPlugin.isBatchMode) {
-          BatchPlugin.exitBatchMode();
+        if (window.BatchPlugin && window.BatchPlugin.isBatchMode) {
+          window.BatchPlugin.exitBatchMode();
         }
       });
     });
@@ -90,7 +90,7 @@ const ControllerPlugin = {
     const fab = document.getElementById('fab-add');
     if (fab) {
       fab.addEventListener('click', () => {
-        if (window.Router) Router.navigate('form');
+        if (window.Router) window.Router.navigate('form');
       });
     }
   },
@@ -117,8 +117,8 @@ const ControllerPlugin = {
       openBtn.addEventListener('click', () => {
         if (overlay) overlay.style.display = 'flex';
         // 渲染模板列表
-        if (window.TemplatesPlugin && TemplatesPlugin._renderBottomSheet) {
-          TemplatesPlugin._renderBottomSheet();
+        if (window.TemplatesPlugin && window.TemplatesPlugin._renderBottomSheet) {
+          window.TemplatesPlugin._renderBottomSheet();
         }
       });
     }
@@ -145,7 +145,7 @@ const ControllerPlugin = {
     if (backBtn) {
       backBtn.addEventListener('click', () => {
         // 明确返回首页，不依赖 back() 的历史栈行为
-        if (window.Router) Router.navigate('home');
+        if (window.Router) window.Router.navigate('home');
       });
     }
 
@@ -159,7 +159,7 @@ const ControllerPlugin = {
           return;
         }
         if (window.TemplatesPlugin) {
-          TemplatesPlugin.saveTemplate({ name, notes });
+          window.TemplatesPlugin.saveTemplate({ name, notes });
           this._showToast('模板已保存');
         }
       });
@@ -174,7 +174,7 @@ const ControllerPlugin = {
     const backBtn = document.getElementById('detail-back-btn');
     if (backBtn) {
       backBtn.addEventListener('click', () => {
-        if (window.Router) Router.navigate('home');
+        if (window.Router) window.Router.navigate('home');
       });
     }
 
@@ -185,10 +185,10 @@ const ControllerPlugin = {
         if (!record) return;
         record.favorite = !record.favorite;
         if (window.StorageService) {
-          await StorageService.put(record);
+          await window.StorageService.put(record);
         }
         if (window.Store) {
-          Store.dispatch({ type: 'records/update', payload: { id: record.id, updates: { favorite: record.favorite } } });
+          window.Store.dispatch({ type: 'records/update', payload: { id: record.id, updates: { favorite: record.favorite } } });
         }
         this._showToast(record.favorite ? '已收藏' : '已取消收藏');
         favoriteBtn.classList.toggle('active', record.favorite);
@@ -200,7 +200,7 @@ const ControllerPlugin = {
       editBtn.addEventListener('click', () => {
         const record = this._getCurrentRecord();
         if (!record) return;
-        if (window.Router) Router.navigate('editor', { id: record.id });
+        if (window.Router) window.Router.navigate('editor', { id: record.id });
       });
     }
 
@@ -213,16 +213,16 @@ const ControllerPlugin = {
 
         // 软删除：移至回收站
         if (window.TrashPlugin) {
-          TrashPlugin.moveToTrash(record);
+          window.TrashPlugin.moveToTrash(record);
           this._showToast('已移至回收站');
         } else {
           // 硬删除
           if (window.RecordsPlugin) {
-            await RecordsPlugin.deleteRecord(record.id);
+            await window.RecordsPlugin.deleteRecord(record.id);
           }
           this._showToast('记录已删除');
         }
-        if (window.Router) Router.navigate('home');
+        if (window.Router) window.Router.navigate('home');
       });
     }
   },
@@ -300,7 +300,7 @@ const ControllerPlugin = {
 
     if (backBtn) {
       backBtn.addEventListener('click', () => {
-        if (window.Router) Router.navigate('profile');
+        if (window.Router) window.Router.navigate('profile');
       });
     }
   },
@@ -314,10 +314,10 @@ const ControllerPlugin = {
     if (backBtn) {
       backBtn.addEventListener('click', () => {
         // 切换回日历月视图
-        if (window.CalendarPlugin && CalendarPlugin._renderMonth) {
-          CalendarPlugin._renderMonth();
+        if (window.CalendarPlugin && window.CalendarPlugin._renderMonth) {
+          window.CalendarPlugin._renderMonth();
         }
-        if (window.Router) Router.back();
+        if (window.Router) window.Router.back();
       });
     }
   },
@@ -334,8 +334,8 @@ const ControllerPlugin = {
   },
 
   _showToast(message) {
-    if (window.UIComponents && UIComponents.Toast) {
-      UIComponents.Toast.show(message, { duration: 2000 });
+    if (window.UIComponents && window.UIComponents.Toast) {
+      window.UIComponents.Toast.show(message, { duration: 2000 });
     } else {
       const toast = document.getElementById('toast');
       if (toast) {

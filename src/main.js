@@ -203,15 +203,7 @@ function initUI() {
     });
   }
 
-  // 绑定底部导航
-  document.querySelectorAll('.tab-item').forEach(tab => {
-    tab.addEventListener('click', () => {
-      const page = tab.dataset.page;
-      if (page && window.Router) {
-        window.Router.navigate(page);
-      }
-    });
-  });
+  // 底部导航 Tab 由 ControllerPlugin._bindNavigation() 统一绑定，此处不重复
 
   // 绑定表单返回按钮（确保在 ControllerPlugin 之前绑定）
   const formBackBtn = document.getElementById('create-back-btn');

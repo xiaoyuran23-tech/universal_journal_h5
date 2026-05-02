@@ -13,6 +13,10 @@ const ProfilePlugin = {
   _eventsBound: false,
   _isEditing: false,
 
+  // 存储 document 事件监听器引用，用于 stop() 清理
+  _loginHandler: null,
+  _logoutHandler: null,
+
   /**
    * 初始化插件
    */
@@ -36,6 +40,14 @@ const ProfilePlugin = {
    * 停止插件
    */
   stop() {
+    if (this._loginHandler) {
+      document.removeEventListener('auth:login', this._loginHandler);
+      this._loginHandler = null;
+    }
+    if (this._logoutHandler) {
+      document.removeEventListener('auth:logout', this._logoutHandler);
+      this._logoutHandler = null;
+    }
     this._eventsBound = false;
   },
 
@@ -67,20 +79,22 @@ const ProfilePlugin = {
     const loginBtn = document.getElementById('profile-login-btn');
     if (loginBtn) {
       loginBtn.addEventListener('click', () => {
-        if (window.AuthPlugin) AuthPlugin.showLoginModal();
+        if (window.AuthPlugin) window.AuthPlugin.showLoginModal();
       });
     }
 
     // === 登出事件监听 ===
-    document.addEventListener('auth:logout', () => this._updateUI());
-    document.addEventListener('auth:login', () => this._updateUI());
+    this._loginHandler = () => this._updateUI();
+    this._logoutHandler = () => this._updateUI();
+    document.addEventListener('auth:logout', this._logoutHandler);
+    document.addEventListener('auth:login', this._loginHandler);
 
     // === 心情打卡 ===
     const moodBtn = document.querySelector('[data-mood-checkin]');
     if (moodBtn) {
       moodBtn.addEventListener('click', () => {
-        if (window.MoodPlugin && typeof MoodPlugin._showMoodPickerModal === 'function') {
-          MoodPlugin._showMoodPickerModal();
+        if (window.MoodPlugin && typeof window.MoodPlugin._showMoodPickerModal === 'function') {
+          window.MoodPlugin._showMoodPickerModal();
         }
       });
     }
@@ -188,11 +202,6 @@ const ProfilePlugin = {
     saveBtn.style.display = 'none';
     if (nameContainer) nameContainer.style.display = 'flex';
 
-    // 同步更新 AuthPlugin 中的用户信息（updateProfile 已更新过，此处兜底）
-    if (window.AuthPlugin && AuthPlugin._user) {
-      AuthPlugin._user = { ...AuthPlugin._user, nickname: newName };
-    }
-
     this._showToast('昵称已保存');
   },
 
@@ -250,7 +259,7 @@ const ProfilePlugin = {
       let data, filename, mime;
 
       if (format === 'markdown' && window.MarkdownPlugin) {
-        data = await MarkdownPlugin.exportAllAsMarkdown();
+        data = await window.MarkdownPlugin.exportAllAsMarkdown();
         filename = `万物手札_${this._dateStr()}.md`;
         mime = 'text/markdown';
       } else {
@@ -293,18 +302,18 @@ const ProfilePlugin = {
         const text = await file.text();
 
         if (format === 'markdown' && window.MarkdownPlugin) {
-          await MarkdownPlugin.importFromMarkdown(text);
+          await window.MarkdownPlugin.importFromMarkdown(text);
         } else {
           const records = JSON.parse(text);
           if (!Array.isArray(records)) throw new Error('无效的数据格式');
 
           if (window.StorageBackend) {
             for (const record of records) {
-              await StorageBackend.put(record);
+              await window.StorageBackend.put(record);
             }
           }
           if (window.RecordsPlugin) {
-            await RecordsPlugin.loadRecords();
+            await window.RecordsPlugin.loadRecords();
           }
         }
 
@@ -328,7 +337,7 @@ const ProfilePlugin = {
 
     try {
       if (window.StorageBackend) {
-        await StorageBackend.clear();
+        await window.StorageBackend.clear();
       }
       if (window.Store) {
         window.Store.dispatch({
@@ -379,7 +388,7 @@ const ProfilePlugin = {
     if (themeBtn) {
       themeBtn.addEventListener('click', () => {
         if (window.ThemePlugin) {
-          ThemePlugin.toggleTheme();
+          window.ThemePlugin.toggleTheme();
         } else {
           const current = document.documentElement.getAttribute('data-theme') || 'warm';
           const next = current === 'warm' ? 'dark' : 'warm';
@@ -440,8 +449,8 @@ const ProfilePlugin = {
   },
 
   _showToast(msg) {
-    if (window.UIComponents && UIComponents.Toast) {
-      UIComponents.Toast.show(msg, { duration: 2000 });
+    if (window.UIComponents && window.UIComponents.Toast) {
+      window.UIComponents.Toast.show(msg, { duration: 2000 });
     } else {
       const toast = document.getElementById('toast');
       if (toast) { toast.textContent = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2000); }
