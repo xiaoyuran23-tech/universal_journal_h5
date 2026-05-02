@@ -328,7 +328,6 @@ async function runRound(browser) {
 
     const settingsButtons = [
       { id: 'settings-cloud-config', name: '同步设置' },
-      { id: 'settings-lock', name: '密码锁' },
       { id: 'settings-theme', name: '主题切换' },
       { id: 'settings-stats', name: '数据统计' },
       { id: 'settings-trash', name: '回收站' },

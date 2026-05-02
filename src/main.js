@@ -46,7 +46,6 @@ async function initApp() {
           sync: window.SyncPlugin,
           settings: window.SettingsPlugin,
           // Phase 2 新增插件
-          security: window.SecurityPlugin,
           trash: window.TrashPlugin,
           batch: window.BatchPlugin,
           draft: window.DraftPlugin,
@@ -86,7 +85,7 @@ async function initApp() {
         await loader.loadAll([
           'records', 'calendar', 'timeline', 'editor',
           'favorites', 'templates', 'sync', 'settings',
-          'security', 'trash', 'batch', 'draft',
+          'trash', 'batch', 'draft',
           'tags', 'visuals', 'theme', 'search', 'hotkeys', 'controller', 'markdown', 'review', 'graph', 'auth', 'mood', 'autoSync', 'transitions', 'profile'
         ]);
         
@@ -291,9 +290,7 @@ function initUXViews() {
 
   console.log('[UX Views] Dependencies ready, initializing...');
 
-  // 1. 应用暖色主题 (v6.1 UX 默认主题)
-  document.documentElement.setAttribute('data-theme', 'warm');
-  document.body.setAttribute('data-theme', 'warm');
+  // 1. 应用已保存的主题（ThemePlugin 已在 init 中设置，此处不再硬编码覆盖）
 
   // 2. 隐藏旧版 Header（旧 TabBar 保留，旧架构仍需要它导航到各页面）
   const oldHeader = document.querySelector('header.header');

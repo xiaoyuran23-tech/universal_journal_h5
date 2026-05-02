@@ -36,7 +36,6 @@ const ASSETS_TO_CACHE = [
   './src/plugins/settings/index.js',
   './src/plugins/review/index.js',
   // Phase 2 新增插件
-  './src/plugins/security/index.js',
   './src/plugins/trash/index.js',
   './src/plugins/batch/index.js',
   './src/plugins/draft/index.js',

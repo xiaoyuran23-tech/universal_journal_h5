@@ -375,15 +375,6 @@ const ProfilePlugin = {
       });
     }
 
-    const lockBtn = document.getElementById('settings-lock');
-    if (lockBtn) {
-      lockBtn.addEventListener('click', () => {
-        const current = localStorage.getItem('app_lock_enabled') === 'true';
-        localStorage.setItem('app_lock_enabled', String(!current));
-        this._showToast(current ? '密码锁已关闭' : '密码锁已开启');
-      });
-    }
-
     const themeBtn = document.getElementById('settings-theme');
     if (themeBtn) {
       themeBtn.addEventListener('click', () => {

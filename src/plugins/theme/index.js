@@ -51,6 +51,15 @@ const ThemePlugin = {
     this.currentTheme = themeId;
   },
 
+  /**
+   * 循环切换主题（供设置页按钮使用）
+   */
+  toggleTheme() {
+    const idx = this.themes.findIndex(t => t.id === this.currentTheme);
+    const next = this.themes[(idx + 1) % this.themes.length];
+    this.apply(next.id);
+  },
+
   _bindEvents() {
     if (this._eventsBound) return;
     this._eventsBound = true;
