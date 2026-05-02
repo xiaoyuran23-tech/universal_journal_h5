@@ -104,8 +104,7 @@ const MoodPlugin = {
 
     const modal = document.createElement('div');
     modal.id = 'mood-modal';
-    modal.className = 'modal';
-    modal.style.display = 'flex';
+    modal.className = 'modal active';
     modal.innerHTML = `
       <div class="modal-content" style="max-width:360px;padding:24px;">
         <h3 style="margin:0 0 8px;font-size:18px;">今天的心情</h3>

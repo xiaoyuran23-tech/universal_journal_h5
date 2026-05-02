@@ -255,10 +255,9 @@ const AuthPlugin = {
 
     const modal = document.createElement('div');
     modal.id = 'auth-modal';
-    modal.className = 'modal';
+    modal.className = 'modal active';
     modal.innerHTML = this._authModalHTML();
     document.body.appendChild(modal);
-    modal.style.display = 'flex';
 
     modal.querySelector('[data-auth-close]')?.addEventListener('click', () => modal.remove());
     modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });

@@ -67,7 +67,7 @@ const ProfilePlugin = {
     const loginBtn = document.getElementById('profile-login-btn');
     if (loginBtn) {
       loginBtn.addEventListener('click', () => {
-        if (window.AuthPlugin) AuthPlugin._showLoginModal();
+        if (window.AuthPlugin) AuthPlugin.showLoginModal();
       });
     }
 
@@ -103,17 +103,20 @@ const ProfilePlugin = {
     const nameContainer = document.querySelector('.profile-name-container');
     const loginBtn = document.getElementById('profile-login-btn');
     const editBtn = document.getElementById('profile-edit-btn');
+    const accountSection = document.getElementById('account-section');
 
     if (isLoggedIn && user) {
       if (displayName) displayName.textContent = user.nickname || '手札用户';
       if (nameContainer) nameContainer.style.display = 'flex';
       if (loginBtn) loginBtn.style.display = 'none';
       if (editBtn) editBtn.style.display = 'inline-flex';
+      if (accountSection) accountSection.style.display = 'block';
     } else {
       if (displayName) displayName.textContent = '未登录';
       if (nameContainer) nameContainer.style.display = 'none';
       if (loginBtn) loginBtn.style.display = 'flex';
       if (editBtn) editBtn.style.display = 'none';
+      if (accountSection) accountSection.style.display = 'none';
     }
 
     // 云同步按钮文案
@@ -187,7 +190,7 @@ const ProfilePlugin = {
 
     // 同步更新 AuthPlugin 中的用户信息（updateProfile 已更新过，此处兜底）
     if (window.AuthPlugin && AuthPlugin._user) {
-      AuthPlugin._user.nickname = newName;
+      AuthPlugin._user = { ...AuthPlugin._user, nickname: newName };
     }
 
     this._showToast('昵称已保存');
@@ -361,7 +364,7 @@ const ProfilePlugin = {
     if (cloudBtn) {
       cloudBtn.addEventListener('click', () => {
         if (window.AuthPlugin && !AuthPlugin.isLoggedIn) {
-          AuthPlugin._showLoginModal();
+          AuthPlugin.showLoginModal();
           return;
         }
         const modal = document.getElementById('cloud-modal');
@@ -411,8 +414,28 @@ const ProfilePlugin = {
     const aboutBtn = document.getElementById('settings-about');
     if (aboutBtn) {
       aboutBtn.addEventListener('click', () => {
-        alert('万物手札 v7.0.3\n\n记录世间万物\n\n一个纯前端的 PWA 日记应用');
+        alert('万物手札 v7.1.0\n\n记录世间万物\n\n一个纯前端的 PWA 日记应用');
       });
+    }
+
+    // === 账号管理 (v7.1.0) ===
+    const logoutBtn = document.getElementById('settings-logout');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => {
+        if (confirm('确定要退出登录吗？')) {
+          AuthPlugin.logout();
+        }
+      });
+    }
+
+    const changePwBtn = document.getElementById('settings-change-password');
+    if (changePwBtn) {
+      changePwBtn.addEventListener('click', () => this._showChangePasswordModal());
+    }
+
+    const deleteAcctBtn = document.getElementById('settings-delete-account');
+    if (deleteAcctBtn) {
+      deleteAcctBtn.addEventListener('click', () => this._showDeleteAccountModal());
     }
   },
 
@@ -432,7 +455,111 @@ const ProfilePlugin = {
       const toast = document.getElementById('toast');
       if (toast) { toast.textContent = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2000); }
     }
-  }
+  },
+
+  /**
+   * 显示修改密码弹窗 (v7.1.0)
+   * @private
+   */
+  _showChangePasswordModal() {
+    if (!AuthPlugin.isLoggedIn) {
+      this._showToast('请先登录');
+      return;
+    }
+    const existing = document.getElementById('change-password-modal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'change-password-modal';
+    modal.className = 'modal active';
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width:400px;padding:24px;">
+        <h3 style="margin:0 0 16px;">修改密码</h3>
+        <div style="margin-bottom:12px;">
+          <label style="display:block;margin-bottom:4px;font-size:14px;">当前密码</label>
+          <input type="password" id="cp-current-password" placeholder="输入当前密码" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;">
+        </div>
+        <div style="margin-bottom:12px;">
+          <label style="display:block;margin-bottom:4px;font-size:14px;">新密码</label>
+          <input type="password" id="cp-new-password" placeholder="至少 6 位" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;">
+        </div>
+        <div id="cp-status" style="margin-top:8px;font-size:13px;text-align:center;min-height:20px;"></div>
+        <div style="display:flex;gap:8px;margin-top:16px;">
+          <button id="cp-cancel-btn" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;">取消</button>
+          <button id="cp-submit-btn" style="flex:1;padding:10px;border:none;border-radius:8px;background:#2563eb;color:#fff;cursor:pointer;">确认修改</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.style.display = 'flex';
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    modal.querySelector('#cp-cancel-btn')?.addEventListener('click', () => modal.remove());
+    modal.querySelector('#cp-submit-btn')?.addEventListener('click', async () => {
+      const currentPw = modal.querySelector('#cp-current-password').value;
+      const newPw = modal.querySelector('#cp-new-password').value;
+      const statusEl = modal.querySelector('#cp-status');
+      if (!currentPw || !newPw) { statusEl.textContent = '请填写所有字段'; statusEl.style.color = '#ff4d4f'; return; }
+      if (newPw.length < 6) { statusEl.textContent = '新密码至少 6 位'; statusEl.style.color = '#ff4d4f'; return; }
+      statusEl.textContent = '修改中...'; statusEl.style.color = '#666';
+      try {
+        await AuthPlugin.changePassword(currentPw, newPw);
+        modal.remove();
+        this._showToast('密码已修改成功');
+      } catch (e) {
+        statusEl.textContent = e.message; statusEl.style.color = '#ff4d4f';
+      }
+    });
+  },
+
+  /**
+   * 显示删除账号弹窗 (v7.1.0)
+   * @private
+   */
+  _showDeleteAccountModal() {
+    if (!AuthPlugin.isLoggedIn) {
+      this._showToast('请先登录');
+      return;
+    }
+    const existing = document.getElementById('delete-account-modal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'delete-account-modal';
+    modal.className = 'modal active';
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width:400px;padding:24px;">
+        <h3 style="margin:0 0 8px;color:#ff4d4f;">删除账号</h3>
+        <p style="margin:0 0 16px;color:#999;font-size:14px;">此操作不可撤销！所有数据和记录将被永久删除。</p>
+        <div style="margin-bottom:12px;">
+          <label style="display:block;margin-bottom:4px;font-size:14px;">输入密码确认身份</label>
+          <input type="password" id="da-password" placeholder="输入你的登录密码" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;">
+        </div>
+        <div id="da-status" style="margin-top:8px;font-size:13px;text-align:center;min-height:20px;"></div>
+        <div style="display:flex;gap:8px;margin-top:16px;">
+          <button id="da-cancel-btn" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;">取消</button>
+          <button id="da-submit-btn" style="flex:1;padding:10px;border:none;border-radius:8px;background:#ff4d4f;color:#fff;cursor:pointer;">永久删除</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.style.display = 'flex';
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    modal.querySelector('#da-cancel-btn')?.addEventListener('click', () => modal.remove());
+    modal.querySelector('#da-submit-btn')?.addEventListener('click', async () => {
+      const password = modal.querySelector('#da-password').value;
+      const statusEl = modal.querySelector('#da-status');
+      if (!password) { statusEl.textContent = '请输入密码'; statusEl.style.color = '#ff4d4f'; return; }
+      if (!confirm('再次确认：删除后所有数据将永久丢失，无法恢复。是否继续？')) return;
+      statusEl.textContent = '删除中...'; statusEl.style.color = '#666';
+      try {
+        await AuthPlugin.deleteAccount(password);
+        modal.remove();
+        this._showToast('账号已删除');
+      } catch (e) {
+        statusEl.textContent = e.message; statusEl.style.color = '#ff4d4f';
+      }
+    });
+  },
 };
 
 window.ProfilePlugin = ProfilePlugin;
