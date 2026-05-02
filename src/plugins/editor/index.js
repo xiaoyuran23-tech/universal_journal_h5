@@ -290,7 +290,7 @@ const EditorPlugin = {
       for (const file of files) {
         try {
           if (window.ImageService) {
-            const base64 = await ImageService.compress(file, { quality: 0.7 });
+            const base64 = await window.ImageService.compress(file, { quality: 0.7 });
             this._photos.push(base64);
           } else {
             // Fallback: read as base64 without compression
@@ -435,14 +435,14 @@ const EditorPlugin = {
     };
 
     // 自动提取元数据
-    const metadata = window.MetadataService ? MetadataService.extract(baseRecord) : {};
+    const metadata = window.MetadataService ? window.MetadataService.extract(baseRecord) : {};
 
     // P2-1: 自动解析 blocks
-    const blocks = window.BlockParser ? BlockParser.parseBlocks(cleanNotes) : [];
+    const blocks = window.BlockParser ? window.BlockParser.parseBlocks(cleanNotes) : [];
 
     // P2-2: 自动解析双向链接
     const allRecords = window.Store ? (window.Store.getState('records.list') || []) : [];
-    const links = window.LinkParser ? LinkParser.parseLinks(cleanNotes, allRecords, baseRecord.id) : [];
+    const links = window.LinkParser ? window.LinkParser.parseLinks(cleanNotes, allRecords, baseRecord.id) : [];
     // 填充 sourceName
     links.forEach(link => { link.sourceName = baseRecord.name; });
 
@@ -455,24 +455,24 @@ const EditorPlugin = {
     try {
       // 保存到 IndexedDB
       if (window.StorageBackend) {
-        await StorageBackend.put(record);
+        await window.StorageBackend.put(record);
       } else if (window.StorageService) {
-        await StorageService.put(record);
+        await window.StorageService.put(record);
       }
 
-      // 更新 Store
+      // 更新 Store (使用专用 action 类型)
       if (window.Store) {
-        const list = [...(window.Store.getState('records.list') || [])];
-        const idx = list.findIndex(r => r.id === record.id);
-        if (idx >= 0) {
-          list[idx] = record;
+        if (this._isEditing) {
+          window.Store.dispatch({
+            type: 'records/update',
+            payload: { id: record.id, updates: record }
+          });
         } else {
-          list.push(record);
+          window.Store.dispatch({
+            type: 'records/add',
+            payload: record
+          });
         }
-        window.Store.dispatch({
-          type: 'SET_STATE',
-          payload: { records: { list, filtered: [...list], loading: false } }
-        });
       }
 
       // 清除草稿
@@ -522,6 +522,9 @@ const EditorPlugin = {
    */
   _sanitizeHTML(html) {
     if (!html) return '';
+
+    // Pre-filter: strip javascript: URIs (including obfuscated whitespace variants)
+    html = html.replace(/javascript\s*:/gi, '');
 
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
@@ -695,7 +698,7 @@ const EditorPlugin = {
       return;
     }
 
-    const summary = AILiteService.generateSummary(text);
+    const summary = window.AILiteService.generateSummary(text);
     if (!summary) {
       this._showToast('无法生成摘要');
       return;
@@ -726,7 +729,7 @@ const EditorPlugin = {
 
     // 获取现有标签
     const existingTags = tagsEl.value.split(/[,，\s]+/).map(t => t.trim()).filter(Boolean);
-    const suggested = AILiteService.suggestTags(text, existingTags);
+    const suggested = window.AILiteService.suggestTags(text, existingTags);
 
     if (suggested.length === 0) {
       this._showToast('没有找到更多标签建议');
@@ -777,7 +780,7 @@ const EditorPlugin = {
   _handleAIPrompt() {
     if (!window.AILiteService) return;
 
-    const prompt = AILiteService.generateWritingPrompt();
+    const prompt = window.AILiteService.generateWritingPrompt();
     const notesEl = document.getElementById('create-rich-content');
     if (!notesEl) return;
 
@@ -812,7 +815,7 @@ const EditorPlugin = {
     if (!notesEl || !moodEl) return;
 
     const text = notesEl.innerText || notesEl.textContent || '';
-    const mood = AILiteService.detectMood(text);
+    const mood = window.AILiteService.detectMood(text);
 
     let moodClass = 'mood-neutral';
     if (mood.mood === '非常积极' || mood.mood === '积极') {
@@ -864,7 +867,7 @@ const EditorPlugin = {
     if (!notesEl || !tipsSection || !tipsEl) return;
 
     const text = notesEl.innerText || notesEl.textContent || '';
-    const tips = AILiteService.writingTips(text);
+    const tips = window.AILiteService.writingTips(text);
 
     if (tips.length === 0) {
       tipsSection.style.display = 'none';

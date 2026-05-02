@@ -171,9 +171,9 @@ if (!window.RecordsPlugin) {
       // 从存储加载
       let records = [];
       if (window.StorageBackend) {
-        records = await StorageBackend.getAll();
+        records = await window.StorageBackend.getAll();
       } else if (window.IDBModule) {
-        records = await IDBModule.getAll();
+        records = await window.IDBModule.getAll();
       } else {
         // 从 localStorage 加载
         const saved = localStorage.getItem('journal_records');
@@ -194,9 +194,7 @@ if (!window.RecordsPlugin) {
         }
       });
 
-      console.log(`[RecordsPlugin] Loaded ${records.length} records`);
-
-      // 触发加载完成事件
+      // Trigger loaded event
       if (window.EventBus) {
         window.EventBus.emit('records:loaded', { count: records.length });
       }
@@ -234,7 +232,7 @@ if (!window.RecordsPlugin) {
       createdAt: Date.now(),
       updatedAt: Date.now(),
       _dataVersion: '6.0.0',
-      metadata: window.MetadataService ? MetadataService.extract(recordData) : {
+      metadata: window.MetadataService ? window.MetadataService.extract(recordData) : {
         wordCount: 0, readingTime: 0, emotionTags: [], summary: '', hasPhotos: false, hasLocation: false
       },
       _justCreated: true
@@ -248,9 +246,9 @@ if (!window.RecordsPlugin) {
 
     // 保存到存储
     if (window.StorageBackend) {
-      await StorageBackend.put(processedRecord);
+      await window.StorageBackend.put(processedRecord);
     } else if (window.IDBModule) {
-      await IDBModule.put(processedRecord);
+      await window.IDBModule.put(processedRecord);
     }
 
     // 更新状态
@@ -261,7 +259,7 @@ if (!window.RecordsPlugin) {
 
     // 运行 afterSave 钩子
     if (window.Hooks) {
-      Hooks.run('record:afterSave', processedRecord);
+      window.Hooks.run('record:afterSave', processedRecord);
     }
 
     // v7.0: 记录创建变更用于自动同步
@@ -272,7 +270,6 @@ if (!window.RecordsPlugin) {
       window.EventBus.emit('records:created', processedRecord);
     }
 
-    console.log('[RecordsPlugin] Record created:', processedRecord.id);
     return processedRecord;
   },
 
@@ -286,10 +283,10 @@ if (!window.RecordsPlugin) {
     let metadataUpdate = {};
     if ((updates.notes !== undefined || updates.photos !== undefined || updates.location !== undefined) && window.MetadataService) {
       if (window.StorageBackend) {
-        const existing = await StorageBackend.get(id);
+        const existing = await window.StorageBackend.get(id);
         if (existing) {
           const merged = { ...existing, ...updates };
-          metadataUpdate.metadata = MetadataService.extract(merged);
+          metadataUpdate.metadata = window.MetadataService.extract(merged);
         }
       }
     }
@@ -299,20 +296,20 @@ if (!window.RecordsPlugin) {
     // 运行 beforeSave 钩子 (更新也用 beforeSave)
     let processedUpdates = finalUpdates;
     if (window.Hooks) {
-      processedUpdates = Hooks.run('record:beforeSave', { id, updates: finalUpdates });
+      processedUpdates = window.Hooks.run('record:beforeSave', { id, updates: finalUpdates });
       processedUpdates = processedUpdates.updates || processedUpdates;
     }
 
     // 保存到存储
     if (window.StorageBackend) {
-      const existing = await StorageBackend.get(id);
+      const existing = await window.StorageBackend.get(id);
       if (existing) {
-        await StorageBackend.put({ ...existing, ...processedUpdates, updatedAt: Date.now() });
+        await window.StorageBackend.put({ ...existing, ...processedUpdates, updatedAt: Date.now() });
       }
     } else if (window.IDBModule) {
-      const existing = await IDBModule.get(id);
+      const existing = await window.IDBModule.get(id);
       if (existing) {
-        await IDBModule.put({ ...existing, ...processedUpdates, updatedAt: Date.now() });
+        await window.IDBModule.put({ ...existing, ...processedUpdates, updatedAt: Date.now() });
       }
     }
 
@@ -344,7 +341,7 @@ if (!window.RecordsPlugin) {
   async deleteRecord(id) {
     // 运行 beforeDelete 钩子 (可抛出异常中止删除)
     if (window.Hooks) {
-      Hooks.run('record:beforeDelete', { id });
+      window.Hooks.run('record:beforeDelete', { id });
     }
 
     // 从存储删除

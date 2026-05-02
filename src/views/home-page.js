@@ -5,6 +5,11 @@
  * @version 6.1.0
  */
 
+function escapeHtml(str) {
+  if (typeof str !== 'string') return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 class HomePage {
   constructor(container, options = {}) {
     this.container = typeof container === 'string' 
@@ -107,7 +112,7 @@ class HomePage {
     main.className = 'home-page';
 
     // HeaderBar
-    const header = HeaderBar.render({
+    const header = window.HeaderBar.render({
       title: '万物手札',
       showSearch: true,
       onSearch: () => this._handleSearch(),
@@ -139,7 +144,7 @@ class HomePage {
 
     // 底部导航（如果存在）
     if (window.BottomTabBar) {
-      const tabBar = BottomTabBar.render({
+      const tabBar = window.BottomTabBar.render({
         active: 'home',
         onChange: (tab) => this._handleTabChange(tab)
       });
@@ -187,7 +192,7 @@ class HomePage {
     if (!tabsContainer) return;
 
     tabsContainer.innerHTML = '';
-    const tabs = CategoryTabs.render(categories, activeKey, (key) => {
+    const tabs = window.CategoryTabs.render(categories, activeKey, (key) => {
       this.hook.activeKey = key;
     });
     tabsContainer.appendChild(tabs);
@@ -273,19 +278,19 @@ class HomePage {
       const onThisDayContainer = document.createElement('div');
       onThisDayContainer.id = 'review-container-on-this-day';
       container.appendChild(onThisDayContainer);
-      ReviewPlugin.renderOnThisDay(onThisDayContainer);
+      window.ReviewPlugin.renderOnThisDay(onThisDayContainer);
 
       // 每周回顾
       const weeklyContainer = document.createElement('div');
       weeklyContainer.id = 'review-container-weekly';
       container.appendChild(weeklyContainer);
-      ReviewPlugin.renderWeeklyReview(weeklyContainer);
+      window.ReviewPlugin.renderWeeklyReview(weeklyContainer);
 
       // 月度总结 (始终显示)
       const monthlyContainer = document.createElement('div');
       monthlyContainer.id = 'review-container-monthly';
       container.appendChild(monthlyContainer);
-      ReviewPlugin.renderMonthlySummary(monthlyContainer);
+      window.ReviewPlugin.renderMonthlySummary(monthlyContainer);
     } catch (e) {
       console.error('[HomePage] Failed to render review sections:', e);
     }
@@ -309,12 +314,12 @@ class HomePage {
 
     item.innerHTML = `
       <div class="record-list-item-cover">
-        ${cover ? `<img src="${cover}" alt="${this._escape(title)}" loading="lazy" />` : ''}
+        ${cover ? `<img src="${escapeHtml(cover)}" alt="${this._escape(title)}" loading="lazy" />` : ''}
       </div>
       <div class="record-list-item-content">
         <h4 class="record-list-item-title">${this._escape(title)}</h4>
         <div class="record-list-item-meta">
-          <span>${city}</span>
+          <span>${escapeHtml(city)}</span>
           <span>${likes > 0 ? '♥ ' + likes : ''}</span>
         </div>
         ${this._renderMetadataBadges(metadata)}
@@ -522,20 +527,26 @@ class HomePage {
    * @private
    */
   async _handleQuickSave(text) {
-    const now = Date.now();
     const record = {
-      id: `rec_${now}_${Math.random().toString(36).slice(2, 8)}`,
       name: text, notes: '', tags: [], photos: [],
-      status: 'in-use', favorite: false, createdAt: now, updatedAt: now
+      status: 'in-use'
     };
 
     try {
-      if (window.StorageService) await StorageService.put(record);
-      if (window.Store) {
+      if (window.RecordsPlugin) {
+        await window.RecordsPlugin.createRecord(record);
+        console.log('[HomePage] Quick saved via RecordsPlugin:', text);
+      } else if (window.Store) {
+        // Fallback: direct Store dispatch
+        const now = Date.now();
+        const fallback = {
+          ...record,
+          id: `rec_${now}_${Math.random().toString(36).slice(2, 8)}`,
+          createdAt: now, updatedAt: now, favorite: false
+        };
         const list = [...(window.Store.getState('records.list') || [])];
-        list.unshift(record);
-        window.Store.dispatch({ type: 'SET_STATE', payload: { records: { list, filtered: [...list], loading: false } } });
-        console.log('[HomePage] Quick saved:', text, 'total:', list.length);
+        list.unshift(fallback);
+        window.Store.dispatch({ type: 'records/add', payload: fallback });
       } else {
         console.warn('[HomePage] Store not available for quick save');
       }

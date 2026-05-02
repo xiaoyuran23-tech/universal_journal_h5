@@ -169,7 +169,7 @@ const ProfilePlugin = {
     // v7.0.3: 已登录时同步到服务器，失败则不更新本地状态
     if (window.AuthPlugin?.isLoggedIn) {
       try {
-        await AuthPlugin.updateProfile({ nickname: newName });
+        await window.AuthPlugin.updateProfile({ nickname: newName });
       } catch (e) {
         console.warn('[ProfilePlugin] Failed to sync nickname to server:', e.message);
         this._showToast('昵称同步失败: ' + e.message);
@@ -353,9 +353,9 @@ const ProfilePlugin = {
     const templateBtn = document.getElementById('manage-templates-btn');
     if (templateBtn) {
       templateBtn.addEventListener('click', () => {
-        if (window.Router) Router.navigate('template-manager');
+        if (window.Router) window.Router.navigate('template-manager');
         if (window.TemplatesPlugin) {
-          TemplatesPlugin.renderTemplateManager('template-manager-container');
+          window.TemplatesPlugin.renderTemplateManager('template-manager-container');
         }
       });
     }
@@ -363,13 +363,13 @@ const ProfilePlugin = {
     const cloudBtn = document.getElementById('settings-cloud-config');
     if (cloudBtn) {
       cloudBtn.addEventListener('click', () => {
-        if (window.AuthPlugin && !AuthPlugin.isLoggedIn) {
-          AuthPlugin.showLoginModal();
+        if (window.AuthPlugin && !window.AuthPlugin.isLoggedIn) {
+          window.AuthPlugin.showLoginModal();
           return;
         }
         const modal = document.getElementById('cloud-modal');
         if (modal) {
-          if (window.AutoSyncPlugin) AutoSyncPlugin._updateSyncStatusUI();
+          if (window.AutoSyncPlugin) window.AutoSyncPlugin._updateSyncStatusUI();
           modal.style.display = 'flex';
         }
       });
@@ -414,7 +414,7 @@ const ProfilePlugin = {
     if (logoutBtn) {
       logoutBtn.addEventListener('click', () => {
         if (confirm('确定要退出登录吗？')) {
-          AuthPlugin.logout();
+          window.AuthPlugin.logout();
         }
       });
     }
@@ -453,7 +453,7 @@ const ProfilePlugin = {
    * @private
    */
   _showChangePasswordModal() {
-    if (!AuthPlugin.isLoggedIn) {
+    if (!window.AuthPlugin.isLoggedIn) {
       this._showToast('请先登录');
       return;
     }
@@ -493,7 +493,7 @@ const ProfilePlugin = {
       if (newPw.length < 6) { statusEl.textContent = '新密码至少 6 位'; statusEl.style.color = '#ff4d4f'; return; }
       statusEl.textContent = '修改中...'; statusEl.style.color = '#666';
       try {
-        await AuthPlugin.changePassword(currentPw, newPw);
+        await window.AuthPlugin.changePassword(currentPw, newPw);
         modal.remove();
         this._showToast('密码已修改成功');
       } catch (e) {
@@ -507,7 +507,7 @@ const ProfilePlugin = {
    * @private
    */
   _showDeleteAccountModal() {
-    if (!AuthPlugin.isLoggedIn) {
+    if (!window.AuthPlugin.isLoggedIn) {
       this._showToast('请先登录');
       return;
     }
@@ -543,7 +543,7 @@ const ProfilePlugin = {
       if (!confirm('再次确认：删除后所有数据将永久丢失，无法恢复。是否继续？')) return;
       statusEl.textContent = '删除中...'; statusEl.style.color = '#666';
       try {
-        await AuthPlugin.deleteAccount(password);
+        await window.AuthPlugin.deleteAccount(password);
         modal.remove();
         this._showToast('账号已删除');
       } catch (e) {

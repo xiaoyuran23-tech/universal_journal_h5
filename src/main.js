@@ -11,7 +11,7 @@ async function initApp() {
     // 1. 初始化存储服务 (IndexedDB) - 容错处理
     if (window.StorageService) {
       try {
-        await StorageService.init();
+        await window.StorageService.init();
         console.log('[App] StorageService initialized');
       } catch (e) {
         console.warn('[App] StorageService init failed, continuing anyway:', e);
@@ -150,7 +150,7 @@ function renderStreakBadge() {
   const container = document.getElementById('streak-badge-container');
   if (!container || !window.StreakService) return;
 
-  const badge = StreakService.getBadge();
+  const badge = window.StreakService.getBadge();
   if (!badge) {
     container.innerHTML = '<div style="font-size:12px;color:#999;text-align:center;">今天写一条吧 🔥</div>';
     return;
@@ -171,7 +171,7 @@ function renderStreakBadge() {
  */
 function renderMoodTrend() {
   if (window.MoodPlugin) {
-    MoodPlugin.renderMoodTrend('mood-trend-container');
+    window.MoodPlugin.renderMoodTrend('mood-trend-container');
   }
 }
 
@@ -198,7 +198,7 @@ function initUI() {
       }
       // 渲染回收站列表
       if (window.TrashManager) {
-        TrashManager.renderTrashList('trash-container');
+        window.TrashManager.renderTrashList('trash-container');
       }
     });
   }
@@ -255,17 +255,17 @@ function initUI() {
 
         // 回收站页面渲染
         if (route.path === 'trash' && window.TrashManager) {
-          TrashManager.renderTrashList('trash-container');
+          window.TrashManager.renderTrashList('trash-container');
         }
 
         // 那年今日全屏页
         if (route.path === 'review/on-this-day' && window.ReviewPlugin) {
-          ReviewPlugin.renderOnThisDayFull(document.getElementById('on-this-day-container'));
+          window.ReviewPlugin.renderOnThisDayFull(document.getElementById('on-this-day-container'));
         }
 
         // 每周回顾全屏页
         if (route.path === 'review/weekly' && window.ReviewPlugin) {
-          ReviewPlugin.renderWeeklyFull(document.getElementById('weekly-review-container'));
+          window.ReviewPlugin.renderWeeklyFull(document.getElementById('weekly-review-container'));
         }
       }
     });
@@ -341,8 +341,8 @@ function updatePageVisibility(page) {
  */
 function initOnboarding() {
   const onboarding = window.Onboarding;
-  if (onboarding && Onboarding.shouldShow()) {
-    onboarding.init(Onboarding.DEFAULT_STEPS);
+  if (onboarding && window.Onboarding.shouldShow()) {
+    onboarding.init(window.Onboarding.DEFAULT_STEPS);
     setTimeout(() => onboarding.start(), 1000);
   }
 }

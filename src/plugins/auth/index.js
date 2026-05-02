@@ -102,15 +102,15 @@ const AuthPlugin = {
     localStorage.removeItem('journal_last_sync_usn');
     localStorage.removeItem('journal_pending_changes');
     if (window.AutoSyncPlugin) {
-      AutoSyncPlugin._stopAutoSync();
-      AutoSyncPlugin._lastSyncUsn = 0;
-      AutoSyncPlugin._pendingChanges = [];
-      AutoSyncPlugin._consecutiveFailures = 0;
+      window.AutoSyncPlugin._stopAutoSync();
+      window.AutoSyncPlugin._lastSyncUsn = 0;
+      window.AutoSyncPlugin._pendingChanges = [];
+      window.AutoSyncPlugin._consecutiveFailures = 0;
     }
     if (window.StorageBackend) {
-      StorageBackend.clear().catch(() => {});
+      window.StorageBackend.clear().catch(() => {});
     } else if (window.StorageService) {
-      StorageService.clear().catch(() => {});
+      window.StorageService.clear().catch(() => {});
     }
     if (window.Store) {
       window.Store.dispatch({
@@ -376,8 +376,8 @@ const AuthPlugin = {
   },
 
   _showToast(msg) {
-    if (window.UIComponents && UIComponents.Toast) {
-      UIComponents.Toast.show(msg, { duration: 2000 });
+    if (window.UIComponents && window.UIComponents.Toast) {
+      window.UIComponents.Toast.show(msg, { duration: 2000 });
     } else {
       const toast = document.getElementById('toast');
       if (toast) { toast.textContent = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2000); }

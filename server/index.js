@@ -56,12 +56,34 @@ function rateLimitMiddleware(req, res, next) {
 }
 
 // 清理过期的频率限制记录 (每 5 分钟)
+// NOTE: rateLimitMap 是内存存储，服务器重启后会丢失。
+// 对于单服务器、低频重启的场景，这是可接受的。
+// 如果需要持久化，可考虑 SQLite 或 Redis。
 setInterval(() => {
   const now = Date.now();
   for (const [ip, record] of rateLimitMap) {
     if (now > record.resetTime) rateLimitMap.delete(ip);
   }
 }, 5 * 60 * 1000);
+
+// ==================== CSRF 防护 ====================
+// 采用双重提交 Cookie 模式 (double-submit cookie pattern)
+// SameSite=Strict cookie 已保护同源请求，此中间件额外验证跨站请求
+
+function csrfMiddleware(req, res, next) {
+  // 从 cookie 头手动解析 csrf_token（不引入 cookie-parser 依赖）
+  let csrfCookie = null;
+  const cookieHeader = req.headers.cookie;
+  if (cookieHeader) {
+    const match = cookieHeader.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+    if (match) csrfCookie = match[1];
+  }
+  const tokenHeader = req.headers['x-csrf-token'];
+  if (!tokenHeader || tokenHeader !== csrfCookie) {
+    return res.status(403).json({ error: 'CSRF 验证失败' });
+  }
+  next();
+}
 
 // 邮箱格式校验 (RFC 5322 简化版)
 function isValidEmail(email) {
@@ -205,6 +227,15 @@ function setAuthCookie(res, token) {
   );
 }
 
+// 设置 CSRF token cookie (非 httpOnly，供客户端读取)
+function setCSRFCookie(res) {
+  const isProd = process.env.NODE_ENV === 'production';
+  const token = randomBytes(32).toString('hex');
+  res.setHeader('Set-Cookie',
+    `csrf_token=${token}; SameSite=Strict; Path=/${isProd ? '; Secure' : ''}`
+  );
+}
+
 function clearAuthCookie(res) {
   res.setHeader('Set-Cookie',
     'journal_token=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'
@@ -287,6 +318,7 @@ app.post('/api/auth/register', rateLimitMiddleware, (req, res) => {
 
     // 仅设置 httpOnly cookie，不在响应体中返回 token（防止 XSS 窃取）
     setAuthCookie(res, token);
+    setCSRFCookie(res);
     res.status(201).json({ user });
   } catch (e) {
     console.error('[Auth] Register error:', e);
@@ -313,6 +345,7 @@ app.post('/api/auth/login', rateLimitMiddleware, (req, res) => {
     const token = generateToken(safeUser);
     // 仅设置 httpOnly cookie，不在响应体中返回 token（防止 XSS 窃取）
     setAuthCookie(res, token);
+    setCSRFCookie(res);
     res.json({ user: safeUser });
   } catch (e) {
     console.error('[Auth] Login error:', e);
@@ -323,10 +356,11 @@ app.post('/api/auth/login', rateLimitMiddleware, (req, res) => {
 app.get('/api/auth/me', authMiddleware, (req, res) => {
   const user = db.prepare('SELECT id, email, nickname, created_at FROM users WHERE id = ?').get(req.userId);
   if (!user) return res.status(404).json({ error: '用户不存在' });
+  setCSRFCookie(res);
   res.json({ user });
 });
 
-app.put('/api/auth/profile', rateLimitMiddleware, authMiddleware, (req, res) => {
+app.put('/api/auth/profile', rateLimitMiddleware, authMiddleware, csrfMiddleware, (req, res) => {
   const { nickname } = req.body;
   if (!nickname || typeof nickname !== 'string') return res.status(400).json({ error: '昵称格式不正确' });
   if (nickname.length > 50) return res.status(400).json({ error: '昵称过长' });
@@ -336,7 +370,7 @@ app.put('/api/auth/profile', rateLimitMiddleware, authMiddleware, (req, res) => 
 });
 
 // v7.0.3: 登出端点 — 清除 httpOnly cookie 并作废 token
-app.post('/api/auth/logout', authMiddleware, (req, res) => {
+app.post('/api/auth/logout', authMiddleware, csrfMiddleware, (req, res) => {
   // 递增 token 版本，使当前 JWT 失效
   db.prepare('UPDATE users SET token_version = token_version + 1 WHERE id = ?').run(req.userId);
   clearAuthCookie(res);
@@ -344,7 +378,7 @@ app.post('/api/auth/logout', authMiddleware, (req, res) => {
 });
 
 // v7.1.0: 修改密码（增加速率限制）
-app.put('/api/auth/change-password', rateLimitMiddleware, authMiddleware, (req, res) => {
+app.put('/api/auth/change-password', rateLimitMiddleware, authMiddleware, csrfMiddleware, (req, res) => {
   const { currentPassword, newPassword } = req.body;
   if (!currentPassword || !newPassword) return res.status(400).json({ error: '当前密码和新密码必填' });
   if (newPassword.length < 6) return res.status(400).json({ error: '新密码至少 6 位' });
@@ -353,7 +387,7 @@ app.put('/api/auth/change-password', rateLimitMiddleware, authMiddleware, (req, 
   try {
     const user = db.prepare('SELECT id, password_hash FROM users WHERE id = ?').get(req.userId);
     if (!user || !verifyPassword(currentPassword, user.password_hash)) {
-      return res.status(401).json({ error: '当前密码不正确' });
+      return res.status(401).json({ error: '邮箱或密码错误' });
     }
 
     const newHash = hashPassword(newPassword);
@@ -371,7 +405,7 @@ app.put('/api/auth/change-password', rateLimitMiddleware, authMiddleware, (req, 
 });
 
 // v7.1.0: 删除账号（增加速率限制）
-app.delete('/api/auth/account', rateLimitMiddleware, authMiddleware, (req, res) => {
+app.delete('/api/auth/account', rateLimitMiddleware, authMiddleware, csrfMiddleware, (req, res) => {
   const { password } = req.body;
   if (!password) return res.status(400).json({ error: '密码必填' });
 
@@ -440,7 +474,7 @@ app.get('/api/records', authMiddleware, (req, res) => {
   }
 });
 
-app.post('/api/records', authMiddleware, (req, res) => {
+app.post('/api/records', authMiddleware, csrfMiddleware, (req, res) => {
   const record = req.body;
   try {
     // v7.0.3: 使用事务确保 USN 递增和记录插入原子性
@@ -470,7 +504,7 @@ app.post('/api/records', authMiddleware, (req, res) => {
   }
 });
 
-app.put('/api/records/:id', authMiddleware, (req, res) => {
+app.put('/api/records/:id', authMiddleware, csrfMiddleware, (req, res) => {
   const record = db.prepare('SELECT * FROM records WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!record) return res.status(404).json({ error: '记录不存在' });
 
@@ -511,7 +545,7 @@ app.put('/api/records/:id', authMiddleware, (req, res) => {
   }
 });
 
-app.delete('/api/records/:id', authMiddleware, (req, res) => {
+app.delete('/api/records/:id', authMiddleware, csrfMiddleware, (req, res) => {
   const record = db.prepare('SELECT * FROM records WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!record) return res.status(404).json({ error: '记录不存在' });
 
@@ -534,7 +568,7 @@ app.delete('/api/records/:id', authMiddleware, (req, res) => {
 
 // ========== Sync ==========
 
-app.post('/api/sync/pull', authMiddleware, (req, res) => {
+app.post('/api/sync/pull', authMiddleware, csrfMiddleware, (req, res) => {
   try {
     const { lastSyncUsn } = req.body;
     const usn = lastSyncUsn || 0;
@@ -563,7 +597,7 @@ app.post('/api/sync/pull', authMiddleware, (req, res) => {
   }
 });
 
-app.post('/api/sync/push', authMiddleware, (req, res) => {
+app.post('/api/sync/push', authMiddleware, csrfMiddleware, (req, res) => {
   const { changes } = req.body;
   const results = [];
 

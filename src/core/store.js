@@ -156,7 +156,8 @@ class Store {
    */
   _setNestedState(path, value) {
     const keys = path.split('.');
-    let target = this._state;
+    const newState = JSON.parse(JSON.stringify(this._state));
+    let target = newState;
 
     for (let i = 0; i < keys.length - 1; i++) {
       if (!target[keys[i]]) {
@@ -166,6 +167,7 @@ class Store {
     }
 
     target[keys[keys.length - 1]] = value;
+    this._state = newState;
   }
 
   /**
@@ -263,6 +265,10 @@ class Store {
       return true;
     }
     return false;
+  }
+
+  canUndo() {
+    return this._history.length > 0 && this._historyIndex > 0;
   }
 
   /**
