@@ -226,13 +226,13 @@ class Kernel {
     // 页面可见性变化
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
-        window.Store.persist('journal_v6_state');
+        window.Store.persist();
       }
     });
 
     // 页面卸载前保存状态
     window.addEventListener('beforeunload', () => {
-      window.Store.persist('journal_v6_state');
+      window.Store.persist();
     });
   }
 

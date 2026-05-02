@@ -23,14 +23,10 @@ const ControllerPlugin = {
     this._bindNavigation();
     this._bindFAB();
     this._bindSearch();
-    this._bindProfile();
-    this._bindDataOperations();
     this._bindTemplateBottomSheet();
     this._bindFormButtons();
     this._bindDetailButtons();
-    this._bindSettingsButtons();
     this._bindMarkdownButtons();
-    this._bindSyncButtons();
     this._bindThemeToggle();
     this._bindVisuals();
     this._bindTemplateManager();
@@ -106,124 +102,6 @@ const ControllerPlugin = {
   _bindSearch() {
     // 搜索功能已委托给 SearchPlugin，此处不再重复绑定
     // SearchPlugin 在 start() 中自行绑定输入框事件
-  },
-
-  /**
-   * 绑定个人资料
-   * @private
-   */
-  _bindProfile() {
-    const editBtn = document.getElementById('profile-edit-btn');
-    const saveBtn = document.getElementById('profile-save-btn');
-    const nameInput = document.getElementById('profile-name-input');
-    const displayName = document.getElementById('profile-display-name');
-
-    if (editBtn) {
-      editBtn.addEventListener('click', () => {
-        if (displayName) displayName.style.display = 'none';
-        if (nameInput) {
-          nameInput.style.display = 'block';
-          nameInput.value = displayName?.textContent || '';
-          nameInput.focus();
-        }
-        if (saveBtn) saveBtn.style.display = 'block';
-        if (editBtn) editBtn.style.display = 'none';
-      });
-    }
-
-    if (saveBtn) {
-      saveBtn.addEventListener('click', () => {
-        const newName = nameInput?.value?.trim();
-        if (newName) {
-          localStorage.setItem('universal_journal_username', newName);
-          if (displayName) displayName.textContent = newName;
-        }
-        if (displayName) displayName.style.display = 'block';
-        if (nameInput) nameInput.style.display = 'none';
-        if (saveBtn) saveBtn.style.display = 'none';
-        if (editBtn) editBtn.style.display = 'block';
-        this._showToast('昵称已更新');
-      });
-    }
-  },
-
-  /**
-   * 绑定数据操作（导入/导出/清空）
-   * @private
-   */
-  _bindDataOperations() {
-    const exportBtn = document.getElementById('export-data-btn');
-    const importBtn = document.getElementById('import-data-btn');
-    const clearBtn = document.getElementById('clear-all-data-btn');
-    const aboutBtn = document.getElementById('settings-about');
-
-    if (exportBtn) {
-      exportBtn.addEventListener('click', async () => {
-        const records = window.Store ? window.Store.getState('records.list') : [];
-        const data = {
-          version: '6.1.0',
-          exportDate: new Date().toISOString(),
-          count: records.length,
-          records
-        };
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `journal-export-${new Date().toISOString().split('T')[0]}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-        this._showToast('导出成功');
-      });
-    }
-
-    if (importBtn) {
-      importBtn.addEventListener('click', () => {
-        const input = document.getElementById('import-file-input');
-        if (input) input.click();
-      });
-
-      const fileInput = document.getElementById('import-file-input');
-      if (fileInput) {
-        fileInput.addEventListener('change', async (e) => {
-          const file = e.target.files[0];
-          if (!file) return;
-          const text = await file.text();
-          try {
-            const data = JSON.parse(text);
-            if (data.records && Array.isArray(data.records)) {
-              for (const record of data.records) {
-                if (window.StorageService) {
-                  await StorageService.put(record);
-                }
-              }
-              this._showToast(`已导入 ${data.records.length} 条记录`);
-              if (window.Router) Router.navigate('home');
-            }
-          } catch (err) {
-            this._showToast('导入失败：无效的文件格式');
-          }
-          fileInput.value = '';
-        });
-      }
-    }
-
-    if (clearBtn) {
-      clearBtn.addEventListener('click', async () => {
-        if (!confirm('确定要清空所有数据吗？此操作不可恢复！')) return;
-        if (window.StorageService) {
-          await StorageService.clear();
-        }
-        this._showToast('数据已清空');
-        if (window.Router) Router.navigate('home');
-      });
-    }
-
-    if (aboutBtn) {
-      aboutBtn.addEventListener('click', () => {
-        alert('万物手札 v6.1.0\n记录世间万物，收藏生活点滴');
-      });
-    }
   },
 
   /**
@@ -350,111 +228,12 @@ const ControllerPlugin = {
   },
 
   /**
-   * 绑定设置页按钮
-   * @private
-   */
-  _bindSettingsButtons() {
-    const lockBtn = document.getElementById('settings-lock');
-    if (lockBtn) {
-      lockBtn.addEventListener('click', () => {
-        if (window.SecurityPlugin) {
-          SecurityPlugin.lock();
-        }
-      });
-    }
-
-    const statsBtn = document.getElementById('settings-stats');
-    if (statsBtn) {
-      statsBtn.addEventListener('click', () => {
-        if (window.Router) Router.navigate('stats');
-      });
-    }
-
-    const trashBtn = document.getElementById('settings-trash');
-    if (trashBtn) {
-      trashBtn.addEventListener('click', () => {
-        if (window.Router) Router.navigate('trash');
-        if (window.TrashManager) {
-          TrashManager.renderTrashList('trash-container');
-        }
-      });
-    }
-  },
-
-  /**
    * 绑定 Markdown 导入/导出
    * MarkdownPlugin 已在 start() 中自行绑定，此处不重复
    * @private
    */
   _bindMarkdownButtons() {
     // MarkdownPlugin 已处理 export-markdown-btn 和 import-markdown-btn
-  },
-
-  /**
-   * 绑定云端同步按钮
-   * @private
-   */
-  _bindSyncButtons() {
-    const cloudBtn = document.getElementById('settings-cloud-config');
-    if (cloudBtn) {
-      cloudBtn.addEventListener('click', () => {
-        const modal = document.getElementById('cloud-modal');
-        if (modal) modal.style.display = 'flex';
-      });
-    }
-
-    const uploadBtn = document.getElementById('sync-upload');
-    if (uploadBtn) {
-      uploadBtn.addEventListener('click', async () => {
-        const statusEl = document.getElementById('sync-status');
-        if (statusEl) statusEl.textContent = '上传中...';
-        try {
-          if (window.SyncPlugin) {
-            await SyncPlugin.upload();
-            if (statusEl) statusEl.textContent = '上传成功';
-          }
-        } catch (e) {
-          if (statusEl) statusEl.textContent = '上传失败: ' + e.message;
-        }
-      });
-    }
-
-    const downloadBtn = document.getElementById('sync-download');
-    if (downloadBtn) {
-      downloadBtn.addEventListener('click', async () => {
-        const statusEl = document.getElementById('sync-status');
-        if (statusEl) statusEl.textContent = '下载中...';
-        try {
-          if (window.SyncPlugin) {
-            await SyncPlugin.download();
-            if (statusEl) statusEl.textContent = '下载成功';
-          }
-        } catch (e) {
-          if (statusEl) statusEl.textContent = '下载失败: ' + e.message;
-        }
-      });
-    }
-
-    const syncSaveBtn = document.getElementById('sync-save-config');
-    if (syncSaveBtn) {
-      syncSaveBtn.addEventListener('click', () => {
-        const gistId = document.getElementById('sync-gist-id')?.value;
-        const token = document.getElementById('sync-token')?.value;
-        const key = document.getElementById('sync-key')?.value;
-        if (window.SyncPlugin) {
-          SyncPlugin.saveConfig({ gistId, token, key });
-          this._showToast('配置已保存');
-        }
-      });
-    }
-
-    // 关闭弹窗
-    const closeBtn = document.getElementById('cloud-modal-close');
-    const modal = document.getElementById('cloud-modal');
-    if (closeBtn && modal) {
-      closeBtn.addEventListener('click', () => { modal.style.display = 'none'; });
-      modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
-    }
   },
 
   /**
@@ -517,17 +296,7 @@ const ControllerPlugin = {
    * @private
    */
   _bindTemplateManager() {
-    const manageBtn = document.getElementById('manage-templates-btn');
     const backBtn = document.getElementById('tm-back-btn');
-
-    if (manageBtn) {
-      manageBtn.addEventListener('click', () => {
-        if (window.Router) Router.navigate('template-manager');
-        if (window.TemplatesPlugin) {
-          TemplatesPlugin.renderTemplateManager('template-manager-container');
-        }
-      });
-    }
 
     if (backBtn) {
       backBtn.addEventListener('click', () => {

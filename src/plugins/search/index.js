@@ -15,6 +15,8 @@ window.SearchPlugin = {
   _isSearching: false,
   _searchHistory: [],
   _initialized: false,
+  _historyFocusHandler: null,
+  _historyCloseHandler: null,
 
   // 配置
   _config: {
@@ -433,22 +435,31 @@ window.SearchPlugin = {
       });
     }
 
+    // v7.0.3: 移除旧的监听器，防止累积
+    if (searchInput && this._historyFocusHandler) {
+      searchInput.removeEventListener('focus', this._historyFocusHandler);
+    }
+    if (this._historyCloseHandler) {
+      document.removeEventListener('click', this._historyCloseHandler);
+    }
+
     // 搜索框聚焦时显示历史
-    const searchInput = document.getElementById('search-input');
+    this._historyFocusHandler = () => {
+      if (!searchInput.value.trim()) {
+        dropdown.style.display = 'block';
+      }
+    };
     if (searchInput) {
-      searchInput.addEventListener('focus', () => {
-        if (!searchInput.value.trim()) {
-          dropdown.style.display = 'block';
-        }
-      });
+      searchInput.addEventListener('focus', this._historyFocusHandler);
     }
 
     // 点击外部关闭
-    document.addEventListener('click', (e) => {
+    this._historyCloseHandler = (e) => {
       if (!searchBar.contains(e.target)) {
         dropdown.style.display = 'none';
       }
-    });
+    };
+    document.addEventListener('click', this._historyCloseHandler);
 
     searchBar.style.position = 'relative';
     searchBar.appendChild(dropdown);

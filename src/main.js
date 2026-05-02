@@ -5,7 +5,7 @@
  */
 
 async function initApp() {
-  console.log('[App] Initializing v7.0.2...');
+  console.log('[App] Initializing v7.0.3...');
 
   try {
     // 1. 初始化存储服务 (IndexedDB) - 容错处理
@@ -59,12 +59,13 @@ async function initApp() {
           markdown: window.MarkdownPlugin,
           review: window.ReviewPlugin,
           graph: window.GraphPlugin,
-          example: window.ExamplePlugin,
+          // example: window.ExamplePlugin, // 开发用示例，生产环境已移除
           // v7.0.0 新增
           auth: window.AuthPlugin,
           mood: window.MoodPlugin,
           autoSync: window.AutoSyncPlugin,
-          transitions: window.TransitionsPlugin
+          transitions: window.TransitionsPlugin,
+          profile: window.ProfilePlugin
         };
 
         // 检查核心依赖
@@ -86,7 +87,7 @@ async function initApp() {
           'records', 'calendar', 'timeline', 'editor',
           'favorites', 'templates', 'sync', 'settings',
           'security', 'trash', 'batch', 'draft',
-          'tags', 'visuals', 'theme', 'search', 'hotkeys', 'controller', 'markdown', 'review', 'graph', 'auth', 'mood', 'autoSync', 'transitions'
+          'tags', 'visuals', 'theme', 'search', 'hotkeys', 'controller', 'markdown', 'review', 'graph', 'auth', 'mood', 'autoSync', 'transitions', 'profile'
         ]);
         
         console.log('[App] Plugin loading completed');

@@ -264,6 +264,9 @@ if (!window.RecordsPlugin) {
       Hooks.run('record:afterSave', processedRecord);
     }
 
+    // v7.0: 记录创建变更用于自动同步
+    window.AutoSyncPlugin?.recordChange('create', processedRecord);
+
     // 触发事件
     if (window.EventBus) {
       window.EventBus.emit('records:created', processedRecord);
@@ -318,6 +321,10 @@ if (!window.RecordsPlugin) {
       type: 'records/update',
       payload: { id, updates: { ...processedUpdates, updatedAt: Date.now() } }
     });
+
+    // v7.0: 记录更新变更用于自动同步
+    const mergedRecord = { id, ...processedUpdates, updatedAt: Date.now() };
+    window.AutoSyncPlugin?.recordChange('update', mergedRecord);
 
     // 运行 afterSave 钩子
     if (window.Hooks) {

@@ -142,18 +142,41 @@ function generateToken(user) {
 }
 
 function authMiddleware(req, res, next) {
-  const header = req.headers.authorization;
-  if (!header || !header.startsWith('Bearer ')) {
+  // v7.0.3: 优先从 httpOnly cookie 读取 token，兼容 Authorization header
+  let token = null;
+  const cookieHeader = req.headers.cookie;
+  if (cookieHeader) {
+    const match = cookieHeader.match(/journal_token=([^;]+)/);
+    if (match) token = match[1];
+  }
+  if (!token && req.headers.authorization?.startsWith('Bearer ')) {
+    token = req.headers.authorization.slice(7);
+  }
+  if (!token) {
     return res.status(401).json({ error: '未提供认证令牌' });
   }
   try {
-    const token = header.slice(7);
     const decoded = jwt.verify(token, JWT_SECRET);
     req.userId = decoded.userId;
     next();
   } catch (e) {
     return res.status(401).json({ error: '令牌无效或已过期' });
   }
+}
+
+// 设置 httpOnly cookie 的辅助函数
+function setAuthCookie(res, token) {
+  const isProd = process.env.NODE_ENV === 'production';
+  const cookieVal = encodeURIComponent(token);
+  res.setHeader('Set-Cookie',
+    `journal_token=${cookieVal}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${30 * 24 * 60 * 60}${isProd ? '; Secure' : ''}`
+  );
+}
+
+function clearAuthCookie(res) {
+  res.setHeader('Set-Cookie',
+    'journal_token=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'
+  );
 }
 
 // 中间件
@@ -226,6 +249,8 @@ app.post('/api/auth/register', rateLimitMiddleware, (req, res) => {
     const user = db.prepare('SELECT id, email, nickname, created_at FROM users WHERE id = ?').get(result.lastInsertRowid);
     const token = generateToken(user);
 
+    // v7.0.3: 设置 httpOnly cookie（同时保留 token 在响应中兼容旧客户端）
+    setAuthCookie(res, token);
     res.status(201).json({ user, token });
   } catch (e) {
     console.error('[Auth] Register error:', e);
@@ -246,6 +271,8 @@ app.post('/api/auth/login', rateLimitMiddleware, (req, res) => {
 
     const { password_hash, ...safeUser } = user;
     const token = generateToken(safeUser);
+    // v7.0.3: 设置 httpOnly cookie
+    setAuthCookie(res, token);
     res.json({ user: safeUser, token });
   } catch (e) {
     console.error('[Auth] Login error:', e);
@@ -268,222 +295,204 @@ app.put('/api/auth/profile', authMiddleware, (req, res) => {
   res.json({ user });
 });
 
+// v7.0.3: 登出端点 — 清除 httpOnly cookie
+app.post('/api/auth/logout', (req, res) => {
+  clearAuthCookie(res);
+  res.json({ success: true });
+});
+
 // ========== Records ==========
 
 app.get('/api/records', authMiddleware, (req, res) => {
-  const { usn, since, deleted } = req.query;
-  let query = 'SELECT * FROM records WHERE user_id = ?';
-  const params = [req.userId];
+  try {
+    const { usn, since, deleted } = req.query;
+    let query = 'SELECT * FROM records WHERE user_id = ?';
+    const params = [req.userId];
 
-  if (usn) {
-    query += ' AND usn > ?';
-    params.push(parseInt(usn));
+    if (usn) {
+      query += ' AND usn > ?';
+      params.push(parseInt(usn));
+    }
+    if (since) {
+      query += ' AND updated_at > ?';
+      params.push(since);
+    }
+    if (deleted === 'true') {
+      query += ' AND deleted = 1';
+    } else {
+      query += ' AND deleted = 0';
+    }
+
+    query += ' ORDER BY updated_at DESC';
+    const records = db.prepare(query).all(...params);
+
+    records.forEach(r => {
+      r.tags = JSON.parse(r.tags || '[]');
+      r.photos = JSON.parse(r.photos || '[]');
+      r.links = JSON.parse(r.links || '[]');
+      r.metadata = JSON.parse(r.metadata || '{}');
+      r.blocks = JSON.parse(r.blocks || '[]');
+      r.createdAt = new Date(r.created_at).getTime();
+      r.updatedAt = new Date(r.updated_at).getTime();
+      delete r.created_at;
+      delete r.updated_at;
+    });
+
+    res.json({ records });
+  } catch (e) {
+    console.error('[Records] Query error:', e);
+    res.status(500).json({ error: '查询记录失败' });
   }
-  if (since) {
-    query += ' AND updated_at > ?';
-    params.push(since);
-  }
-  if (deleted === 'true') {
-    query += ' AND deleted = 1';
-  } else {
-    query += ' AND deleted = 0';
-  }
-
-  query += ' ORDER BY updated_at DESC';
-  const records = db.prepare(query).all(...params);
-
-  // 解析 JSON 字段 + 字段名转换
-  records.forEach(r => {
-    r.tags = JSON.parse(r.tags || '[]');
-    r.photos = JSON.parse(r.photos || '[]');
-    r.links = JSON.parse(r.links || '[]');
-    r.metadata = JSON.parse(r.metadata || '{}');
-    r.blocks = JSON.parse(r.blocks || '[]');
-    // 转换为前端期望的驼峰命名
-    r.createdAt = new Date(r.created_at).getTime();
-    r.updatedAt = new Date(r.updated_at).getTime();
-    delete r.created_at;
-    delete r.updated_at;
-  });
-
-  res.json({ records });
 });
 
 app.post('/api/records', authMiddleware, (req, res) => {
   const record = req.body;
-  const user = db.prepare('SELECT max_usn FROM users WHERE id = ?').get(req.userId);
-  const usn = user.max_usn + 1;
-
-  db.prepare('UPDATE users SET max_usn = ? WHERE id = ?').run(usn, req.userId);
-
-  const stmt = db.prepare(`
-    INSERT INTO records (id, user_id, name, notes, tags, mood, status, favorite, photos, location, links, metadata, blocks, usn, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-  `);
-
-  stmt.run(
-    record.id || `rec_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    req.userId,
-    record.name || '',
-    record.notes || '',
-    JSON.stringify(record.tags || []),
-    record.mood || null,
-    record.status || 'in-use',
-    record.favorite ? 1 : 0,
-    JSON.stringify(record.photos || []),
-    record.location || null,
-    JSON.stringify(record.links || []),
-    JSON.stringify(record.metadata || {}),
-    JSON.stringify(record.blocks || []),
-    usn
-  );
-
-  res.status(201).json({ record: { ...record, usn } });
+  try {
+    // v7.0.3: 使用事务确保 USN 递增和记录插入原子性
+    const createRecord = db.transaction(() => {
+      const user = db.prepare('SELECT max_usn FROM users WHERE id = ?').get(req.userId);
+      const usn = user.max_usn + 1;
+      db.prepare('UPDATE users SET max_usn = ? WHERE id = ?').run(usn, req.userId);
+      db.prepare(`
+        INSERT INTO records (id, user_id, name, notes, tags, mood, status, favorite, photos, location, links, metadata, blocks, usn, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      `).run(
+        record.id || `rec_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        req.userId, record.name || '', record.notes || '',
+        JSON.stringify(record.tags || []), record.mood || null,
+        record.status || 'in-use', record.favorite ? 1 : 0,
+        JSON.stringify(record.photos || []), record.location || null,
+        JSON.stringify(record.links || []), JSON.stringify(record.metadata || {}),
+        JSON.stringify(record.blocks || []), usn
+      );
+      return usn;
+    });
+    const usn = createRecord();
+    res.status(201).json({ record: { ...record, usn } });
+  } catch (e) {
+    console.error('[Records] Create error:', e);
+    res.status(500).json({ error: '创建记录失败' });
+  }
 });
 
 app.put('/api/records/:id', authMiddleware, (req, res) => {
   const record = db.prepare('SELECT * FROM records WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!record) return res.status(404).json({ error: '记录不存在' });
 
-  const user = db.prepare('SELECT max_usn FROM users WHERE id = ?').get(req.userId);
-  const usn = user.max_usn + 1;
-  db.prepare('UPDATE users SET max_usn = ? WHERE id = ?').run(usn, req.userId);
+  try {
+    // v7.0.3: 使用事务确保 USN 递增和记录更新原子性
+    const updateRecord = db.transaction(() => {
+      const user = db.prepare('SELECT max_usn FROM users WHERE id = ?').get(req.userId);
+      const usn = user.max_usn + 1;
+      const updates = req.body;
+      const fields = [];
+      const values = [];
 
-  const updates = req.body;
-  const fields = [];
-  const values = [];
+      if (updates.name !== undefined) { fields.push('name = ?'); values.push(updates.name); }
+      if (updates.notes !== undefined) { fields.push('notes = ?'); values.push(updates.notes); }
+      if (updates.tags !== undefined) { fields.push('tags = ?'); values.push(JSON.stringify(updates.tags)); }
+      if (updates.mood !== undefined) { fields.push('mood = ?'); values.push(updates.mood); }
+      if (updates.status !== undefined) { fields.push('status = ?'); values.push(updates.status); }
+      if (updates.favorite !== undefined) { fields.push('favorite = ?'); values.push(updates.favorite ? 1 : 0); }
+      if (updates.photos !== undefined) { fields.push('photos = ?'); values.push(JSON.stringify(updates.photos)); }
+      if (updates.deleted !== undefined) {
+        fields.push('deleted = ?'); values.push(updates.deleted ? 1 : 0);
+        if (updates.deleted) {
+          fields.push('deleted_at = CURRENT_TIMESTAMP');
+        }
+      }
+      fields.push('updated_at = CURRENT_TIMESTAMP');
+      values.push(req.params.id, req.userId);
 
-  if (updates.name !== undefined) { fields.push('name = ?'); values.push(updates.name); }
-  if (updates.notes !== undefined) { fields.push('notes = ?'); values.push(updates.notes); }
-  if (updates.tags !== undefined) { fields.push('tags = ?'); values.push(JSON.stringify(updates.tags)); }
-  if (updates.mood !== undefined) { fields.push('mood = ?'); values.push(updates.mood); }
-  if (updates.status !== undefined) { fields.push('status = ?'); values.push(updates.status); }
-  if (updates.favorite !== undefined) { fields.push('favorite = ?'); values.push(updates.favorite ? 1 : 0); }
-  if (updates.photos !== undefined) { fields.push('photos = ?'); values.push(JSON.stringify(updates.photos)); }
-  if (updates.deleted !== undefined) {
-    fields.push('deleted = ?'); values.push(updates.deleted ? 1 : 0);
-    if (updates.deleted) {
-      fields.push('deleted_at = CURRENT_TIMESTAMP');
-    }
+      db.prepare(`UPDATE records SET ${fields.join(', ')} WHERE id = ? AND user_id = ?`).run(...values);
+      db.prepare('UPDATE users SET max_usn = ? WHERE id = ?').run(usn, req.userId);
+      return usn;
+    });
+    const usn = updateRecord();
+    res.json({ usn });
+  } catch (e) {
+    console.error('[Records] Update error:', e);
+    res.status(500).json({ error: '更新记录失败' });
   }
-  fields.push('updated_at = CURRENT_TIMESTAMP');
-  values.push(req.params.id, req.userId);
-
-  db.prepare(`UPDATE records SET ${fields.join(', ')} WHERE id = ? AND user_id = ?`).run(...values);
-
-  res.json({ usn });
 });
 
 app.delete('/api/records/:id', authMiddleware, (req, res) => {
   const record = db.prepare('SELECT * FROM records WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!record) return res.status(404).json({ error: '记录不存在' });
 
-  const user = db.prepare('SELECT max_usn FROM users WHERE id = ?').get(req.userId);
-  const usn = user.max_usn + 1;
-  db.prepare('UPDATE users SET max_usn = ? WHERE id = ?').run(usn, req.userId);
-  db.prepare('UPDATE records SET deleted = 1, deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, usn = ? WHERE id = ? AND user_id = ?').run(usn, req.params.id, req.userId);
-
-  res.json({ usn });
+  try {
+    // v7.0.3: 使用事务确保 USN 递增和删除操作原子性
+    const deleteRecord = db.transaction(() => {
+      const user = db.prepare('SELECT max_usn FROM users WHERE id = ?').get(req.userId);
+      const usn = user.max_usn + 1;
+      db.prepare('UPDATE records SET deleted = 1, deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, usn = ? WHERE id = ? AND user_id = ?').run(usn, req.params.id, req.userId);
+      db.prepare('UPDATE users SET max_usn = ? WHERE id = ?').run(usn, req.userId);
+      return usn;
+    });
+    const usn = deleteRecord();
+    res.json({ usn });
+  } catch (e) {
+    console.error('[Records] Delete error:', e);
+    res.status(500).json({ error: '删除记录失败' });
+  }
 });
 
 // ========== Sync ==========
 
 app.post('/api/sync/pull', authMiddleware, (req, res) => {
-  const { lastSyncUsn } = req.body;
-  const usn = lastSyncUsn || 0;
+  try {
+    const { lastSyncUsn } = req.body;
+    const usn = lastSyncUsn || 0;
 
-  const records = db.prepare(
-    'SELECT * FROM records WHERE user_id = ? AND usn > ? ORDER BY usn ASC'
-  ).all(req.userId, usn);
+    const records = db.prepare(
+      'SELECT * FROM records WHERE user_id = ? AND usn > ? ORDER BY usn ASC'
+    ).all(req.userId, usn);
 
-  records.forEach(r => {
-    r.tags = JSON.parse(r.tags || '[]');
-    r.photos = JSON.parse(r.photos || '[]');
-    r.links = JSON.parse(r.links || '[]');
-    r.metadata = JSON.parse(r.metadata || '{}');
-    r.blocks = JSON.parse(r.blocks || '[]');
-    r.createdAt = new Date(r.created_at).getTime();
-    r.updatedAt = new Date(r.updated_at).getTime();
-    delete r.created_at;
-    delete r.updated_at;
-  });
+    records.forEach(r => {
+      r.tags = JSON.parse(r.tags || '[]');
+      r.photos = JSON.parse(r.photos || '[]');
+      r.links = JSON.parse(r.links || '[]');
+      r.metadata = JSON.parse(r.metadata || '{}');
+      r.blocks = JSON.parse(r.blocks || '[]');
+      r.createdAt = new Date(r.created_at).getTime();
+      r.updatedAt = new Date(r.updated_at).getTime();
+      delete r.created_at;
+      delete r.updated_at;
+    });
 
-  const user = db.prepare('SELECT max_usn FROM users WHERE id = ?').get(req.userId);
-  res.json({ records, serverMaxUsn: user.max_usn });
+    const user = db.prepare('SELECT max_usn FROM users WHERE id = ?').get(req.userId);
+    res.json({ records, serverMaxUsn: user.max_usn });
+  } catch (e) {
+    console.error('[Sync] Pull error:', e);
+    res.status(500).json({ error: '拉取同步数据失败' });
+  }
 });
 
 app.post('/api/sync/push', authMiddleware, (req, res) => {
   const { changes } = req.body;
   const results = [];
 
-  for (const change of changes) {
-    const existing = db.prepare('SELECT usn FROM records WHERE id = ? AND user_id = ?').get(change.id, req.userId);
-    const user = db.prepare('SELECT max_usn FROM users WHERE id = ?').get(req.userId);
-    const newUsn = user.max_usn + 1;
-
-    // 删除操作
-    if (change._deleted) {
-      if (existing) {
-        db.prepare(
-          'UPDATE records SET deleted = 1, deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, usn = ? WHERE id = ? AND user_id = ?'
-        ).run(newUsn, change.id, req.userId);
-      }
-      db.prepare('UPDATE users SET max_usn = ? WHERE id = ?').run(newUsn, req.userId);
-      results.push({ id: change.id, usn: newUsn, deleted: true });
-      continue;
-    }
-
-    if (!existing) {
-      // 新记录
-      db.prepare(`
-        INSERT INTO records (id, user_id, name, notes, tags, mood, status, favorite, photos, location, links, metadata, blocks, usn, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-      `).run(
-        change.id, req.userId,
-        change.name || '', change.notes || '',
-        JSON.stringify(change.tags || []), change.mood,
-        change.status || 'in-use', change.favorite ? 1 : 0,
-        JSON.stringify(change.photos || []), change.location,
-        JSON.stringify(change.links || []), JSON.stringify(change.metadata || {}),
-        JSON.stringify(change.blocks || []), newUsn
-      );
-    } else {
-      // 更新：只覆盖客户端版本
-      db.prepare(`
-        UPDATE records SET name = ?, notes = ?, tags = ?, mood = ?, status = ?, favorite = ?, photos = ?, location = ?, links = ?, metadata = ?, blocks = ?, usn = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ? AND user_id = ?
-      `).run(
-        change.name || '', change.notes || '',
-        JSON.stringify(change.tags || []), change.mood,
-        change.status || 'in-use', change.favorite ? 1 : 0,
-        JSON.stringify(change.photos || []), change.location,
-        JSON.stringify(change.links || []), JSON.stringify(change.metadata || {}),
-        JSON.stringify(change.blocks || []), newUsn,
-        change.id, req.userId
-      );
-    }
-
-    db.prepare('UPDATE users SET max_usn = ? WHERE id = ?').run(newUsn, req.userId);
-    results.push({ id: change.id, usn: newUsn });
-  }
-
-  res.json({ results, serverMaxUsn: db.prepare('SELECT max_usn FROM users WHERE id = ?').get(req.userId).max_usn });
-});
-
-app.post('/api/sync/full', authMiddleware, async (req, res) => {
-  // 先 push
-  const { changes, lastSyncUsn } = req.body;
-  const pushReq = { body: { changes }, userId: req.userId };
-  const pushRes = { json: (data) => { pushReq.pushResult = data; } };
-
-  // 内联 push 逻辑
-  if (changes && changes.length > 0) {
-    for (const change of changes) {
+  // v7.0.3: 使用事务确保原子性，部分失败时全部回滚
+  const runInTransaction = db.transaction((changesList) => {
+    for (const change of changesList) {
       const existing = db.prepare('SELECT usn FROM records WHERE id = ? AND user_id = ?').get(change.id, req.userId);
       const user = db.prepare('SELECT max_usn FROM users WHERE id = ?').get(req.userId);
       const newUsn = user.max_usn + 1;
 
+      // 删除操作
+      if (change._deleted) {
+        if (existing) {
+          db.prepare(
+            'UPDATE records SET deleted = 1, deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, usn = ? WHERE id = ? AND user_id = ?'
+          ).run(newUsn, change.id, req.userId);
+        }
+        db.prepare('UPDATE users SET max_usn = ? WHERE id = ?').run(newUsn, req.userId);
+        results.push({ id: change.id, usn: newUsn, deleted: true });
+        continue;
+      }
+
       if (!existing) {
+        // 新记录
         db.prepare(`
           INSERT INTO records (id, user_id, name, notes, tags, mood, status, favorite, photos, location, links, metadata, blocks, usn, created_at, updated_at)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
@@ -497,6 +506,7 @@ app.post('/api/sync/full', authMiddleware, async (req, res) => {
           JSON.stringify(change.blocks || []), newUsn
         );
       } else {
+        // 更新：只覆盖客户端版本
         db.prepare(`
           UPDATE records SET name = ?, notes = ?, tags = ?, mood = ?, status = ?, favorite = ?, photos = ?, location = ?, links = ?, metadata = ?, blocks = ?, usn = ?, updated_at = CURRENT_TIMESTAMP
           WHERE id = ? AND user_id = ?
@@ -510,30 +520,22 @@ app.post('/api/sync/full', authMiddleware, async (req, res) => {
           change.id, req.userId
         );
       }
+
       db.prepare('UPDATE users SET max_usn = ? WHERE id = ?').run(newUsn, req.userId);
+      results.push({ id: change.id, usn: newUsn });
     }
-  }
-
-  // 再 pull
-  const usn = lastSyncUsn || 0;
-  const records = db.prepare(
-    'SELECT * FROM records WHERE user_id = ? AND usn > ? ORDER BY usn ASC'
-  ).all(req.userId, usn);
-
-  records.forEach(r => {
-    r.tags = JSON.parse(r.tags || '[]');
-    r.photos = JSON.parse(r.photos || '[]');
-    r.links = JSON.parse(r.links || '[]');
-    r.metadata = JSON.parse(r.metadata || '{}');
-    r.blocks = JSON.parse(r.blocks || '[]');
-    r.createdAt = new Date(r.created_at).getTime();
-    r.updatedAt = new Date(r.updated_at).getTime();
-    delete r.created_at;
-    delete r.updated_at;
   });
 
-  const serverMaxUsn = db.prepare('SELECT max_usn FROM users WHERE id = ?').get(req.userId).max_usn;
-  res.json({ records, serverMaxUsn });
+  try {
+    if (changes && changes.length > 0) {
+      runInTransaction(changes);
+    }
+  } catch (e) {
+    console.error('[Sync] Push transaction failed:', e);
+    return res.status(500).json({ error: '同步失败，请重试' });
+  }
+
+  res.json({ results, serverMaxUsn: db.prepare('SELECT max_usn FROM users WHERE id = ?').get(req.userId).max_usn });
 });
 
 app.get('/api/sync/status', authMiddleware, (req, res) => {

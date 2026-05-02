@@ -310,6 +310,69 @@ class StorageService {
   }
 
   /**
+   * 重建搜索索引 (从 records store 读取全部记录，重建 searchIndex)
+   * 用于索引损坏恢复或 schema 升级后重建
+   * @returns {Promise<{ok: boolean, rebuilt: number}>}
+   */
+  async rebuildSearchIndex() {
+    if (!this._db) await this.init();
+
+    return new Promise((resolve, reject) => {
+      // 先读取所有记录
+      const readTx = this._db.transaction(this._storeName, 'readonly');
+      const readStore = readTx.objectStore(this._storeName);
+      const allRecords = [];
+
+      const readReq = readStore.openCursor();
+      readReq.onsuccess = (event) => {
+        const cursor = event.target.result;
+        if (!cursor) {
+          // 读取完成，开始重建
+          this._rebuildIndex(allRecords).then(resolve).catch(reject);
+          return;
+        }
+        allRecords.push(cursor.value);
+        cursor.continue();
+      };
+      readReq.onerror = () => reject(new Error('读取记录失败'));
+    });
+  }
+
+  /**
+   * 内部方法：清空并重建搜索索引
+   * @private
+   */
+  async _rebuildIndex(records) {
+    if (!this._db) await this.init();
+
+    return new Promise((resolve, reject) => {
+      const tx = this._db.transaction(this._indexStoreName, 'readwrite');
+      const store = tx.objectStore(this._indexStoreName);
+
+      // 先清空
+      store.clear();
+
+      // 重新索引
+      for (const record of records) {
+        const plainNotes = record.notes
+          ? record.notes.replace(/<[^>]*>/g, ' ').replace(/&\w+;/g, ' ')
+          : '';
+        const tagsText = Array.isArray(record.tags) ? record.tags.join(' ') : '';
+        const searchText = `${record.name || ''} ${plainNotes} ${tagsText}`.toLowerCase().trim();
+
+        store.put({
+          id: record.id,
+          text: searchText,
+          updatedAt: record.updatedAt || Date.now()
+        });
+      }
+
+      tx.oncomplete = () => resolve({ ok: true, rebuilt: records.length });
+      tx.onerror = () => reject(new Error('重建索引失败'));
+    });
+  }
+
+  /**
    * 根据 ID 列表从 records store 获取完整记录
    * @private
    */

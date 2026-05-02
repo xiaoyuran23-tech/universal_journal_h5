@@ -28,17 +28,18 @@ const AuthPlugin = {
   },
 
   async start() {
-    // 自动登录：从 localStorage 恢复 session
-    const token = localStorage.getItem('journal_token');
-    if (token) {
+    // v7.0.3: 自动登录 — 浏览器自动发送 httpOnly cookie
+    // 只在已知已登录过时尝试 /auth/me（避免无 cookie 时的 401 日志）
+    const lastUser = localStorage.getItem('journal_user');
+    if (lastUser) {
       try {
         const user = await this._fetch('/auth/me');
         this._user = user.user;
         this._updateUI(true);
         console.log('[AuthPlugin] Auto-login successful');
       } catch (e) {
-        console.warn('[AuthPlugin] Auto-login failed:', e.message);
-        localStorage.removeItem('journal_token');
+        // cookie 过期或无效，清除本地缓存
+        console.log('[AuthPlugin] Auto-login failed, cookie expired');
         localStorage.removeItem('journal_user');
         this._updateUI(false);
       }
@@ -71,7 +72,7 @@ const AuthPlugin = {
     });
     this._saveSession(res);
     this._updateUI(true);
-    document.dispatchEvent(new CustomEvent('auth:login', { detail: { user: res.user } }));
+    document.dispatchEvent(new CustomEvent('auth:login', { detail: { user: res.user, isNewUser: true } }));
     return res;
   },
 
@@ -85,17 +86,44 @@ const AuthPlugin = {
     });
     this._saveSession(res);
     this._updateUI(true);
-    document.dispatchEvent(new CustomEvent('auth:login', { detail: { user: res.user } }));
+    document.dispatchEvent(new CustomEvent('auth:login', { detail: { user: res.user, isNewUser: false } }));
     return res;
   },
 
   /**
    * 登出
    */
-  logout() {
+  async logout() {
+    // v7.0.3: 通知服务器清除 httpOnly cookie
+    try {
+      await this._fetch('/auth/logout', { method: 'POST' });
+    } catch (e) {
+      // 忽略网络错误，继续本地清理
+    }
     this._user = null;
-    localStorage.removeItem('journal_token');
     localStorage.removeItem('journal_user');
+    // 清除同步状态（防止多用户设备上的状态泄漏）
+    localStorage.removeItem('journal_last_sync_usn');
+    localStorage.removeItem('journal_pending_changes');
+    if (window.AutoSyncPlugin) {
+      AutoSyncPlugin._stopAutoSync();
+      AutoSyncPlugin._lastSyncUsn = 0;
+      AutoSyncPlugin._pendingChanges = [];
+      AutoSyncPlugin._consecutiveFailures = 0;
+    }
+    // v7.0.3: 清空当前用户的 IndexedDB 数据
+    if (window.StorageBackend) {
+      StorageBackend.clear().catch(() => {});
+    } else if (window.StorageService) {
+      StorageService.clear().catch(() => {});
+    }
+    // 清空 Store 中的记录
+    if (window.Store) {
+      window.Store.dispatch({
+        type: 'SET_STATE',
+        payload: { records: { list: [], filtered: [], loading: false } }
+      });
+    }
     this._updateUI(false);
     document.dispatchEvent(new CustomEvent('auth:logout'));
     this._showToast('已退出登录');
@@ -116,15 +144,12 @@ const AuthPlugin = {
   },
 
   /**
-   * 带认证的请求（自动附加 token）
+   * 带认证的请求（使用 httpOnly cookie，自动附加）
    */
   async fetchAuthenticated(path, options = {}) {
-    const token = localStorage.getItem('journal_token');
-    if (!token) throw new Error('请先登录');
-
+    // v7.0.3: 使用 httpOnly cookie 认证，不再需要手动附加 token
     const headers = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
       ...options.headers
     };
 
@@ -132,7 +157,7 @@ const AuthPlugin = {
       return await this._fetch(path, { ...options, headers });
     } catch (e) {
       // 401 = token 过期或无效
-      if (e.message && (e.message.includes('令牌') || e.message.includes('401'))) {
+      if (e._httpStatus === 401) {
         this.logout();
         this._showLoginModal();
       }
@@ -146,38 +171,37 @@ const AuthPlugin = {
     if (!res || !res.token || !res.user) {
       throw new Error('服务器响应异常，请稍后重试');
     }
-    localStorage.setItem('journal_token', res.token);
+    // v7.0.3: 不再存储 token 到 localStorage（改用 httpOnly cookie）
     this._user = res.user;
     localStorage.setItem('journal_user', JSON.stringify(this._user));
   },
 
   async _fetch(path, options = {}) {
     const url = `${this._apiBase}${path}`;
-    const res = await fetch(url, {
-      method: 'GET',
-      ...options,
-      headers: { 'Content-Type': 'application/json', ...options.headers }
-    });
+    let res;
+    try {
+      res = await fetch(url, {
+        method: 'GET',
+        credentials: 'include',
+        ...options,
+        headers: { 'Content-Type': 'application/json', ...options.headers }
+      });
+    } catch (e) {
+      const err = new Error('网络连接失败，请检查网络');
+      err._httpStatus = 0;
+      throw err;
+    }
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || '请求失败');
+    if (!res.ok) {
+      const err = new Error(data.error || '请求失败');
+      err._httpStatus = res.status;
+      throw err;
+    }
     return data;
   },
 
   _updateUI(isLoggedIn) {
-    // 更新个人页面昵称显示
-    const displayName = document.getElementById('profile-display-name');
-    const container = document.querySelector('.profile-name-container');
-    const loginBtn = document.getElementById('profile-login-btn');
-    if (isLoggedIn && this._user) {
-      if (displayName) displayName.textContent = this._user.nickname || '手札用户';
-      if (container) container.style.display = 'block';
-      if (loginBtn) loginBtn.style.display = 'none';
-    } else {
-      if (displayName) displayName.textContent = '未登录';
-      if (loginBtn) loginBtn.style.display = 'flex';
-    }
-
-    // 显示/隐藏需要同步设置的按钮提示
+    // 更新云同步按钮文案
     const syncConfig = document.getElementById('settings-cloud-config');
     if (syncConfig) {
       const span = syncConfig.querySelector('span');
@@ -186,37 +210,8 @@ const AuthPlugin = {
   },
 
   _bindEvents() {
-    // 登录按钮点击事件
-    const loginBtn = document.getElementById('profile-login-btn');
-    if (loginBtn) {
-      loginBtn.addEventListener('click', () => {
-        this._showLoginModal();
-      });
-    }
-
-    // 点击昵称区域触发登录/注册
-    const nameContainer = document.querySelector('.profile-name-container');
-    if (nameContainer) {
-      nameContainer.addEventListener('click', (e) => {
-        if (!this._user) {
-          this._showLoginModal();
-        }
-      });
-    }
-
-    // 同步设置按钮点击时检查登录状态
-    const syncConfig = document.getElementById('settings-cloud-config');
-    if (syncConfig) {
-      syncConfig.addEventListener('click', () => {
-        if (!this._user) {
-          this._showLoginModal();
-          return;
-        }
-        // 已登录，显示云同步弹窗
-        const modal = document.getElementById('cloud-modal');
-        if (modal) modal.style.display = 'flex';
-      });
-    }
+    // ProfilePlugin 已绑定 profile-login-btn 和 settings-cloud-config
+    // 此处保留事件守卫，后续如需新增事件
   },
 
   // ==================== UI 渲染 ====================

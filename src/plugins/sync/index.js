@@ -1,23 +1,24 @@
 /**
  * Sync Plugin - 云同步插件 (UI 层)
- * 提供同步操作的 UI 交互，底层委托 SyncService
- * @version 6.1.0
+ * 提供同步操作的 UI 交互
+ * v7.0.3: 移除 Gist 流程，改用 AutoSyncPlugin 后端 API 同步
+ * @version 7.0.3
  */
 
 // 幂等加载保护
 if (!window.SyncPlugin) {
 const SyncPlugin = {
   name: 'sync',
-  version: '1.0.0',
+  version: '1.1.0',
   dependencies: ['records'],
-  
+
   _eventsBound: false,
 
   /**
    * 初始化插件
    */
   async init() {
-    console.log('[SyncPlugin] Initializing (delegating to SyncService)...');
+    console.log('[SyncPlugin] Initializing (delegating to AutoSyncPlugin)...');
     this.routes = [];
   },
 
@@ -27,117 +28,52 @@ const SyncPlugin = {
   async start() {
     console.log('[SyncPlugin] Starting...');
     this._bindEvents();
-    this._bindSyncService();
+    this._bindAutoSync();
   },
 
-  /**
-   * 停止插件
-   */
   stop() {
     console.log('[SyncPlugin] Stopping...');
     this._eventsBound = false;
   },
 
-  /**
-   * 路由定义
-   */
   routes: [],
-
-  /**
-   * Actions
-   */
   actions: {},
 
   /**
-   * 上传数据
+   * 手动触发一次完整同步
    */
-  async upload() {
-    if (!window.SyncService) {
-      this._showToast('同步服务不可用', { type: 'error' });
+  async syncNow() {
+    if (!window.AutoSyncPlugin) {
+      this._showToast('自动同步服务不可用', { type: 'error' });
+      return;
+    }
+    if (!window.AuthPlugin?.isLoggedIn) {
+      this._showToast('请先登录', { type: 'error' });
       return;
     }
 
-    this._showToast('正在上传...');
-    const result = await SyncService.upload();
-    
-    if (result.success) {
-      this._showToast('上传成功', { type: 'success' });
-    } else {
-      this._showToast(result.error || '上传失败', { type: 'error' });
+    this._showToast('正在同步...');
+    try {
+      await AutoSyncPlugin._fullSync();
+      this._showToast('同步完成', { type: 'success' });
+    } catch (e) {
+      this._showToast('同步失败: ' + e.message, { type: 'error' });
     }
   },
 
   /**
-   * 下载数据
-   */
-  async download() {
-    if (!window.SyncService) {
-      this._showToast('同步服务不可用', { type: 'error' });
-      return;
-    }
-
-    this._showToast('正在下载...');
-    const result = await SyncService.download();
-    
-    if (result.success) {
-      const conflictMsg = result.conflicts > 0 ? `，${result.conflicts} 处冲突已字段合并` : '';
-      this._showToast(`下载成功，合并 ${result.merged || 0} 条记录${conflictMsg}`, { type: 'success' });
-    } else {
-      this._showToast(result.error || '下载失败', { type: 'error' });
-    }
-  },
-
-  /**
-   * 配置同步
-   * @param {Object} config - { token, gistId, encryptionKey }
-   */
-  async configure(config) {
-    if (window.SyncService) {
-      await SyncService.saveConfig(config);
-      this._showToast('配置已保存', { type: 'success' });
-    }
-  },
-
-  /**
-   * 测试连接
-   */
-  async testConnection() {
-    if (!window.SyncService) {
-      this._showToast('同步服务不可用', { type: 'error' });
-      return;
-    }
-
-    this._showToast('正在测试连接...');
-    const result = await SyncService.testConnection();
-    
-    if (result.success) {
-      this._showToast('连接成功', { type: 'success' });
-    } else {
-      this._showToast(result.error, { type: 'error' });
-    }
-  },
-
-  /**
-   * 绑定同步服务状态变化
+   * 绑定 AutoSync 状态变化
    * @private
    */
-  _bindSyncService() {
-    if (!window.SyncService) return;
+  _bindAutoSync() {
+    if (!window.AutoSyncPlugin) return;
 
-    SyncService.subscribe((status) => {
-      const STATUS_MAP = {
-        syncing: '正在同步...',
-        error: '同步失败'
-      };
+    document.addEventListener('sync:complete', () => {
+      this._showToast('云同步完成', { type: 'success' });
+    });
 
-      const message = STATUS_MAP[status];
-      if (message) {
-        // 更新同步按钮状态
-        const syncBtn = document.querySelector('[data-sync-action]');
-        if (syncBtn) {
-          syncBtn.disabled = status !== 'idle' && status !== 'success' && status !== 'error';
-        }
-      }
+    document.addEventListener('sync:error', (e) => {
+      this._showToast('同步失败: ' + e.detail, { type: 'error' });
     });
   },
 
@@ -153,17 +89,8 @@ const SyncPlugin = {
       const target = e.target.closest('[data-sync-action]');
       if (target) {
         const action = target.dataset.syncAction;
-        
-        switch (action) {
-          case 'upload':
-            this.upload();
-            break;
-          case 'download':
-            this.download();
-            break;
-          case 'test-connection':
-            this.testConnection();
-            break;
+        if (action === 'sync-now') {
+          this.syncNow();
         }
       }
     });
@@ -185,7 +112,7 @@ const SyncPlugin = {
 // 全局暴露
 window.SyncPlugin = SyncPlugin;
 
-console.log('[SyncPlugin] 同步插件已定义 (委托 SyncService)');
+console.log('[SyncPlugin] 同步插件已加载 (v7.0.3, 委托 AutoSyncPlugin)');
 } else {
   console.log('[SyncPlugin] 已存在，跳过加载');
 }

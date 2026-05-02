@@ -15,6 +15,9 @@ const EditorPlugin = {
   _isEditing: false,
   _photos: [],
   _eventsBound: false,
+  _autoSaveBound: false,
+  _aiEventsBound: false,
+  _autoSaveTimer: null,
 
   // 工具栏按钮配置
   TOOLBAR_ITEMS: [
@@ -89,8 +92,16 @@ const EditorPlugin = {
     this._photos = [];
 
     if (id) {
-      const records = window.Store ? window.Store.getState('records.list') : [];
-      this._currentRecord = records.find(r => r.id === id);
+      // v7.0.3: 从 IndexedDB 读取最新数据，而非依赖可能过时的 Store
+      const StorageBackend = window.StorageBackend || window.StorageService;
+      if (StorageBackend) {
+        this._currentRecord = await StorageBackend.get(id);
+      }
+      // 降级方案：回退到 Store
+      if (!this._currentRecord && window.Store) {
+        const records = window.Store.getState('records.list') || [];
+        this._currentRecord = records.find(r => r.id === id);
+      }
     } else {
       this._currentRecord = {
         id: null, name: '', tags: [], notes: '', photos: [],
@@ -128,7 +139,7 @@ const EditorPlugin = {
     if (tagsEl) tagsEl.value = (record.tags || []).join(', ');
 
     const notesEl = document.getElementById('create-rich-content');
-    if (notesEl) notesEl.innerHTML = record.notes || '';
+    if (notesEl) notesEl.innerHTML = this._sanitizeHTML(record.notes || '');
 
     const statusEl = document.getElementById('create-status');
     if (statusEl) statusEl.value = record.status || 'in-use';
@@ -359,6 +370,10 @@ const EditorPlugin = {
    * @private
    */
   _bindAutoSave() {
+    // v7.0.3: 防止每次加载记录时累积事件监听器
+    if (this._autoSaveBound) return;
+    this._autoSaveBound = true;
+
     const nameInput = document.getElementById('create-name');
     const notesInput = document.getElementById('create-rich-content');
 
@@ -488,12 +503,15 @@ const EditorPlugin = {
    * @private
    */
   _autoSave() {
-    const name = document.getElementById('create-name')?.value;
-    const notes = document.getElementById('create-rich-content')?.innerHTML;
-
-    if (name || notes) {
-      localStorage.setItem('editor_draft', JSON.stringify({ name, notes, timestamp: Date.now() }));
-    }
+    // v7.0.3: 添加防抖，避免每次按键都写 localStorage
+    clearTimeout(this._autoSaveTimer);
+    this._autoSaveTimer = setTimeout(() => {
+      const name = document.getElementById('create-name')?.value;
+      const notes = document.getElementById('create-rich-content')?.innerHTML;
+      if (name || notes) {
+        localStorage.setItem('editor_draft', JSON.stringify({ name, notes, timestamp: Date.now() }));
+      }
+    }, 1000);
   },
 
   /**
@@ -612,6 +630,9 @@ const EditorPlugin = {
    * @private
    */
   _bindAIEvents() {
+    // v7.0.3: 防止每次加载记录时累积事件监听器
+    if (this._aiEventsBound) return;
+    this._aiEventsBound = true;
     // AI 工具栏按钮
     document.addEventListener('click', (e) => {
       const btn = e.target.closest('.ai-toolbar-btn');

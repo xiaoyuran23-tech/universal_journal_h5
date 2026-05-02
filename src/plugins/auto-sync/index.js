@@ -15,6 +15,8 @@ const AutoSyncPlugin = {
   _apiBase: '',
   _lastSyncUsn: 0,
   _pendingChanges: [],
+  _consecutiveFailures: 0,
+  _maxFailures: 5,
 
   async init() {
     this.routes = [];
@@ -34,8 +36,25 @@ const AutoSyncPlugin = {
     }
 
     // 监听登录/登出事件
-    document.addEventListener('auth:login', () => { this._startAutoSync(); });
+    document.addEventListener('auth:login', (e) => {
+      const isNewUser = e.detail?.isNewUser;
+      // 无论新老用户，登录时都从零开始拉取（因为可能是新设备或数据过期）
+      // 但本地如果有 pending changes（离线期间创建的），需要保留并推送
+      const savedPending = isNewUser ? [] : this._pendingChanges;
+      this._lastSyncUsn = 0;
+      localStorage.setItem('journal_last_sync_usn', '0');
+      this._pendingChanges = savedPending;
+      if (isNewUser) {
+        localStorage.removeItem('journal_pending_changes');
+      } else {
+        localStorage.setItem('journal_pending_changes', JSON.stringify(this._pendingChanges));
+      }
+      this._startAutoSync();
+    });
     document.addEventListener('auth:logout', () => { this._stopAutoSync(); });
+
+    // 更新云同步弹窗状态
+    this._updateSyncStatusUI();
   },
 
   stop() {
@@ -79,10 +98,9 @@ const AutoSyncPlugin = {
     this._isSyncing = true;
 
     try {
-      const token = localStorage.getItem('journal_token');
-      const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+      // v7.0.3: 使用 httpOnly cookie 认证，不再手动附加 token
+      const syncHeaders = {
+        'Content-Type': 'application/json'
       };
 
       // 1. 推送本地变更
@@ -90,7 +108,8 @@ const AutoSyncPlugin = {
       if (this._pendingChanges.length > 0) {
         const pushRes = await fetch(`${this._apiBase}/sync/push`, {
           method: 'POST',
-          headers,
+          headers: syncHeaders,
+          credentials: 'include',
           body: JSON.stringify({ changes: this._pendingChanges })
         });
         if (pushRes.ok) {
@@ -106,7 +125,8 @@ const AutoSyncPlugin = {
       // 2. 拉取服务端变更
       const pullRes = await fetch(`${this._apiBase}/sync/pull`, {
         method: 'POST',
-        headers,
+        headers: syncHeaders,
+        credentials: 'include',
         body: JSON.stringify({ lastSyncUsn: this._lastSyncUsn })
       });
 
@@ -128,13 +148,20 @@ const AutoSyncPlugin = {
       }
 
       // 3. 同步心情数据 (可选)
-      this._syncMoodToServer(token);
+      this._syncMoodToServer();
 
-      console.log(`[AutoSyncPlugin] Sync complete: pushed=${pushResult.syncedCount}`);
+      console.log(`[AutoSyncPlugin] Sync complete: pushed=${pushResult.results?.length || pushResult.syncedCount || 0}`);
+      this._consecutiveFailures = 0;
       this._dispatchEvent('sync:complete');
 
     } catch (e) {
       console.error('[AutoSyncPlugin] Sync failed:', e);
+      this._consecutiveFailures++;
+      if (this._consecutiveFailures >= this._maxFailures) {
+        console.warn('[AutoSyncPlugin] Too many consecutive failures, stopping auto sync');
+        this._stopAutoSync();
+        this._showToast('云同步已暂停，请检查网络连接');
+      }
       this._dispatchEvent('sync:error', e.message);
     } finally {
       this._isSyncing = false;
@@ -147,6 +174,12 @@ const AutoSyncPlugin = {
    * @param {Object} data - 记录数据
    */
   recordChange(action, data) {
+    // 先去重：如果同一 id 已在队列中，替换为最新版本
+    const existingIndex = this._pendingChanges.findIndex(c => c.id === data.id);
+    if (existingIndex !== -1) {
+      this._pendingChanges.splice(existingIndex, 1);
+    }
+
     if (action === 'delete') {
       // 删除操作只需推送 id 和标记
       this._pendingChanges.push({ id: data.id, _deleted: true });
@@ -183,10 +216,10 @@ const AutoSyncPlugin = {
         localMap.set(serverRecord.id, serverRecord);
         merged = true;
       } else {
-        // 都存在：用 updatedAt 比较
-        const serverTime = new Date(serverRecord.updatedAt || 0).getTime();
-        const localTime = new Date(localRecord.updatedAt || 0).getTime();
-        if (serverTime > localTime) {
+        // 都存在：用 USN 比较（USN 是单调递增的，比时间戳更可靠）
+        const serverUsn = serverRecord.usn || 0;
+        const localUsn = localRecord.usn || 0;
+        if (serverUsn > localUsn) {
           localMap.set(serverRecord.id, serverRecord);
           merged = true;
         }
@@ -201,6 +234,19 @@ const AutoSyncPlugin = {
         type: 'SET_STATE',
         payload: { records: { list: newList, filtered: [...newList], loading: false } }
       });
+
+      // 同步写回 IndexedDB（包括删除服务端已删的记录）
+      if (window.StorageBackend) {
+        for (const serverRecord of serverChanges) {
+          if (serverRecord.deleted) {
+            // 服务端已删：从本地 IndexedDB 也删除
+            await StorageBackend.delete(serverRecord.id);
+          } else {
+            // 服务端有更新：写入最新状态
+            await StorageBackend.put(serverRecord);
+          }
+        }
+      }
     }
   },
 
@@ -219,7 +265,39 @@ const AutoSyncPlugin = {
    */
   _dispatchEvent(name, detail = null) {
     document.dispatchEvent(new CustomEvent(name, { detail }));
-  }
+  },
+
+  /**
+   * 更新云同步弹窗状态
+   * @private
+   */
+  _updateSyncStatusUI() {
+    const detail = document.getElementById('sync-status-detail');
+    if (!detail) return;
+
+    if (!window.AuthPlugin?.isLoggedIn) {
+      detail.textContent = '请先登录查看同步状态';
+      return;
+    }
+
+    const pending = this._pendingChanges?.length || 0;
+    const lastSync = localStorage.getItem('journal_last_sync_usn') || '0';
+    const syncingText = this._isSyncing ? ' | 同步中...' : '';
+    detail.textContent = `已登录 | 待同步: ${pending} 条 | 最后同步 USN: ${lastSync}${syncingText}`;
+  },
+
+  /**
+   * 显示 Toast
+   * @private
+   */
+  _showToast(msg) {
+    if (window.UIComponents && UIComponents.Toast) {
+      UIComponents.Toast.show(msg, { duration: 3000 });
+    } else {
+      const toast = document.getElementById('toast');
+      if (toast) { toast.textContent = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 3000); }
+    }
+  },
 };
 
 window.AutoSyncPlugin = AutoSyncPlugin;
