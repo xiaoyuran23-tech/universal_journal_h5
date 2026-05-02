@@ -140,19 +140,35 @@ const AutoSyncPlugin = {
           await this._mergeServerChanges(pullResult.records);
         }
       } else if (pullRes.status === 401) {
-        // Token 无效或过期，自动登出
-        console.warn('[AutoSyncPlugin] Token expired, logging out');
-        if (window.AuthPlugin) AuthPlugin.logout();
+        // 401 可能由两种情况引起：
+        // 1. Token 真正过期（用户已登录很久）
+        // 2. 新注册/刚登录，httpOnly cookie 尚未建立（短暂竞态）
+        // 策略：计入失败但不会立即登出，让连续失败阈值处理
+        this._consecutiveFailures++;
+        console.warn('[AutoSyncPlugin] Pull returned 401, consecutiveFailures=' + this._consecutiveFailures);
       } else {
         console.warn('[AutoSyncPlugin] Pull failed, status:', pullRes.status);
+        this._consecutiveFailures++;
+      }
+
+      // 检查连续失败阈值
+      if (this._consecutiveFailures >= this._maxFailures) {
+        console.warn('[AutoSyncPlugin] Too many consecutive failures, stopping auto sync');
+        this._stopAutoSync();
+        if (window.AuthPlugin?.isLoggedIn) {
+          console.warn('[AutoSyncPlugin] Persistent auth failure, logging out');
+          AuthPlugin.logout();
+        }
+        this._showToast('云同步已暂停，请检查网络连接');
       }
 
       // 3. 同步心情数据 (可选)
       this._syncMoodToServer();
 
-      console.log(`[AutoSyncPlugin] Sync complete: pushed=${pushResult.results?.length || pushResult.syncedCount || 0}`);
-      this._consecutiveFailures = 0;
-      this._dispatchEvent('sync:complete');
+      if (this._consecutiveFailures < this._maxFailures) {
+        console.log(`[AutoSyncPlugin] Sync complete: pushed=${pushResult.results?.length || pushResult.syncedCount || 0}`);
+        this._dispatchEvent('sync:complete');
+      }
 
     } catch (e) {
       console.error('[AutoSyncPlugin] Sync failed:', e);
@@ -160,6 +176,11 @@ const AutoSyncPlugin = {
       if (this._consecutiveFailures >= this._maxFailures) {
         console.warn('[AutoSyncPlugin] Too many consecutive failures, stopping auto sync');
         this._stopAutoSync();
+        // 只在真正持续失败且用户已登录时才登出
+        if (window.AuthPlugin?.isLoggedIn) {
+          console.warn('[AutoSyncPlugin] Persistent auth failure, logging out');
+          AuthPlugin.logout();
+        }
         this._showToast('云同步已暂停，请检查网络连接');
       }
       this._dispatchEvent('sync:error', e.message);

@@ -17,23 +17,43 @@ const AuthPlugin = {
   /**
    * 配置 API 地址
    */
-  configure(apiBase = '') {
-    this._apiBase = apiBase || window.JOURNAL_API_URL || 'http://localhost:4000/api';
+  configure(apiBase) {
+    // 防御性编程：确保 _apiBase 始终为有效字符串
+    // 注意：必须同时设置 this._apiBase 和 window.AuthPlugin._apiBase
+    // 因为 Kernel 启动时 this 指向插件注册表副本，而非 window.AuthPlugin
+    let value;
+    if (apiBase && typeof apiBase === 'string') {
+      value = apiBase;
+    } else if (window.JOURNAL_API_URL && typeof window.JOURNAL_API_URL === 'string') {
+      value = window.JOURNAL_API_URL;
+    } else {
+      value = 'http://localhost:4000/api';
+    }
+    this._apiBase = value;
+    // 同步到全局引用，确保外部访问 window.AuthPlugin._apiBase 时值正确
+    if (window.AuthPlugin) {
+      window.AuthPlugin._apiBase = value;
+    }
     console.log(`[AuthPlugin] API configured: ${this._apiBase}`);
   },
 
   async init() {
+    // init 中不传参，由 configure() 自动从 window.JOURNAL_API_URL 读取
     this.configure();
     this.routes = [];
   },
 
   async start() {
+    // start 中同样不传参，避免覆盖已配置的 API 地址
+    this.configure();
     // 自动登录 — 浏览器自动发送 httpOnly cookie
     const lastUser = localStorage.getItem('journal_user');
     if (lastUser) {
       try {
         const user = await this._fetch('/auth/me');
         this._user = user.user;
+        // 同步到全局引用
+        if (window.AuthPlugin) window.AuthPlugin._user = user.user;
         this._updateUI(true);
         console.log('[AuthPlugin] Auto-login successful');
       } catch (e) {
@@ -92,12 +112,14 @@ const AuthPlugin = {
    * 登出
    */
   async logout() {
+    console.log('[AuthPlugin] logout() called, stack:', new Error().stack);
     try {
       await this._fetch('/auth/logout', { method: 'POST' });
     } catch (e) {
       // 忽略网络错误，继续本地清理
     }
     this._user = null;
+    if (window.AuthPlugin) window.AuthPlugin._user = null;
     localStorage.removeItem('journal_user');
     localStorage.removeItem('journal_last_sync_usn');
     localStorage.removeItem('journal_pending_changes');
@@ -132,6 +154,7 @@ const AuthPlugin = {
       body: JSON.stringify(data)
     });
     this._user = res.user;
+    if (window.AuthPlugin) window.AuthPlugin._user = res.user;
     localStorage.setItem('journal_user', JSON.stringify(this._user));
     this._updateUI(true);
     return res;
@@ -207,8 +230,11 @@ const AuthPlugin = {
     if (!res || !res.user) {
       throw new Error('服务器响应异常，请稍后重试');
     }
+    console.log('[AuthPlugin] _saveSession called, user:', JSON.stringify(res.user));
     this._user = res.user;
+    if (window.AuthPlugin) window.AuthPlugin._user = res.user;
     localStorage.setItem('journal_user', JSON.stringify(this._user));
+    console.log('[AuthPlugin] window.AuthPlugin._user =', JSON.stringify(window.AuthPlugin._user));
   },
 
   async _fetch(path, options = {}) {
