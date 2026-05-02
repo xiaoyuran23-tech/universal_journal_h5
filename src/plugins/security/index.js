@@ -1,7 +1,7 @@
 /**
  * Security Plugin - 密码锁与加密
  * 使用 Web Crypto API (AES-GCM + PBKDF2) 替代旧版 XOR 弱加密
- * @version 6.1.0
+ * @version 7.1.0
  */
 
 if (!window.SecurityPlugin) {
@@ -41,11 +41,58 @@ const SecurityPlugin = {
    * 检查是否已设置密码
    */
   hasPassword() {
-    return !!localStorage.getItem('_uj_password_hash');
+    // 兼容旧格式（无盐哈希）和新格式（PBKDF2 + 盐）
+    return !!(localStorage.getItem('_uj_password_salt') || localStorage.getItem('_uj_password_hash'));
   },
 
   /**
-   * 设置密码 (使用 SHA-256 存储哈希)
+   * 使用 PBKDF2 派生密码哈希（带盐）
+   * @param {string} password
+   * @returns {Promise<{salt: string, hash: string}>}
+   */
+  async _derivePassword(password) {
+    const encoder = new TextEncoder();
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']
+    );
+    const hashBits = await crypto.subtle.deriveBits(
+      { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+      keyMaterial, 256
+    );
+    return {
+      salt: Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join(''),
+      hash: Array.from(new Uint8Array(hashBits)).map(b => b.toString(16).padStart(2, '0')).join('')
+    };
+  },
+
+  /**
+   * 使用存储的盐重新派生哈希进行比较
+   * @param {string} password
+   * @param {string} saltHex
+   * @returns {Promise<string>} hash hex
+   */
+  async _rederiveHash(password, saltHex) {
+    try {
+      const encoder = new TextEncoder();
+      const salt = new Uint8Array(saltHex.match(/.{2}/g).map(b => parseInt(b, 16)));
+      if (salt.some(b => isNaN(b))) throw new Error('Invalid salt hex');
+      const keyMaterial = await crypto.subtle.importKey(
+        'raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']
+      );
+      const hashBits = await crypto.subtle.deriveBits(
+        { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+        keyMaterial, 256
+      );
+      return Array.from(new Uint8Array(hashBits)).map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch (e) {
+      console.error('[SecurityPlugin] _rederiveHash error:', e);
+      return '';
+    }
+  },
+
+  /**
+   * 设置密码 (使用 PBKDF2 + 盐存储)
    * @param {string} password
    */
   async setPassword(password) {
@@ -53,14 +100,15 @@ const SecurityPlugin = {
     if (!validation.valid) {
       throw new Error(validation.error);
     }
-    const hashHex = await CryptoService.hash(password);
-    localStorage.setItem('_uj_password_hash', hashHex);
+    const { salt, hash } = await this._derivePassword(password);
+    localStorage.setItem('_uj_password_salt', salt);
+    localStorage.setItem('_uj_password_hash', hash);
     localStorage.removeItem('_uj_failed_attempts');
     localStorage.removeItem('_uj_lockout_until');
   },
 
   /**
-   * 验证密码 (带防爆破限制)
+   * 验证密码 (带防爆破限制，使用 PBKDF2 + 盐)
    * @param {string} password
    * @returns {Promise<boolean>}
    */
@@ -73,10 +121,20 @@ const SecurityPlugin = {
       return false;
     }
 
-    const hashHex = await CryptoService.hash(password);
+    let derivedHash;
+    const storedSalt = localStorage.getItem('_uj_password_salt');
     const storedHash = localStorage.getItem('_uj_password_hash');
+    if (!storedHash) return false;
 
-    if (hashHex === storedHash) {
+    // 新格式：PBKDF2 + 盐
+    if (storedSalt) {
+      derivedHash = await this._rederiveHash(password, storedSalt);
+    } else {
+      // 旧格式：无盐 SHA-256（兼容迁移）
+      derivedHash = await CryptoService.hash(password);
+    }
+
+    if (derivedHash === storedHash) {
       // 验证成功，重置失败计数
       localStorage.removeItem('_uj_failed_attempts');
       localStorage.removeItem('_uj_lockout_until');
@@ -124,6 +182,7 @@ const SecurityPlugin = {
    */
   removePassword() {
     localStorage.removeItem('_uj_password_hash');
+    localStorage.removeItem('_uj_password_salt');
     this._isLocked = false;
     localStorage.removeItem('_uj_locked');
     localStorage.removeItem('_uj_failed_attempts');
@@ -256,15 +315,15 @@ const SecurityPlugin = {
     if (hasPwd) {
       this._showToast('密码已设置，如需修改请先移除后重新设置');
     } else {
-      const password = prompt('请设置密码（至少 4 位）：');
-      if (password && password.length >= 4) {
+      const password = prompt('请设置密码（至少 6 位）：');
+      if (password && password.length >= 6) {
         this.setPassword(password).then(() => {
           this._showToast('密码已设置');
         }).catch(e => {
           this._showToast(e.message);
         });
       } else if (password) {
-        this._showToast('密码至少 4 位');
+        this._showToast('密码至少 6 位');
       }
     }
   },

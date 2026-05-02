@@ -63,9 +63,14 @@ setInterval(() => {
   }
 }, 5 * 60 * 1000);
 
-// 邮箱格式校验
+// 邮箱格式校验 (RFC 5322 简化版)
 function isValidEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  return /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/.test(email);
+}
+
+// 邮箱规范化
+function normalizeEmail(email) {
+  return email.toLowerCase().trim();
 }
 
 // 初始化数据库
@@ -82,6 +87,7 @@ db.exec(`
     nickname TEXT DEFAULT '手札用户',
     max_usn INTEGER DEFAULT 0,
     devices TEXT DEFAULT '[]',
+    token_version INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
@@ -122,7 +128,27 @@ import { createHash, randomBytes } from 'crypto';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
-const JWT_SECRET = process.env.JWT_SECRET || randomBytes(32).toString('hex');
+// 防时序攻击：预生成的虚拟密码哈希，用于用户不存在时仍执行 bcrypt 比较
+const DUMMY_BCRYPT_HASH = bcrypt.hashSync('dummy-password-for-timing-protection', 10);
+
+// JWT 密钥 — 生产环境必须通过 .env 配置强密钥，否则启动时自动生成并持久化
+const JWT_SECRET = process.env.JWT_SECRET && process.env.JWT_SECRET !== 'your-super-secret-jwt-key-change-in-production'
+  ? process.env.JWT_SECRET
+  : (() => {
+      const envPath = path.join(__dirname, '.env');
+      const generated = randomBytes(32).toString('hex');
+      // 自动生成并写入 .env，避免每次重启密钥变化
+      try {
+        const existing = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : '';
+        if (!existing.includes('JWT_SECRET=')) {
+          fs.appendFileSync(envPath, `\nJWT_SECRET=${generated}\n`);
+        }
+      } catch (e) {
+        console.error('[Server] WARNING: Cannot persist JWT_SECRET to .env. Sessions will be invalidated on restart.');
+        return generated;
+      }
+      return generated;
+    })();
 const JWT_EXPIRY = '30d';
 
 function hashPassword(password) {
@@ -135,7 +161,7 @@ function verifyPassword(password, hash) {
 
 function generateToken(user) {
   return jwt.sign(
-    { userId: user.id, email: user.email },
+    { userId: user.id, email: user.email, tokenVersion: user.token_version || 0 },
     JWT_SECRET,
     { expiresIn: JWT_EXPIRY }
   );
@@ -146,7 +172,8 @@ function authMiddleware(req, res, next) {
   let token = null;
   const cookieHeader = req.headers.cookie;
   if (cookieHeader) {
-    const match = cookieHeader.match(/journal_token=([^;]+)/);
+    // 精确匹配 journal_token，避免 cookie 注入攻击
+    const match = cookieHeader.match(/(?:^|;\s*)journal_token=([^;]+)/);
     if (match) token = match[1];
   }
   if (!token && req.headers.authorization?.startsWith('Bearer ')) {
@@ -157,6 +184,11 @@ function authMiddleware(req, res, next) {
   }
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
+    // 验证 token 版本（密码修改/登出后会递增）
+    const user = db.prepare('SELECT id, token_version FROM users WHERE id = ?').get(decoded.userId);
+    if (!user || decoded.tokenVersion !== user.token_version) {
+      return res.status(401).json({ error: '令牌无效或已过期' });
+    }
     req.userId = decoded.userId;
     next();
   } catch (e) {
@@ -187,8 +219,11 @@ const PORT = process.env.PORT || 4000;
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '0'); // CSP 已启用，关闭旧式 XSS 过滤
+  res.setHeader('X-XSS-Protection', '0');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Content-Security-Policy',
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+  );
   next();
 });
 
@@ -232,26 +267,27 @@ app.get('/health', (req, res) => {
 
 app.post('/api/auth/register', rateLimitMiddleware, (req, res) => {
   const { email, password, nickname } = req.body;
-  if (!email || !password) return res.status(400).json({ error: '邮箱和密码必填' });
-  if (!isValidEmail(email)) return res.status(400).json({ error: '邮箱格式不正确' });
+  const normalizedEmail = normalizeEmail(email || '');
+  if (!normalizedEmail || !password) return res.status(400).json({ error: '邮箱和密码必填' });
+  if (!isValidEmail(normalizedEmail)) return res.status(400).json({ error: '邮箱格式不正确' });
   if (password.length < 6) return res.status(400).json({ error: '密码至少 6 位' });
   if (password.length > 128) return res.status(400).json({ error: '密码过长' });
 
   try {
-    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(normalizedEmail);
     if (existing) return res.status(409).json({ error: '邮箱已被注册' });
 
     const hash = hashPassword(password);
     const result = db.prepare(
       'INSERT INTO users (email, password_hash, nickname) VALUES (?, ?, ?)'
-    ).run(email, hash, nickname || '手札用户');
+    ).run(normalizedEmail, hash, nickname || '手札用户');
 
     const user = db.prepare('SELECT id, email, nickname, created_at FROM users WHERE id = ?').get(result.lastInsertRowid);
     const token = generateToken(user);
 
-    // v7.0.3: 设置 httpOnly cookie（同时保留 token 在响应中兼容旧客户端）
+    // 仅设置 httpOnly cookie，不在响应体中返回 token（防止 XSS 窃取）
     setAuthCookie(res, token);
-    res.status(201).json({ user, token });
+    res.status(201).json({ user });
   } catch (e) {
     console.error('[Auth] Register error:', e);
     res.status(500).json({ error: '注册失败' });
@@ -260,20 +296,24 @@ app.post('/api/auth/register', rateLimitMiddleware, (req, res) => {
 
 app.post('/api/auth/login', rateLimitMiddleware, (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ error: '邮箱和密码必填' });
-  if (!isValidEmail(email)) return res.status(400).json({ error: '邮箱格式不正确' });
+  const normalizedEmail = normalizeEmail(email || '');
+  if (!normalizedEmail || !password) return res.status(400).json({ error: '邮箱和密码必填' });
+  if (!isValidEmail(normalizedEmail)) return res.status(400).json({ error: '邮箱格式不正确' });
 
   try {
-    const user = db.prepare('SELECT id, email, nickname, password_hash, created_at FROM users WHERE email = ?').get(email);
-    if (!user || !verifyPassword(password, user.password_hash)) {
+    const user = db.prepare('SELECT id, email, nickname, password_hash, created_at FROM users WHERE email = ?').get(normalizedEmail);
+    // 防时序攻击：即使用户不存在也执行 bcrypt 比较（使用预生成的真实哈希）
+    const isValid = user ? verifyPassword(password, user.password_hash) : verifyPassword(password, DUMMY_BCRYPT_HASH);
+
+    if (!user || !isValid) {
       return res.status(401).json({ error: '邮箱或密码错误' });
     }
 
     const { password_hash, ...safeUser } = user;
     const token = generateToken(safeUser);
-    // v7.0.3: 设置 httpOnly cookie
+    // 仅设置 httpOnly cookie，不在响应体中返回 token（防止 XSS 窃取）
     setAuthCookie(res, token);
-    res.json({ user: safeUser, token });
+    res.json({ user: safeUser });
   } catch (e) {
     console.error('[Auth] Login error:', e);
     res.status(500).json({ error: '登录失败' });
@@ -286,7 +326,7 @@ app.get('/api/auth/me', authMiddleware, (req, res) => {
   res.json({ user });
 });
 
-app.put('/api/auth/profile', authMiddleware, (req, res) => {
+app.put('/api/auth/profile', rateLimitMiddleware, authMiddleware, (req, res) => {
   const { nickname } = req.body;
   if (!nickname || typeof nickname !== 'string') return res.status(400).json({ error: '昵称格式不正确' });
   if (nickname.length > 50) return res.status(400).json({ error: '昵称过长' });
@@ -295,10 +335,65 @@ app.put('/api/auth/profile', authMiddleware, (req, res) => {
   res.json({ user });
 });
 
-// v7.0.3: 登出端点 — 清除 httpOnly cookie
-app.post('/api/auth/logout', (req, res) => {
+// v7.0.3: 登出端点 — 清除 httpOnly cookie 并作废 token
+app.post('/api/auth/logout', authMiddleware, (req, res) => {
+  // 递增 token 版本，使当前 JWT 失效
+  db.prepare('UPDATE users SET token_version = token_version + 1 WHERE id = ?').run(req.userId);
   clearAuthCookie(res);
   res.json({ success: true });
+});
+
+// v7.1.0: 修改密码（增加速率限制）
+app.put('/api/auth/change-password', rateLimitMiddleware, authMiddleware, (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword) return res.status(400).json({ error: '当前密码和新密码必填' });
+  if (newPassword.length < 6) return res.status(400).json({ error: '新密码至少 6 位' });
+  if (newPassword.length > 128) return res.status(400).json({ error: '新密码过长' });
+
+  try {
+    const user = db.prepare('SELECT id, password_hash FROM users WHERE id = ?').get(req.userId);
+    if (!user || !verifyPassword(currentPassword, user.password_hash)) {
+      return res.status(401).json({ error: '当前密码不正确' });
+    }
+
+    const newHash = hashPassword(newPassword);
+    // 递增 token 版本，使旧 JWT 失效
+    db.prepare('UPDATE users SET password_hash = ?, token_version = token_version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(newHash, req.userId);
+    // 生成新 token 并设置 cookie，避免用户修改密码后被踢出
+    const refreshedUser = db.prepare('SELECT id, email, nickname, token_version FROM users WHERE id = ?').get(req.userId);
+    const newToken = generateToken(refreshedUser);
+    setAuthCookie(res, newToken);
+    res.json({ success: true, user: { id: refreshedUser.id, email: refreshedUser.email, nickname: refreshedUser.nickname } });
+  } catch (e) {
+    console.error('[Auth] Change password error:', e);
+    res.status(500).json({ error: '修改密码失败' });
+  }
+});
+
+// v7.1.0: 删除账号（增加速率限制）
+app.delete('/api/auth/account', rateLimitMiddleware, authMiddleware, (req, res) => {
+  const { password } = req.body;
+  if (!password) return res.status(400).json({ error: '密码必填' });
+
+  try {
+    const user = db.prepare('SELECT id, password_hash FROM users WHERE id = ?').get(req.userId);
+    if (!user || !verifyPassword(password, user.password_hash)) {
+      return res.status(401).json({ error: '密码不正确' });
+    }
+
+    // 使用事务：先删除用户的所有记录，再删除用户
+    const deleteAccount = db.transaction(() => {
+      db.prepare('DELETE FROM records WHERE user_id = ?').run(req.userId);
+      db.prepare('DELETE FROM users WHERE id = ?').run(req.userId);
+    });
+    deleteAccount();
+
+    clearAuthCookie(res);
+    res.json({ success: true });
+  } catch (e) {
+    console.error('[Auth] Delete account error:', e);
+    res.status(500).json({ error: '删除账号失败' });
+  }
 });
 
 // ========== Records ==========

@@ -1,7 +1,7 @@
 /**
  * Auth Plugin - 用户认证系统
  * 提供登录/注册/登出 UI，与后端 API 交互
- * @version 7.0.0
+ * @version 7.1.0
  */
 
 if (!window.AuthPlugin) {
@@ -28,8 +28,7 @@ const AuthPlugin = {
   },
 
   async start() {
-    // v7.0.3: 自动登录 — 浏览器自动发送 httpOnly cookie
-    // 只在已知已登录过时尝试 /auth/me（避免无 cookie 时的 401 日志）
+    // 自动登录 — 浏览器自动发送 httpOnly cookie
     const lastUser = localStorage.getItem('journal_user');
     if (lastUser) {
       try {
@@ -38,7 +37,6 @@ const AuthPlugin = {
         this._updateUI(true);
         console.log('[AuthPlugin] Auto-login successful');
       } catch (e) {
-        // cookie 过期或无效，清除本地缓存
         console.log('[AuthPlugin] Auto-login failed, cookie expired');
         localStorage.removeItem('journal_user');
         this._updateUI(false);
@@ -94,7 +92,6 @@ const AuthPlugin = {
    * 登出
    */
   async logout() {
-    // v7.0.3: 通知服务器清除 httpOnly cookie
     try {
       await this._fetch('/auth/logout', { method: 'POST' });
     } catch (e) {
@@ -102,7 +99,6 @@ const AuthPlugin = {
     }
     this._user = null;
     localStorage.removeItem('journal_user');
-    // 清除同步状态（防止多用户设备上的状态泄漏）
     localStorage.removeItem('journal_last_sync_usn');
     localStorage.removeItem('journal_pending_changes');
     if (window.AutoSyncPlugin) {
@@ -111,13 +107,11 @@ const AuthPlugin = {
       AutoSyncPlugin._pendingChanges = [];
       AutoSyncPlugin._consecutiveFailures = 0;
     }
-    // v7.0.3: 清空当前用户的 IndexedDB 数据
     if (window.StorageBackend) {
       StorageBackend.clear().catch(() => {});
     } else if (window.StorageService) {
       StorageService.clear().catch(() => {});
     }
-    // 清空 Store 中的记录
     if (window.Store) {
       window.Store.dispatch({
         type: 'SET_STATE',
@@ -144,10 +138,46 @@ const AuthPlugin = {
   },
 
   /**
+   * 修改密码 (v7.1.0)
+   */
+  async changePassword(currentPassword, newPassword) {
+    if (!currentPassword || !newPassword) {
+      throw new Error('当前密码和新密码必填');
+    }
+    if (newPassword.length < 6) {
+      throw new Error('新密码至少 6 位');
+    }
+    const res = await this._fetch('/auth/change-password', {
+      method: 'PUT',
+      body: JSON.stringify({ currentPassword, newPassword })
+    });
+    return res;
+  },
+
+  /**
+   * 删除账号 (v7.1.0)
+   */
+  async deleteAccount(password) {
+    if (!password) {
+      throw new Error('密码必填');
+    }
+    const res = await this._fetch('/auth/account', {
+      method: 'DELETE',
+      body: JSON.stringify({ password })
+    });
+    // 删除成功后执行完整的本地清理（与 logout 一致）
+    try {
+      await this.logout();
+    } catch (e) {
+      console.error('[AuthPlugin] Local cleanup after account deletion failed:', e);
+    }
+    return res;
+  },
+
+  /**
    * 带认证的请求（使用 httpOnly cookie，自动附加）
    */
   async fetchAuthenticated(path, options = {}) {
-    // v7.0.3: 使用 httpOnly cookie 认证，不再需要手动附加 token
     const headers = {
       'Content-Type': 'application/json',
       ...options.headers
@@ -156,22 +186,27 @@ const AuthPlugin = {
     try {
       return await this._fetch(path, { ...options, headers });
     } catch (e) {
-      // 401 = token 过期或无效
       if (e._httpStatus === 401) {
         this.logout();
-        this._showLoginModal();
+        this.showLoginModal();
       }
       throw e;
     }
   },
 
+  /**
+   * 显示登录弹窗（公开方法）
+   */
+  showLoginModal() {
+    this._showLoginModal();
+  },
+
   // ==================== 内部方法 ====================
 
   _saveSession(res) {
-    if (!res || !res.token || !res.user) {
+    if (!res || !res.user) {
       throw new Error('服务器响应异常，请稍后重试');
     }
-    // v7.0.3: 不再存储 token 到 localStorage（改用 httpOnly cookie）
     this._user = res.user;
     localStorage.setItem('journal_user', JSON.stringify(this._user));
   },
@@ -201,7 +236,6 @@ const AuthPlugin = {
   },
 
   _updateUI(isLoggedIn) {
-    // 更新云同步按钮文案
     const syncConfig = document.getElementById('settings-cloud-config');
     if (syncConfig) {
       const span = syncConfig.querySelector('span');
@@ -211,7 +245,6 @@ const AuthPlugin = {
 
   _bindEvents() {
     // ProfilePlugin 已绑定 profile-login-btn 和 settings-cloud-config
-    // 此处保留事件守卫，后续如需新增事件
   },
 
   // ==================== UI 渲染 ====================
@@ -227,7 +260,6 @@ const AuthPlugin = {
     document.body.appendChild(modal);
     modal.style.display = 'flex';
 
-    // 绑定事件
     modal.querySelector('[data-auth-close]')?.addEventListener('click', () => modal.remove());
     modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
     modal.querySelector('[data-auth-tab-login]')?.addEventListener('click', () => this._switchAuthTab('login'));
@@ -243,7 +275,6 @@ const AuthPlugin = {
     modal.querySelector('.auth-register-tab').classList.toggle('active', tab === 'register');
     modal.querySelector('.auth-login-form').style.display = tab === 'login' ? 'block' : 'none';
     modal.querySelector('.auth-register-form').style.display = tab === 'register' ? 'block' : 'none';
-    // 更新提交按钮文字
     const submitBtn = modal.querySelector('[data-auth-submit]');
     if (submitBtn) submitBtn.textContent = tab === 'login' ? '登录' : '注册';
   },
@@ -268,7 +299,8 @@ const AuthPlugin = {
 
         statusEl.textContent = '登录中...';
         await this.login(email, password);
-        this._showToast('欢迎回来，' + (this._user?.nickname || '手札用户'));
+        const name = (this._user?.nickname || '手札用户').replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
+        this._showToast('欢迎回来，' + name);
       } else {
         const email = modal.querySelector('.auth-register-email').value.trim();
         const password = modal.querySelector('.auth-register-password').value;
@@ -310,7 +342,6 @@ const AuthPlugin = {
           <button class="auth-tab auth-register-tab" data-auth-tab-register>注册</button>
         </div>
         <div class="auth-body">
-          <!-- 登录表单 -->
           <div class="auth-login-form">
             <div class="auth-field">
               <label>邮箱</label>
@@ -321,7 +352,6 @@ const AuthPlugin = {
               <input type="password" class="auth-login-password" placeholder="输入密码" autocomplete="current-password">
             </div>
           </div>
-          <!-- 注册表单 -->
           <div class="auth-register-form" style="display:none;">
             <div class="auth-field">
               <label>邮箱</label>
@@ -357,5 +387,5 @@ const AuthPlugin = {
 };
 
 window.AuthPlugin = AuthPlugin;
-console.log('[AuthPlugin] 用户认证插件已加载 (v7.0.0)');
+console.log('[AuthPlugin] 用户认证插件已加载 (v7.1.0)');
 }
