@@ -53,6 +53,10 @@ const AutoSyncPlugin = {
     });
     document.addEventListener('auth:logout', () => { this._stopAutoSync(); });
 
+    // 登录/登出时更新云同步弹窗状态
+    document.addEventListener('auth:login', () => { this._updateSyncStatusUI(); });
+    document.addEventListener('auth:logout', () => { this._updateSyncStatusUI(); });
+
     // 更新云同步弹窗状态
     this._updateSyncStatusUI();
   },

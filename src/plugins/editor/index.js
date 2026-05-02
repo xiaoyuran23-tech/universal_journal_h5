@@ -359,9 +359,20 @@ const EditorPlugin = {
     if (summary) {
       summary.style.display = 'block';
       const countEl = summary.querySelector('.summary-count');
-      const savedEl = summary.querySelector('.summary-total');
+      const savedEl = summary.querySelector('.summary-saved');
       if (countEl) countEl.textContent = this._photos.length;
-      if (savedEl) savedEl.textContent = '0 KB';
+      if (savedEl) {
+        // 计算照片总大小（base64 字符串解码后的实际字节数）
+        const totalBytes = this._photos.reduce((sum, photo) => {
+          // base64 格式: data:image/xxx;base64,YYYYYYY
+          const base64Data = photo.includes(',') ? photo.split(',')[1] : photo;
+          // 每 4 个 base64 字符 = 3 字节，减去末尾 = 填充
+          const padding = (base64Data.match(/=/g) || []).length;
+          return sum + Math.floor((base64Data.length * 3) / 4) - padding;
+        }, 0);
+        const kb = (totalBytes / 1024).toFixed(1);
+        savedEl.textContent = `${kb} KB`;
+      }
     }
   },
 

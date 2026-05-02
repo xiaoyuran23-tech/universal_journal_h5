@@ -376,6 +376,10 @@ const ProfilePlugin = {
           window.AuthPlugin.showLoginModal();
           return;
         }
+        // 已登录时点击：立即触发一次同步
+        if (window.SyncPlugin) {
+          window.SyncPlugin.syncNow();
+        }
         const modal = document.getElementById('cloud-modal');
         if (modal) {
           if (window.AutoSyncPlugin) window.AutoSyncPlugin._updateSyncStatusUI();
