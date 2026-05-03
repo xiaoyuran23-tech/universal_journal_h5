@@ -64,7 +64,8 @@ async function initApp() {
           mood: window.MoodPlugin,
           autoSync: window.AutoSyncPlugin,
           transitions: window.TransitionsPlugin,
-          profile: window.ProfilePlugin
+          profile: window.ProfilePlugin,
+          uiEffects: window.UIEffectsPlugin
         };
 
         // 检查核心依赖
@@ -86,7 +87,7 @@ async function initApp() {
           'records', 'calendar', 'timeline', 'editor',
           'favorites', 'templates', 'sync', 'settings',
           'trash', 'batch', 'draft',
-          'tags', 'visuals', 'theme', 'search', 'hotkeys', 'controller', 'markdown', 'review', 'graph', 'auth', 'mood', 'autoSync', 'transitions', 'profile'
+          'tags', 'visuals', 'theme', 'search', 'hotkeys', 'controller', 'markdown', 'review', 'graph', 'auth', 'mood', 'autoSync', 'transitions', 'profile', 'uiEffects'
         ]);
         
         console.log('[App] Plugin loading completed');
@@ -238,7 +239,7 @@ function initUI() {
     window.Router.subscribe(route => {
       if (route && route.path) {
         // 更新 Tab 高亮
-        document.querySelectorAll('.tab-item').forEach(tab => {
+        document.querySelectorAll('.tab-btn').forEach(tab => {
           tab.classList.toggle('active', tab.dataset.page === route.path);
         });
 

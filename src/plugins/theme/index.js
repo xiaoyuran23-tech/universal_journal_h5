@@ -18,8 +18,9 @@ const ThemePlugin = {
     { id: 'ink', name: '墨影' },
     { id: 'cyan-mountain', name: '青绿' },
     { id: 'plum-blossom', name: '梅花' },
-    { id: 'bamboo-rain', name: '竹青' },
-    { id: 'distant-water', name: '淡彩' }
+    { id: 'bamboo-rain', name: '竹雨' },
+    { id: 'distant-water', name: '淡彩' },
+    { id: 'botanical', name: '热植' }
   ],
 
   _eventsBound: false,
@@ -80,17 +81,6 @@ const ThemePlugin = {
       });
     }
 
-    // 设置页主题入口
-    const settingsThemeBtn = document.getElementById('settings-theme');
-    if (settingsThemeBtn) {
-      settingsThemeBtn.addEventListener('click', () => {
-        if (panel) {
-          panel.classList.add('show');
-          this._renderThemeOptions();
-        }
-      });
-    }
-
     // 关闭面板
     if (panel) {
       document.addEventListener('click', (e) => {
@@ -99,9 +89,25 @@ const ThemePlugin = {
         }
       });
     }
+
+    // 设置页主题入口（SettingsPlugin 通过 _openThemePanel 调用，此处保留兼容）
+    const settingsThemeBtn = document.getElementById('settings-theme');
+    if (settingsThemeBtn) {
+      settingsThemeBtn.addEventListener('click', () => {
+        panel.classList.add('show');
+        this._renderThemeOptions();
+      });
+    }
   },
 
   _renderThemeOptions() {
+    this.renderThemeOptions();
+  },
+
+  /**
+   * 渲染主题选项（公共方法，供 SettingsPlugin 调用）
+   */
+  renderThemeOptions() {
     const container = document.getElementById('theme-options');
     if (!container) return;
 

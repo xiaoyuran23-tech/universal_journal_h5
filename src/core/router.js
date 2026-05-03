@@ -237,6 +237,11 @@ window.Router.register('graph', {
   component: 'graph-view'
 });
 
+window.Router.register('form', {
+  title: '新建记录',
+  component: 'record-form'
+});
+
 window.Router.register('review/on-this-day', {
   title: '那年今日',
   component: 'on-this-day-view'

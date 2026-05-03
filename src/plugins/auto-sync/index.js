@@ -1,7 +1,7 @@
 /**
  * AutoSync Plugin - 自动后台同步
  * 替代 Gist 手动同步，使用后端 API 实现增量双向同步
- * @version 7.0.0
+ * @version 7.3.0
  */
 
 if (!window.AutoSyncPlugin) {
@@ -30,16 +30,21 @@ const AutoSyncPlugin = {
     if (isNaN(this._lastSyncUsn)) this._lastSyncUsn = 0;
     this._pendingChanges = JSON.parse(localStorage.getItem('journal_pending_changes') || '[]');
 
+    // AuthPlugin 可能尚未加载，延迟 500ms 重试
+    if (!window.AuthPlugin) {
+      console.log('[AutoSyncPlugin] AuthPlugin not loaded, retrying in 500ms');
+      setTimeout(() => this.start(), 500);
+      return;
+    }
+
     // 已登录则启动自动同步
-    if (window.AuthPlugin && AuthPlugin.isLoggedIn) {
+    if (AuthPlugin.isLoggedIn) {
       this._startAutoSync();
     }
 
     // 监听登录/登出事件
     document.addEventListener('auth:login', (e) => {
       const isNewUser = e.detail?.isNewUser;
-      // 无论新老用户，登录时都从零开始拉取（因为可能是新设备或数据过期）
-      // 但本地如果有 pending changes（离线期间创建的），需要保留并推送
       const savedPending = isNewUser ? [] : this._pendingChanges;
       this._lastSyncUsn = 0;
       localStorage.setItem('journal_last_sync_usn', '0');
@@ -49,7 +54,11 @@ const AutoSyncPlugin = {
       } else {
         localStorage.setItem('journal_pending_changes', JSON.stringify(this._pendingChanges));
       }
-      this._startAutoSync();
+      // 延迟启动自动同步，等待浏览器处理 httpOnly cookie
+      // 新用户延迟 2 秒（注册响应链更长），老用户延迟 1 秒
+      const delay = isNewUser ? 2000 : 1000;
+      console.log(`[AutoSyncPlugin] Scheduling auto-sync in ${delay}ms`);
+      setTimeout(() => this._startAutoSync(), delay);
     });
     document.addEventListener('auth:logout', () => { this._stopAutoSync(); });
 
@@ -69,17 +78,25 @@ const AutoSyncPlugin = {
 
   /**
    * 启动定时同步 (每 30 秒)
+   * 使用 setTimeout 递归防堆积，确保上一次同步完成后才调度下一次
    * @private
    */
   _startAutoSync() {
     this._stopAutoSync();
     console.log('[AutoSyncPlugin] Starting auto sync (interval: 30s)');
+    this._scheduleNextSync();
+  },
 
-    // 立即同步一次
-    this._fullSync();
-
-    // 定时同步
-    this._syncTimer = setInterval(() => this._fullSync(), 30000);
+  /**
+   * 调度下一次同步
+   * @private
+   */
+  _scheduleNextSync() {
+    this._fullSync().finally(() => {
+      this._syncTimer = setTimeout(() => {
+        this._scheduleNextSync();
+      }, 30000);
+    });
   },
 
   /**
@@ -110,15 +127,18 @@ const AutoSyncPlugin = {
       // 1. 推送本地变更
       let pushResult = { syncedCount: 0, serverUsn: this._lastSyncUsn };
       if (this._pendingChanges.length > 0) {
+        const pushController = new AbortController();
+        const pushTimeout = setTimeout(() => pushController.abort(), 15000);
         const pushRes = await fetch(`${this._apiBase}/sync/push`, {
           method: 'POST',
           headers: syncHeaders,
           credentials: 'include',
-          body: JSON.stringify({ changes: this._pendingChanges })
+          body: JSON.stringify({ changes: this._pendingChanges }),
+          signal: pushController.signal
         });
+        clearTimeout(pushTimeout);
         if (pushRes.ok) {
           pushResult = await pushRes.json();
-          // 只在推送成功时清除本地变更
           this._pendingChanges = [];
           localStorage.removeItem('journal_pending_changes');
         } else {
@@ -127,12 +147,16 @@ const AutoSyncPlugin = {
       }
 
       // 2. 拉取服务端变更
+      const pullController = new AbortController();
+      const pullTimeout = setTimeout(() => pullController.abort(), 15000);
       const pullRes = await fetch(`${this._apiBase}/sync/pull`, {
         method: 'POST',
         headers: syncHeaders,
         credentials: 'include',
-        body: JSON.stringify({ lastSyncUsn: this._lastSyncUsn })
+        body: JSON.stringify({ lastSyncUsn: this._lastSyncUsn }),
+        signal: pullController.signal
       });
+      clearTimeout(pullTimeout);
 
       if (pullRes.ok) {
         const pullResult = await pullRes.json();
@@ -155,15 +179,11 @@ const AutoSyncPlugin = {
         this._consecutiveFailures++;
       }
 
-      // 检查连续失败阈值
+      // 检查连续失败阈值 — 不再自动 logout，仅暂停同步并提示用户
       if (this._consecutiveFailures >= this._maxFailures) {
         console.warn('[AutoSyncPlugin] Too many consecutive failures, stopping auto sync');
         this._stopAutoSync();
-        if (window.AuthPlugin?.isLoggedIn) {
-          console.warn('[AutoSyncPlugin] Persistent auth failure, logging out');
-          AuthPlugin.logout();
-        }
-        this._showToast('云同步已暂停，请检查网络连接');
+        this._showToast('云同步暂停，点击"云同步设置"可手动重试');
       }
 
       // 3. 同步心情数据 (可选)
@@ -180,14 +200,9 @@ const AutoSyncPlugin = {
       if (this._consecutiveFailures >= this._maxFailures) {
         console.warn('[AutoSyncPlugin] Too many consecutive failures, stopping auto sync');
         this._stopAutoSync();
-        // 只在真正持续失败且用户已登录时才登出
-        if (window.AuthPlugin?.isLoggedIn) {
-          console.warn('[AutoSyncPlugin] Persistent auth failure, logging out');
-          AuthPlugin.logout();
-        }
-        this._showToast('云同步已暂停，请检查网络连接');
+        this._showToast('云同步异常，请检查网络连接');
       }
-      this._dispatchEvent('sync:error', e.message);
+      this._dispatchEvent('sync:error', { message: 'sync_failed' });
     } finally {
       this._isSyncing = false;
     }

@@ -1,7 +1,7 @@
 /**
  * Auth Plugin - 用户认证系统
  * 提供登录/注册/登出 UI，与后端 API 交互
- * @version 7.1.0
+ * @version 7.3.0
  */
 
 if (!window.AuthPlugin) {
@@ -240,18 +240,28 @@ const AuthPlugin = {
   async _fetch(path, options = {}) {
     const url = `${this._apiBase}${path}`;
     let res;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
     try {
       res = await fetch(url, {
         method: 'GET',
         credentials: 'include',
         ...options,
+        signal: controller.signal,
         headers: { 'Content-Type': 'application/json', ...options.headers }
       });
     } catch (e) {
+      clearTimeout(timeout);
+      if (e.name === 'AbortError') {
+        const err = new Error('请求超时，请检查网络');
+        err._httpStatus = 0;
+        throw err;
+      }
       const err = new Error('网络连接失败，请检查网络');
       err._httpStatus = 0;
       throw err;
     }
+    clearTimeout(timeout);
     const data = await res.json();
     if (!res.ok) {
       const err = new Error(data.error || '请求失败');
@@ -315,14 +325,24 @@ const AuthPlugin = {
     const modal = document.getElementById('auth-modal');
     const isLogin = modal.querySelector('.auth-login-form').style.display !== 'none';
     const statusEl = modal.querySelector('.auth-status');
+    const submitBtn = modal.querySelector('[data-auth-submit]');
+
+    // 防止重复提交
+    if (submitBtn && submitBtn.disabled) return;
 
     try {
       if (isLogin) {
         const email = modal.querySelector('.auth-login-email').value.trim();
         const password = modal.querySelector('.auth-login-password').value;
-        if (!email || !password) { this._showAuthError('请填写邮箱和密码'); return; }
+        const emailErr = this._validateEmail(email);
+        if (emailErr) { this._showAuthError(emailErr); return; }
+        const pwdErr = this._validatePassword(password);
+        if (pwdErr) { this._showAuthError(pwdErr); return; }
 
-        statusEl.textContent = '登录中...';
+        submitBtn.disabled = true;
+        submitBtn.textContent = '登录中...';
+        submitBtn.style.opacity = '0.6';
+        statusEl.textContent = '';
         await this.login(email, password);
         const name = (this._user?.nickname || '手札用户').replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
         this._showToast('欢迎回来，' + name);
@@ -330,10 +350,15 @@ const AuthPlugin = {
         const email = modal.querySelector('.auth-register-email').value.trim();
         const password = modal.querySelector('.auth-register-password').value;
         const nickname = modal.querySelector('.auth-register-nickname').value.trim();
-        if (!email || !password) { this._showAuthError('请填写邮箱和密码'); return; }
-        if (password.length < 6) { this._showAuthError('密码至少 6 位'); return; }
+        const emailErr = this._validateEmail(email);
+        if (emailErr) { this._showAuthError(emailErr); return; }
+        const pwdErr = this._validatePassword(password);
+        if (pwdErr) { this._showAuthError(pwdErr); return; }
 
-        statusEl.textContent = '注册中...';
+        submitBtn.disabled = true;
+        submitBtn.textContent = '注册中...';
+        submitBtn.style.opacity = '0.6';
+        statusEl.textContent = '';
         await this.register(email, password, nickname || '手札用户');
         this._showToast('注册成功，欢迎使用万物手札');
       }
@@ -341,9 +366,37 @@ const AuthPlugin = {
       modal.remove();
     } catch (e) {
       this._showAuthError(e.message);
+      // 恢复按钮状态
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = isLogin ? '登录' : '注册';
+        submitBtn.style.opacity = '1';
+      }
     } finally {
       statusEl.textContent = '';
     }
+  },
+
+  /**
+   * 邮箱格式验证
+   * @private
+   */
+  _validateEmail(email) {
+    if (!email) return '请填写邮箱';
+    const re = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+    if (!re.test(email)) return '邮箱格式不正确';
+    return null;
+  },
+
+  /**
+   * 密码强度验证
+   * @private
+   */
+  _validatePassword(password) {
+    if (!password) return '请填写密码';
+    if (password.length < 6) return '密码至少 6 位';
+    if (password.length > 128) return '密码过长（最多 128 位）';
+    return null;
   },
 
   _showAuthError(msg) {
@@ -374,7 +427,7 @@ const AuthPlugin = {
             </div>
             <div class="auth-field">
               <label>密码</label>
-              <input type="password" class="auth-login-password" placeholder="输入密码" autocomplete="current-password">
+              <input type="password" class="auth-login-password" placeholder="输入密码" autocomplete="current-password" maxlength="128">
             </div>
           </div>
           <div class="auth-register-form" style="display:none;">
@@ -388,7 +441,7 @@ const AuthPlugin = {
             </div>
             <div class="auth-field">
               <label>密码</label>
-              <input type="password" class="auth-register-password" placeholder="至少 6 位" autocomplete="new-password">
+              <input type="password" class="auth-register-password" placeholder="至少 6 位，最多 128 位" autocomplete="new-password" maxlength="128">
             </div>
           </div>
           <div class="auth-status" style="margin-top:12px;text-align:center;font-size:13px;min-height:20px;"></div>

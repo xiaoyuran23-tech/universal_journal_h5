@@ -97,8 +97,9 @@ const GraphPlugin = {
 
     this._chart = echarts.init(container);
 
-    // 获取所有记录
-    const records = window.Store ? (window.Store.getState('records.list') || []) : [];
+    // 获取所有记录并按筛选器过滤
+    const allRecords = window.Store ? (window.Store.getState('records.list') || []) : [];
+    const records = this._applyFilter(allRecords);
 
     if (records.length === 0) {
       container.innerHTML = `
@@ -283,6 +284,22 @@ const GraphPlugin = {
   },
 
   /**
+   * 按当前筛选器过滤记录
+   * @private
+   */
+  _applyFilter(records) {
+    if (this._filter === 'tags') {
+      return records.filter(r => r.tags && r.tags.length > 0);
+    }
+    if (this._filter === 'month') {
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      return records.filter(r => new Date(r.createdAt) >= monthStart);
+    }
+    return records;
+  },
+
+  /**
    * 构建图数据 (nodes + edges)
    * @private
    */
@@ -398,6 +415,19 @@ const GraphPlugin = {
    * @private
    */
   _bindEvents() {
+    // Segmented Control 筛选
+    const segmented = document.getElementById('graph-segmented');
+    if (segmented) {
+      segmented.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        segmented.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this._filter = btn.dataset.graphFilter;
+        this.render('graph-container');
+      });
+    }
+
     if (window.Router && typeof window.Router.subscribe === 'function') {
       window.Router.subscribe(route => {
         if (route && route.path === 'graph') {

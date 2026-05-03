@@ -5,7 +5,18 @@
 
 /* 页面切换动画 */
 .page {
-  animation: fadeIn 0.3s ease-out;
+  animation: pageSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes pageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes fadeIn {
@@ -21,7 +32,7 @@
 
 /* 卡片出现动画 */
 .item-card {
-  animation: slideUp 0.3s ease-out;
+  animation: cardPopIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   animation-fill-mode: both;
 }
 
@@ -31,6 +42,19 @@
 .item-card:nth-child(4) { animation-delay: 0.2s; }
 .item-card:nth-child(5) { animation-delay: 0.25s; }
 .item-card:nth-child(6) { animation-delay: 0.3s; }
+.item-card:nth-child(7) { animation-delay: 0.35s; }
+.item-card:nth-child(8) { animation-delay: 0.4s; }
+
+@keyframes cardPopIn {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
 
 @keyframes slideUp {
   from {

@@ -62,12 +62,12 @@ const ControllerPlugin = {
    * @private
    */
   _bindNavigation() {
-    document.querySelectorAll('.tab-item').forEach(tab => {
+    document.querySelectorAll('.tab-btn').forEach(tab => {
       tab.addEventListener('click', () => {
         const page = tab.dataset.page;
         if (!page) return;
 
-        document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
 
         if (window.Router) {
@@ -83,10 +83,17 @@ const ControllerPlugin = {
   },
 
   /**
-   * 绑定 FAB 按钮
+   * 绑定 FAB 按钮（内嵌在 tab-bar 中）
    * @private
    */
   _bindFAB() {
+    const fabTab = document.getElementById('tab-fab');
+    if (fabTab) {
+      fabTab.addEventListener('click', () => {
+        if (window.Router) window.Router.navigate('form');
+      });
+    }
+    // 兼容旧的 fab-add 元素
     const fab = document.getElementById('fab-add');
     if (fab) {
       fab.addEventListener('click', () => {

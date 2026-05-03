@@ -60,7 +60,7 @@ async function navigateTab(page, tabName) {
     });
   });
   await page.evaluate((tab) => {
-    const t = document.querySelector(`.tab-item[data-page="${tab}"]`);
+    const t = document.querySelector(`.tab-btn[data-page="${tab}"]`);
     if (t) t.click();
   }, tabName);
   await wait(800);
@@ -102,10 +102,10 @@ async function runRound(browser) {
   await checkGlobals(page);
 
   // ====== 2. 底部 Tab 导航 (6 个) ======
-  const tabs = ['home', 'calendar', 'timeline', 'favorites', 'graph', 'profile'];
+  const tabs = ['home', 'calendar', 'graph', 'profile'];
   let tabOk = true;
   for (const tab of tabs) {
-    const tabBtn = await page.$(`.tab-item[data-page="${tab}"]`);
+    const tabBtn = await page.$(`.tab-btn[data-page="${tab}"]`);
     if (tabBtn) {
       await tabBtn.click();
       await wait(400);
@@ -122,21 +122,26 @@ async function runRound(browser) {
   }
   log(`Tab 导航 (${tabs.length}/${tabs.length})`, tabOk);
 
-  // ====== 3. FAB 新建按钮 + 表单返回 ======
+  // ====== 3. 中间 FAB 新建按钮 + 表单返回 ======
   await navigateTab(page, 'home');
-  const fabBtn = await page.$('#fab-add');
+  let fabBtn = await page.$('#tab-fab');
+  if (!fabBtn) fabBtn = await page.$('#fab-add');
   if (fabBtn) {
     await fabBtn.click();
-    await wait(500);
+    await wait(800);
     const formVisible = await ensurePageVisible(page, 'form');
     log('FAB 新建按钮: 点击后显示表单页', formVisible);
 
+    // Wait for form to render
+    await page.waitForSelector('#create-back-btn', { timeout: 3000 }).catch(() => {});
     const backBtn = await page.$('#create-back-btn');
     if (backBtn) {
       await backBtn.click();
-      await wait(500);
+      await wait(800);
       const homeVisible = await ensurePageVisible(page, 'home');
       log('表单返回按钮: 点击后返回首页', homeVisible);
+    } else {
+      log('表单返回按钮: 缺失', false);
     }
   } else {
     log('FAB 新建按钮: 缺失', false);
@@ -550,8 +555,8 @@ async function runRound(browser) {
     log('导出 Markdown: 按钮缺失 (非关键)', true);
   }
 
-  // ====== 20. 收藏页 ======
-  await navigateTab(page, 'favorites');
+  // ====== 20. 收藏页 (通过 Router 导航) ======
+  await page.evaluate(() => window.Router?.navigate('favorites'));
   await wait(800);
 
   const favVisible = await ensurePageVisible(page, 'favorites');
@@ -590,8 +595,8 @@ async function runRound(browser) {
     log('日历页: 点击有记录的日期', true);
   }
 
-  // ====== 22. 时间线页 ======
-  await navigateTab(page, 'timeline');
+  // ====== 22. 时间线页 (通过 Router 导航) ======
+  await page.evaluate(() => window.Router?.navigate('timeline'));
   await wait(800);
 
   const timelineVisible = await ensurePageVisible(page, 'timeline');

@@ -117,16 +117,14 @@ const SettingsPlugin = {
         <!-- 外观设置 -->
         <div class="settings-section">
           <h3 class="settings-section-title">外观</h3>
-          
-          <div class="settings-item" data-action="toggle-theme">
+
+          <div class="settings-item" data-action="choose-theme">
             <span class="settings-item-icon">🎨</span>
             <div class="settings-item-content">
-              <span class="settings-item-title">深色模式</span>
+              <span class="settings-item-title">选择主题</span>
+              <span class="settings-item-desc">${this._getCurrentThemeName()}</span>
             </div>
-            <label class="settings-toggle">
-              <input type="checkbox" id="theme-toggle" ${this._isDarkMode() ? 'checked' : ''} />
-              <span class="settings-toggle-slider"></span>
-            </label>
+            <span class="settings-item-arrow">›</span>
           </div>
         </div>
 
@@ -173,11 +171,6 @@ const SettingsPlugin = {
         const action = item.dataset.action;
         this._handleAction(action);
       }
-
-      // 主题切换
-      if (e.target.id === 'theme-toggle') {
-        this._toggleTheme();
-      }
     });
   },
 
@@ -200,8 +193,8 @@ const SettingsPlugin = {
       case 'clear-data':
         this._clearData();
         break;
-      case 'toggle-theme':
-        this._toggleTheme();
+      case 'choose-theme':
+        this._openThemePanel();
         break;
       case 'view-source':
         window.open('https://github.com/xiaoyuran23-tech/universal_journal_h5', '_blank');
@@ -337,17 +330,62 @@ const SettingsPlugin = {
   },
 
   /**
-   * 切换主题
+   * 打开主题选择面板
    * @private
    */
-  _toggleTheme() {
-    const isDark = this._isDarkMode();
-    const newTheme = isDark ? 'light' : 'dark';
-    
-    document.documentElement.setAttribute('data-theme', newTheme);
-    localStorage.setItem('app_theme', newTheme);
-    
-    this._showToast(isDark ? '已切换到浅色模式' : '已切换到深色模式', { type: 'success' });
+  _openThemePanel() {
+    if (window.ThemePlugin) {
+      const panel = document.getElementById('theme-panel');
+      if (panel) {
+        panel.classList.add('show');
+        ThemePlugin._renderThemeOptions();
+      } else {
+        // Fallback: 主题面板不存在时用 UIEffects
+        if (window.UIEffectsPlugin) {
+          const html = ThemePlugin.themes.map(t => `
+            <div style="display:flex;align-items:center;gap:12px;padding:14px 4px;border-bottom:1px solid var(--line);cursor:pointer;" data-theme-action="${t.id}">
+              <span style="width:42px;height:42px;border-radius:16px;background:var(--primary-soft);display:grid;place-items:center;font-size:20px;">${this._getThemeIcon(t.id)}</span>
+              <div><strong style="font-size:15px;">${t.name}</strong><br><span style="color:var(--muted);font-size:12px;">${t.id === ThemePlugin.currentTheme ? '当前主题' : '点击切换'}</span></div>
+            </div>
+          `).join('');
+          UIEffectsPlugin.openSheet(`<h2 style="margin:8px 0 12px;">选择主题</h2>${html}`);
+          document.querySelectorAll('[data-theme-action]').forEach(el => {
+            el.addEventListener('click', () => {
+              ThemePlugin.apply(el.dataset.themeAction);
+              UIEffectsPlugin.closeSheet();
+              this._showToast('主题已切换', { type: 'success' });
+              setTimeout(() => this._render(), 300);
+            });
+          });
+        }
+      }
+    }
+  },
+
+  /**
+   * 获取主题中文名
+   * @private
+   */
+  _getCurrentThemeName() {
+    const current = localStorage.getItem('universal_journal_theme') || 'light';
+    if (window.ThemePlugin) {
+      const theme = ThemePlugin.themes.find(t => t.id === current);
+      return theme ? `当前：${theme.name}` : '当前：明亮';
+    }
+    return '明亮';
+  },
+
+  /**
+   * 获取主题图标
+   * @private
+   */
+  _getThemeIcon(id) {
+    const icons = {
+      'light': '☀', 'dark': '🌙', 'warm': '🌅', 'ink': '🖌',
+      'cyan-mountain': '⛰', 'plum-blossom': '🌸', 'bamboo-rain': '🎋',
+      'distant-water': '🎨', 'botanical': '🌿'
+    };
+    return icons[id] || '🎨';
   },
 
   /**
@@ -365,15 +403,6 @@ const SettingsPlugin = {
   _getAvatarLetter() {
     const name = this._getDisplayName();
     return name.charAt(0).toUpperCase();
-  },
-
-  /**
-   * 检查是否为深色模式
-   * @private
-   */
-  _isDarkMode() {
-    return document.documentElement.getAttribute('data-theme') === 'dark' ||
-           localStorage.getItem('app_theme') === 'dark';
   },
 
   /**
