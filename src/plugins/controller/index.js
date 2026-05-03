@@ -248,43 +248,8 @@ const ControllerPlugin = {
    * @private
    */
   _bindThemeToggle() {
-    const toggle = document.getElementById('theme-toggle');
-    const panel = document.getElementById('theme-panel');
-    const overlay = document.getElementById('theme-overlay');
-    const selectorPanel = document.getElementById('theme-selector-panel');
-
-    if (toggle) {
-      toggle.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (panel) {
-          const isVisible = panel.style.display === 'flex';
-          panel.style.display = isVisible ? 'none' : 'flex';
-        }
-      });
-    }
-
-    if (overlay && selectorPanel) {
-      overlay.addEventListener('click', () => {
-        overlay.style.display = 'none';
-        selectorPanel.style.display = 'none';
-      });
-    }
-
-    // 主题选项
-    const themeOptions = document.getElementById('theme-options');
-    if (themeOptions) {
-      themeOptions.addEventListener('click', (e) => {
-        const option = e.target.closest('[data-theme]');
-        if (option) {
-          const theme = option.dataset.theme;
-          document.documentElement.setAttribute('data-theme', theme);
-          document.body.setAttribute('data-theme', theme);
-          localStorage.setItem('app_theme', theme);
-          if (panel) panel.style.display = 'none';
-          this._showToast('主题已切换');
-        }
-      });
-    }
+    // 主题切换已由 ThemePlugin 处理，此处不再重复绑定
+    // ThemePlugin._bindEvents() 处理 #theme-toggle 的点击
   },
 
   /**
