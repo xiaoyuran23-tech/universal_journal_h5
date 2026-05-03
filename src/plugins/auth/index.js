@@ -1,26 +1,20 @@
 /**
- * Auth Plugin - 用户认证系统
- * 提供登录/注册/登出 UI，与后端 API 交互
- * @version 7.3.0
+ * Auth Plugin v7.4.0 - 用户认证系统
+ * 登录/注册/登出/密码重置/JWT续期，Auth 状态接入 Store
  */
 
 if (!window.AuthPlugin) {
 const AuthPlugin = {
   name: 'auth',
-  version: '1.0.0',
+  version: '7.4.0',
   dependencies: [],
 
   _eventsBound: false,
   _apiBase: '',
   _user: null,
+  _refreshTimer: null,
 
-  /**
-   * 配置 API 地址
-   */
   configure(apiBase) {
-    // 防御性编程：确保 _apiBase 始终为有效字符串
-    // 注意：必须同时设置 this._apiBase 和 window.AuthPlugin._apiBase
-    // 因为 Kernel 启动时 this 指向插件注册表副本，而非 window.AuthPlugin
     let value;
     if (apiBase && typeof apiBase === 'string') {
       value = apiBase;
@@ -30,48 +24,54 @@ const AuthPlugin = {
       value = 'http://localhost:4000/api';
     }
     this._apiBase = value;
-    // 同步到全局引用，确保外部访问 window.AuthPlugin._apiBase 时值正确
-    if (window.AuthPlugin) {
-      window.AuthPlugin._apiBase = value;
-    }
-    console.log(`[AuthPlugin] API configured: ${this._apiBase}`);
+    if (window.AuthPlugin) window.AuthPlugin._apiBase = value;
   },
 
   async init() {
-    // init 中不传参，由 configure() 自动从 window.JOURNAL_API_URL 读取
     this.configure();
     this.routes = [];
   },
 
   async start() {
-    // start 中同样不传参，避免覆盖已配置的 API 地址
     this.configure();
-    // 自动登录 — 浏览器自动发送 httpOnly cookie
     const lastUser = localStorage.getItem('journal_user');
     if (lastUser) {
       try {
         const user = await this._fetch('/auth/me');
-        this._user = user.user;
-        // 同步到全局引用
-        if (window.AuthPlugin) window.AuthPlugin._user = user.user;
+        this._setUser(user.user);
+        this._scheduleTokenRefresh();
         this._updateUI(true);
-        console.log('[AuthPlugin] Auto-login successful');
       } catch (e) {
-        console.log('[AuthPlugin] Auto-login failed, cookie expired');
-        localStorage.removeItem('journal_user');
-        this._updateUI(false);
+        try {
+          await new Promise(r => setTimeout(r, 1000));
+          const user = await this._fetch('/auth/me');
+          this._setUser(user.user);
+          this._scheduleTokenRefresh();
+          this._updateUI(true);
+        } catch {
+          localStorage.removeItem('journal_user');
+          this._setUser(null);
+          this._updateUI(false);
+        }
       }
     } else {
+      this._setUser(null);
       this._updateUI(false);
     }
-
     if (!this._eventsBound) {
       this._bindEvents();
       this._eventsBound = true;
     }
   },
 
-  stop() { this._eventsBound = false; },
+  stop() {
+    this._eventsBound = false;
+    if (this._refreshTimer) {
+      clearTimeout(this._refreshTimer);
+      this._refreshTimer = null;
+    }
+  },
+
   routes: [],
   actions: {},
 
@@ -81,50 +81,71 @@ const AuthPlugin = {
   get isLoggedIn() { return !!this._user; },
 
   /**
-   * 注册
+   * 统一设置用户状态，同步到 Store 和 localStorage
    */
+  _setUser(user) {
+    this._user = user || null;
+    if (window.AuthPlugin) window.AuthPlugin._user = user || null;
+    if (window.Store) {
+      window.Store.dispatch({ type: 'auth.setUser', payload: user });
+    }
+    if (user) {
+      localStorage.setItem('journal_user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('journal_user');
+    }
+  },
+
+  /**
+   * JWT 静默续期（过期前 5 分钟自动刷新）
+   */
+  _scheduleTokenRefresh() {
+    if (this._refreshTimer) clearTimeout(this._refreshTimer);
+    // JWT 30 天过期，提前 5 分钟刷新
+    const refreshIn = Math.max(1000, 30 * 24 * 60 * 60 * 1000 - 5 * 60 * 1000);
+    this._refreshTimer = setTimeout(async () => {
+      try {
+        await this._fetch('/auth/refresh', { method: 'POST' });
+        console.log('[AuthPlugin] Token refreshed');
+        this._scheduleTokenRefresh();
+      } catch (e) {
+        console.warn('[AuthPlugin] Token refresh failed');
+      }
+    }, refreshIn);
+  },
+
   async register(email, password, nickname) {
     const res = await this._fetch('/auth/register', {
       method: 'POST',
       body: JSON.stringify({ email, password, nickname })
     });
-    this._saveSession(res);
+    this._setUser(res.user);
+    this._scheduleTokenRefresh();
     this._updateUI(true);
     document.dispatchEvent(new CustomEvent('auth:login', { detail: { user: res.user, isNewUser: true } }));
     return res;
   },
 
-  /**
-   * 登录
-   */
   async login(email, password) {
     const res = await this._fetch('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password })
     });
-    this._saveSession(res);
+    this._setUser(res.user);
+    this._scheduleTokenRefresh();
     this._updateUI(true);
     document.dispatchEvent(new CustomEvent('auth:login', { detail: { user: res.user, isNewUser: false } }));
     return res;
   },
 
-  /**
-   * 登出
-   */
   async logout() {
-    console.log('[AuthPlugin] logout() called, stack:', new Error().stack);
-    try {
-      await this._fetch('/auth/logout', { method: 'POST' });
-    } catch (e) {
-      // 忽略网络错误，继续本地清理
-    }
-    this._user = null;
-    if (window.AuthPlugin) window.AuthPlugin._user = null;
-    localStorage.removeItem('journal_user');
+    if (this._refreshTimer) { clearTimeout(this._refreshTimer); this._refreshTimer = null; }
+    try { await this._fetch('/auth/logout', { method: 'POST' }); } catch {}
+    this._setUser(null);
     localStorage.removeItem('journal_last_sync_usn');
     localStorage.removeItem('journal_pending_changes');
     if (window.AutoSyncPlugin) {
-      window.AutoSyncPlugin._stopAutoSync();
+      window.AutoSyncPlugin._stopAutoSync?.();
       window.AutoSyncPlugin._lastSyncUsn = 0;
       window.AutoSyncPlugin._pendingChanges = [];
       window.AutoSyncPlugin._consecutiveFailures = 0;
@@ -145,67 +166,68 @@ const AuthPlugin = {
     this._showToast('已退出登录');
   },
 
-  /**
-   * 更新用户信息
-   */
   async updateProfile(data) {
     const res = await this._fetch('/auth/profile', {
       method: 'PUT',
       body: JSON.stringify(data)
     });
-    this._user = res.user;
-    if (window.AuthPlugin) window.AuthPlugin._user = res.user;
-    localStorage.setItem('journal_user', JSON.stringify(this._user));
+    this._setUser(res.user);
     this._updateUI(true);
     return res;
   },
 
-  /**
-   * 修改密码 (v7.1.0)
-   */
   async changePassword(currentPassword, newPassword) {
-    if (!currentPassword || !newPassword) {
-      throw new Error('当前密码和新密码必填');
-    }
-    if (newPassword.length < 6) {
-      throw new Error('新密码至少 6 位');
-    }
+    if (!currentPassword || !newPassword) throw new Error('当前密码和新密码必填');
+    if (newPassword.length < 6) throw new Error('新密码至少 6 位');
     const res = await this._fetch('/auth/change-password', {
       method: 'PUT',
       body: JSON.stringify({ currentPassword, newPassword })
+    });
+    this._setUser(res.user);
+    return res;
+  },
+
+  /**
+   * 请求密码重置（发送重置码）
+   */
+  async requestPasswordReset(email) {
+    const normalized = email.toLowerCase().trim();
+    if (!normalized) throw new Error('邮箱必填');
+    const res = await this._fetch('/auth/request-reset', {
+      method: 'POST',
+      body: JSON.stringify({ email: normalized })
     });
     return res;
   },
 
   /**
-   * 删除账号 (v7.1.0)
+   * 使用重置码修改密码
    */
+  async resetPassword(email, resetToken, newPassword) {
+    const normalized = email.toLowerCase().trim();
+    if (!normalized || !resetToken || !newPassword) throw new Error('邮箱、重置码和新密码必填');
+    if (newPassword.length < 6) throw new Error('新密码至少 6 位');
+    const res = await this._fetch('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ email: normalized, resetToken, newPassword })
+    });
+    return res;
+  },
+
   async deleteAccount(password) {
-    if (!password) {
-      throw new Error('密码必填');
-    }
+    if (!password) throw new Error('密码必填');
     const res = await this._fetch('/auth/account', {
       method: 'DELETE',
       body: JSON.stringify({ password })
     });
-    // 删除成功后执行完整的本地清理（与 logout 一致）
-    try {
-      await this.logout();
-    } catch (e) {
+    try { await this.logout(); } catch (e) {
       console.error('[AuthPlugin] Local cleanup after account deletion failed:', e);
     }
     return res;
   },
 
-  /**
-   * 带认证的请求（使用 httpOnly cookie，自动附加）
-   */
   async fetchAuthenticated(path, options = {}) {
-    const headers = {
-      'Content-Type': 'application/json',
-      ...options.headers
-    };
-
+    const headers = { 'Content-Type': 'application/json', ...options.headers };
     try {
       return await this._fetch(path, { ...options, headers });
     } catch (e) {
@@ -217,25 +239,11 @@ const AuthPlugin = {
     }
   },
 
-  /**
-   * 显示登录弹窗（公开方法）
-   */
   showLoginModal() {
     this._showLoginModal();
   },
 
   // ==================== 内部方法 ====================
-
-  _saveSession(res) {
-    if (!res || !res.user) {
-      throw new Error('服务器响应异常，请稍后重试');
-    }
-    console.log('[AuthPlugin] _saveSession called, user:', JSON.stringify(res.user));
-    this._user = res.user;
-    if (window.AuthPlugin) window.AuthPlugin._user = res.user;
-    localStorage.setItem('journal_user', JSON.stringify(this._user));
-    console.log('[AuthPlugin] window.AuthPlugin._user =', JSON.stringify(window.AuthPlugin._user));
-  },
 
   async _fetch(path, options = {}) {
     const url = `${this._apiBase}${path}`;
@@ -299,6 +307,7 @@ const AuthPlugin = {
     modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
     modal.querySelector('[data-auth-tab-login]')?.addEventListener('click', () => this._switchAuthTab('login'));
     modal.querySelector('[data-auth-tab-register]')?.addEventListener('click', () => this._switchAuthTab('register'));
+    modal.querySelector('[data-auth-tab-reset]')?.addEventListener('click', () => this._switchAuthTab('reset'));
     modal.querySelector('[data-auth-submit]')?.addEventListener('click', () => this._handleAuthSubmit());
     modal.querySelector('[data-auth-toggle]')?.addEventListener('click', () => this._toggleAuthForm());
   },
@@ -306,39 +315,56 @@ const AuthPlugin = {
   _switchAuthTab(tab) {
     const modal = document.getElementById('auth-modal');
     if (!modal) return;
-    modal.querySelector('.auth-login-tab').classList.toggle('active', tab === 'login');
-    modal.querySelector('.auth-register-tab').classList.toggle('active', tab === 'register');
-    modal.querySelector('.auth-login-form').style.display = tab === 'login' ? 'block' : 'none';
-    modal.querySelector('.auth-register-form').style.display = tab === 'register' ? 'block' : 'none';
+    const tabs = ['login', 'register', 'reset'];
+    tabs.forEach(t => {
+      const tabBtn = modal.querySelector(`.auth-${t}-tab`);
+      const formEl = modal.querySelector(`.auth-${t}-form`);
+      if (tabBtn) tabBtn.classList.toggle('active', t === tab);
+      if (formEl) formEl.style.display = t === tab ? 'block' : 'none';
+    });
     const submitBtn = modal.querySelector('[data-auth-submit]');
-    if (submitBtn) submitBtn.textContent = tab === 'login' ? '登录' : '注册';
+    if (submitBtn) {
+      const labels = { login: '登录', register: '注册', reset: '发送重置码' };
+      submitBtn.textContent = labels[tab] || '提交';
+    }
   },
 
   _toggleAuthForm() {
     const modal = document.getElementById('auth-modal');
     if (!modal) return;
-    const isLogin = modal.querySelector('.auth-login-form').style.display !== 'none';
-    this._switchAuthTab(isLogin ? 'register' : 'login');
+    const visible = modal.querySelector('.auth-login-form').style.display !== 'none'
+      || modal.querySelector('.auth-reset-form').style.display !== 'none';
+    this._switchAuthTab(visible ? 'register' : 'login');
   },
 
   async _handleAuthSubmit() {
     const modal = document.getElementById('auth-modal');
-    const isLogin = modal.querySelector('.auth-login-form').style.display !== 'none';
     const statusEl = modal.querySelector('.auth-status');
     const submitBtn = modal.querySelector('[data-auth-submit]');
-
-    // 防止重复提交
     if (submitBtn && submitBtn.disabled) return;
 
+    const isLogin = modal.querySelector('.auth-login-form').style.display !== 'none';
+    const isReset = modal.querySelector('.auth-reset-form') && modal.querySelector('.auth-reset-form').style.display !== 'none';
+
     try {
-      if (isLogin) {
+      if (isReset) {
+        const email = modal.querySelector('.auth-reset-email').value.trim();
+        const emailErr = this._validateEmail(email);
+        if (emailErr) { this._showAuthError(emailErr); return; }
+        submitBtn.disabled = true;
+        submitBtn.textContent = '发送中...';
+        submitBtn.style.opacity = '0.6';
+        statusEl.textContent = '';
+        await this.requestPasswordReset(email);
+        this._showAuthSuccess('重置码已生成（开发模式请查看服务器日志）');
+        setTimeout(() => this._switchAuthTab('login'), 2000);
+      } else if (isLogin) {
         const email = modal.querySelector('.auth-login-email').value.trim();
         const password = modal.querySelector('.auth-login-password').value;
         const emailErr = this._validateEmail(email);
         if (emailErr) { this._showAuthError(emailErr); return; }
         const pwdErr = this._validatePassword(password);
         if (pwdErr) { this._showAuthError(pwdErr); return; }
-
         submitBtn.disabled = true;
         submitBtn.textContent = '登录中...';
         submitBtn.style.opacity = '0.6';
@@ -346,6 +372,7 @@ const AuthPlugin = {
         await this.login(email, password);
         const name = (this._user?.nickname || '手札用户').replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
         this._showToast('欢迎回来，' + name);
+        modal.remove();
       } else {
         const email = modal.querySelector('.auth-register-email').value.trim();
         const password = modal.querySelector('.auth-register-password').value;
@@ -354,22 +381,19 @@ const AuthPlugin = {
         if (emailErr) { this._showAuthError(emailErr); return; }
         const pwdErr = this._validatePassword(password);
         if (pwdErr) { this._showAuthError(pwdErr); return; }
-
         submitBtn.disabled = true;
         submitBtn.textContent = '注册中...';
         submitBtn.style.opacity = '0.6';
         statusEl.textContent = '';
         await this.register(email, password, nickname || '手札用户');
         this._showToast('注册成功，欢迎使用万物手札');
+        modal.remove();
       }
-
-      modal.remove();
     } catch (e) {
       this._showAuthError(e.message);
-      // 恢复按钮状态
       if (submitBtn) {
         submitBtn.disabled = false;
-        submitBtn.textContent = isLogin ? '登录' : '注册';
+        submitBtn.textContent = isReset ? '发送重置码' : (isLogin ? '登录' : '注册');
         submitBtn.style.opacity = '1';
       }
     } finally {
@@ -377,10 +401,6 @@ const AuthPlugin = {
     }
   },
 
-  /**
-   * 邮箱格式验证
-   * @private
-   */
   _validateEmail(email) {
     if (!email) return '请填写邮箱';
     const re = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
@@ -388,10 +408,6 @@ const AuthPlugin = {
     return null;
   },
 
-  /**
-   * 密码强度验证
-   * @private
-   */
   _validatePassword(password) {
     if (!password) return '请填写密码';
     if (password.length < 6) return '密码至少 6 位';
@@ -403,7 +419,15 @@ const AuthPlugin = {
     const modal = document.getElementById('auth-modal');
     if (modal) {
       const el = modal.querySelector('.auth-status');
-      if (el) { el.textContent = msg; el.style.color = '#ff4d4f'; }
+      if (el) { el.textContent = msg; el.style.color = '#ff4d4f'; el.style.display = 'block'; }
+    }
+  },
+
+  _showAuthSuccess(msg) {
+    const modal = document.getElementById('auth-modal');
+    if (modal) {
+      const el = modal.querySelector('.auth-status');
+      if (el) { el.textContent = msg; el.style.color = '#52c41a'; el.style.display = 'block'; }
     }
   },
 
@@ -418,6 +442,7 @@ const AuthPlugin = {
         <div class="auth-tabs">
           <button class="auth-tab auth-login-tab active" data-auth-tab-login>登录</button>
           <button class="auth-tab auth-register-tab" data-auth-tab-register>注册</button>
+          <button class="auth-tab auth-reset-tab" data-auth-tab-reset>忘记密码</button>
         </div>
         <div class="auth-body">
           <div class="auth-login-form">
@@ -444,7 +469,13 @@ const AuthPlugin = {
               <input type="password" class="auth-register-password" placeholder="至少 6 位，最多 128 位" autocomplete="new-password" maxlength="128">
             </div>
           </div>
-          <div class="auth-status" style="margin-top:12px;text-align:center;font-size:13px;min-height:20px;"></div>
+          <div class="auth-reset-form" style="display:none;">
+            <div class="auth-field">
+              <label>注册邮箱</label>
+              <input type="email" class="auth-reset-email" placeholder="your@email.com" autocomplete="email">
+            </div>
+          </div>
+          <div class="auth-status" style="margin-top:12px;text-align:center;font-size:13px;min-height:20px;display:none;"></div>
           <button class="auth-submit-btn" data-auth-submit style="width:100%;padding:12px;background:#2563eb;color:white;border:none;border-radius:8px;font-size:15px;cursor:pointer;margin-top:8px;">登录</button>
           <div class="auth-toggle" style="text-align:center;margin-top:12px;font-size:13px;color:#666;">
             <a href="#" data-auth-toggle style="color:#2563eb;text-decoration:none;">还没有账号？立即注册</a>
@@ -465,5 +496,4 @@ const AuthPlugin = {
 };
 
 window.AuthPlugin = AuthPlugin;
-console.log('[AuthPlugin] 用户认证插件已加载 (v7.1.0)');
 }

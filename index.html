@@ -19,7 +19,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     
-    <title>万物手札 v7.3.0 - 记录世间万物</title>
+    <title>万物手札 v7.4.0 - 记录世间万物</title>
     <link rel="stylesheet" href="style.css?v=7.3.0">
     <link rel="stylesheet" href="animations.css?v=7.3.0">
 
@@ -289,6 +289,22 @@
                                 <line x1="16" y1="17" x2="8" y2="17"></line>
                             </svg>
                         </button>
+                        <button class="settings-item" id="settings-trash">
+                            <span>回收站</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                        </button>
+                        <button class="settings-item" id="manage-templates-btn">
+                            <span>我的模板</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                            </svg>
+                        </button>
                         <button class="settings-item danger-item" id="clear-all-data-btn">
                             <span>清空数据</span>
                             <svg viewBox="0 0 24 24" fill="none" stroke="#ff4d4f" stroke-width="2">
@@ -299,33 +315,7 @@
                             </svg>
                         </button>
                     </div>
-                    
-                    <!-- [已移除] 分类管理模块 -->
 
-                    <div class="settings-section">
-                        <h3 class="settings-section-title">回收站</h3>
-                        <button class="settings-item" id="settings-trash">
-                            <span>回收站</span>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="3 6 5 6 21 6"></polyline>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            </svg>
-                        </button>
-                    </div>
-
-                    <div class="settings-section">
-                        <h3 class="settings-section-title">模板库</h3>
-                        <button class="settings-item" id="manage-templates-btn">
-                            <span>我的模板</span>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
-                                <line x1="16" y1="13" x2="8" y2="13"></line>
-                                <line x1="16" y1="17" x2="8" y2="17"></line>
-                            </svg>
-                        </button>
-                    </div>
-                    
                     <div class="settings-section">
                         <h3 class="settings-section-title">云同步</h3>
                         <button class="settings-item" id="settings-cloud-config">
@@ -334,6 +324,10 @@
                                 <path d="M18 10h-4V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v4H2a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h4v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-4h4a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z"></path>
                             </svg>
                         </button>
+                        <div class="sync-time-display" id="last-sync-time-display" style="display:none;">
+                            <span>最后同步时间</span>
+                            <span class="sync-time-value" id="last-sync-time-value">--</span>
+                        </div>
                     </div>
 
                     <div class="settings-section" id="account-section" style="display:none;">
@@ -363,7 +357,7 @@
                     </div>
 
                     <div class="settings-section">
-                        <h3 class="settings-section-title">功能</h3>
+                        <h3 class="settings-section-title">个性化与关于</h3>
                         <button class="settings-item" id="settings-theme">
                             <span>主题切换</span>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -378,13 +372,9 @@
                                 <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
                             </svg>
                         </button>
-                    </div>
-
-                    <div class="settings-section">
-                        <h3 class="settings-section-title">关于</h3>
                         <button class="settings-item" id="settings-about">
                             <span>关于万物手札</span>
-                            <span class="about-version">v7.1.0</span>
+                            <span class="about-version">v7.3.5</span>
                         </button>
                     </div>
                 </div>
@@ -697,11 +687,11 @@
     <!-- <script src="src/plugins/example/index.js"> -- 开发用示例，生产已移除 -->
 
     <!-- v7.0.0 新增 -->
-    <script src="src/plugins/auth/index.js?v=7.3.0"></script>
+    <script src="src/plugins/auth/index.js?v=7.4.0"></script>
     <script src="src/plugins/mood/index.js?v=7.3.0"></script>
-    <script src="src/plugins/auto-sync/index.js?v=7.3.0"></script>
+    <script src="src/plugins/auto-sync/index.js?v=7.4.0"></script>
     <script src="src/plugins/transitions/index.js?v=7.3.0"></script>
-    <script src="src/plugins/profile/index.js?v=7.3.0"></script>
+    <script src="src/plugins/profile/index.js?v=7.4.0"></script>
     <script src="src/plugins/ui-effects/index.js?v=7.3.0"></script>
 
     <!-- v6.0.0 UI 组件库 -->
@@ -720,14 +710,6 @@
     <link rel="stylesheet" href="src/styles/ux-theme.css?v=7.3.0">
 
     <!-- 主应用入口 -->
-    <script src="src/main.js?v=7.3.0"></script>
-    
-    <!-- 全局悬浮新建按钮 (FAB) -->
-    <button class="fab" id="fab-add" aria-label="新建记录">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-    </button>
+    <script src="src/main.js?v=7.3.4"></script>
 </body>
 </html>

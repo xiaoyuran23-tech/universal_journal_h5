@@ -148,6 +148,11 @@ class Store {
       case 'RESET_STATE':
         this._state = { ...payload };
         break;
+
+      // v7.4.0: Auth actions
+      case 'auth.setUser':
+        this._state.app.auth = { user: payload ? { ...payload } : null };
+        break;
     }
   }
 
@@ -334,7 +339,8 @@ window.Store = new Store({
     currentPage: 'home',
     theme: 'light',
     language: 'zh-CN',
-    locked: false
+    locked: false,
+    auth: { user: null }  // v7.4.0: Auth 状态集中管理
   },
   records: {
     list: [],

@@ -48,6 +48,10 @@ const ProfilePlugin = {
       document.removeEventListener('auth:logout', this._logoutHandler);
       this._logoutHandler = null;
     }
+    if (this._syncHandler) {
+      document.removeEventListener('sync:complete', this._syncHandler);
+      this._syncHandler = null;
+    }
     this._eventsBound = false;
   },
 
@@ -89,6 +93,10 @@ const ProfilePlugin = {
     document.addEventListener('auth:logout', this._logoutHandler);
     document.addEventListener('auth:login', this._loginHandler);
 
+    // === 同步完成事件监听 ===
+    this._syncHandler = () => this._renderLastSyncTime(window.AuthPlugin?.isLoggedIn);
+    document.addEventListener('sync:complete', this._syncHandler);
+
     // === 心情打卡 ===
     const moodBtn = document.querySelector('[data-mood-checkin]');
     if (moodBtn) {
@@ -110,8 +118,10 @@ const ProfilePlugin = {
    * 更新 UI 显示（登录状态、昵称等）
    */
   _updateUI() {
-    const isLoggedIn = window.AuthPlugin?.isLoggedIn || false;
-    const user = window.AuthPlugin?.currentUser || null;
+    // v7.4.0: 优先从 Store 读取，兜底到 AuthPlugin 实例
+    const authState = window.Store?.getState('app.auth') || null;
+    const isLoggedIn = !!(authState?.user || window.AuthPlugin?.currentUser);
+    const user = authState?.user || window.AuthPlugin?.currentUser || null;
 
     const displayName = document.getElementById('profile-display-name');
     const nameContainer = document.querySelector('.profile-name-container');
@@ -133,12 +143,53 @@ const ProfilePlugin = {
       if (accountSection) accountSection.style.display = 'none';
     }
 
+    // 更新最后同步时间显示
+    this._renderLastSyncTime(isLoggedIn);
+
     // 云同步按钮文案
     const syncConfig = document.getElementById('settings-cloud-config');
     if (syncConfig) {
       const span = syncConfig.querySelector('span');
       if (span) span.textContent = isLoggedIn ? '云同步设置' : '登录以同步';
     }
+  },
+
+  /**
+   * 渲染最后同步时间
+   * @private
+   */
+  _renderLastSyncTime(isLoggedIn) {
+    const timeDisplay = document.getElementById('last-sync-time-display');
+    const timeValue = document.getElementById('last-sync-time-value');
+    if (!timeDisplay || !timeValue) return;
+
+    if (!isLoggedIn) {
+      timeDisplay.style.display = 'none';
+      return;
+    }
+
+    const lastSyncTime = localStorage.getItem('journal_last_sync_time');
+    if (!lastSyncTime) {
+      timeDisplay.style.display = 'none';
+      return;
+    }
+
+    timeDisplay.style.display = 'flex';
+    const date = new Date(lastSyncTime);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffHr = Math.floor(diffMs / 3600000);
+    const diffDay = Math.floor(diffMs / 86400000);
+
+    let timeStr;
+    if (diffMin < 1) timeStr = '刚刚';
+    else if (diffMin < 60) timeStr = `${diffMin} 分钟前`;
+    else if (diffHr < 24) timeStr = `${diffHr} 小时前`;
+    else if (diffDay < 7) timeStr = `${diffDay} 天前`;
+    else timeStr = date.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+    timeValue.textContent = timeStr;
   },
 
   /**

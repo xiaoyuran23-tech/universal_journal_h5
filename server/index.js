@@ -76,7 +76,7 @@ function csrfMiddleware(req, res, next) {
   const cookieHeader = req.headers.cookie;
   if (cookieHeader) {
     const match = cookieHeader.match(/(?:^|;\s*)csrf_token=([^;]+)/);
-    if (match) csrfCookie = match[1];
+    if (match) csrfCookie = decodeURIComponent(match[1]); // v7.3.5: 必须解码
   }
   const tokenHeader = req.headers['x-csrf-token'];
   if (!tokenHeader || tokenHeader !== csrfCookie) {
@@ -110,6 +110,8 @@ db.exec(`
     max_usn INTEGER DEFAULT 0,
     devices TEXT DEFAULT '[]',
     token_version INTEGER DEFAULT 0,
+    reset_token TEXT,
+    reset_token_expires DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
@@ -196,7 +198,7 @@ function authMiddleware(req, res, next) {
   if (cookieHeader) {
     // 精确匹配 journal_token，避免 cookie 注入攻击
     const match = cookieHeader.match(/(?:^|;\s*)journal_token=([^;]+)/);
-    if (match) token = match[1];
+    if (match) token = decodeURIComponent(match[1]); // v7.3.5: 必须解码，因为写入时用了 encodeURIComponent
   }
   if (!token && req.headers.authorization?.startsWith('Bearer ')) {
     token = req.headers.authorization.slice(7);
@@ -222,8 +224,10 @@ function authMiddleware(req, res, next) {
 function setAuthCookie(res, token) {
   const isProd = process.env.NODE_ENV === 'production';
   const cookieVal = encodeURIComponent(token);
+  // SameSite=Lax 确保页面刷新/导航时 cookie 正常发送
+  // Secure 在生产环境(HTTPS)必须启用，否则浏览器拒绝存储
   res.setHeader('Set-Cookie',
-    `journal_token=${cookieVal}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${30 * 24 * 60 * 60}${isProd ? '; Secure' : ''}`
+    `journal_token=${cookieVal}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${30 * 24 * 60 * 60}${isProd ? '; Secure' : ''}`
   );
 }
 
@@ -232,13 +236,13 @@ function setCSRFCookie(res) {
   const isProd = process.env.NODE_ENV === 'production';
   const token = randomBytes(32).toString('hex');
   res.setHeader('Set-Cookie',
-    `csrf_token=${token}; SameSite=Strict; Path=/${isProd ? '; Secure' : ''}`
+    `csrf_token=${token}; SameSite=Lax; Path=/${isProd ? '; Secure' : ''}`
   );
 }
 
 function clearAuthCookie(res) {
   res.setHeader('Set-Cookie',
-    'journal_token=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'
+    'journal_token=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0'
   );
 }
 
@@ -259,7 +263,23 @@ app.use((req, res, next) => {
 });
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: function (origin, callback) {
+    const whitelist = [
+      'http://localhost:3000',
+      'http://localhost:4000',
+      'https://wanwushouzha.online'
+    ];
+    // 环境变量 FRONTEND_URL 可覆盖
+    const envUrl = process.env.FRONTEND_URL;
+    if (envUrl && !whitelist.includes(envUrl)) {
+      whitelist.push(envUrl);
+    }
+    if (!origin || whitelist.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 app.use(express.json({ limit: '50mb' }));
@@ -404,7 +424,7 @@ app.put('/api/auth/change-password', rateLimitMiddleware, authMiddleware, csrfMi
   }
 });
 
-// v7.1.0: 删除账号（增加速率限制）
+// 删除账号（增加速率限制）
 app.delete('/api/auth/account', rateLimitMiddleware, authMiddleware, csrfMiddleware, (req, res) => {
   const { password } = req.body;
   if (!password) return res.status(400).json({ error: '密码必填' });
@@ -427,6 +447,70 @@ app.delete('/api/auth/account', rateLimitMiddleware, authMiddleware, csrfMiddlew
   } catch (e) {
     console.error('[Auth] Delete account error:', e);
     res.status(500).json({ error: '删除账号失败' });
+  }
+});
+
+// v7.4.0: 密码重置 — 请求重置码（生成并存储重置令牌）
+app.post('/api/auth/request-reset', rateLimitMiddleware, (req, res) => {
+  const { email } = req.body;
+  const normalizedEmail = normalizeEmail(email || '');
+  if (!normalizedEmail) return res.status(400).json({ error: '邮箱必填' });
+
+  try {
+    const user = db.prepare('SELECT id, email FROM users WHERE email = ?').get(normalizedEmail);
+    // 无论用户是否存在，都返回成功（防止邮箱枚举）
+    if (user) {
+      const resetToken = randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30 分钟有效
+      db.prepare('UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?').run(resetToken, expiresAt, user.id);
+      // 实际生产应发送邮件，这里返回 token 供前端演示
+      console.log(`[Auth] Password reset token for ${normalizedEmail}: ${resetToken}`);
+    }
+    res.json({ success: true, message: '如果该邮箱已注册，重置码已生成' });
+  } catch (e) {
+    console.error('[Auth] Request reset error:', e);
+    res.status(500).json({ error: '请求重置失败' });
+  }
+});
+
+// v7.4.0: 密码重置 — 使用重置码修改密码
+app.post('/api/auth/reset-password', rateLimitMiddleware, (req, res) => {
+  const { email, resetToken, newPassword } = req.body;
+  const normalizedEmail = normalizeEmail(email || '');
+  if (!normalizedEmail || !resetToken || !newPassword) return res.status(400).json({ error: '邮箱、重置码和新密码必填' });
+  if (newPassword.length < 6) return res.status(400).json({ error: '新密码至少 6 位' });
+  if (newPassword.length > 128) return res.status(400).json({ error: '新密码过长' });
+
+  try {
+    const user = db.prepare('SELECT id, reset_token, reset_token_expires FROM users WHERE email = ?').get(normalizedEmail);
+    if (!user || user.reset_token !== resetToken) {
+      return res.status(400).json({ error: '重置码无效' });
+    }
+    if (new Date(user.reset_token_expires) < new Date()) {
+      return res.status(400).json({ error: '重置码已过期' });
+    }
+
+    const newHash = hashPassword(newPassword);
+    db.prepare('UPDATE users SET password_hash = ?, token_version = token_version + 1, reset_token = NULL, reset_token_expires = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(newHash, user.id);
+    res.json({ success: true });
+  } catch (e) {
+    console.error('[Auth] Reset password error:', e);
+    res.status(500).json({ error: '重置密码失败' });
+  }
+});
+
+// v7.4.0: JWT 刷新（静默续期）
+app.post('/api/auth/refresh', authMiddleware, (req, res) => {
+  try {
+    const user = db.prepare('SELECT id, email, nickname, token_version FROM users WHERE id = ?').get(req.userId);
+    if (!user) return res.status(401).json({ error: '用户不存在' });
+    const token = generateToken(user);
+    setAuthCookie(res, token);
+    setCSRFCookie(res);
+    res.json({ success: true });
+  } catch (e) {
+    console.error('[Auth] Refresh error:', e);
+    res.status(500).json({ error: '刷新令牌失败' });
   }
 });
 

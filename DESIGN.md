@@ -1,8 +1,62 @@
 # 万物手札 - 设计文档
 
-**版本**: v2.5.0  
-**日期**: 2026-04-27  
+**版本**: v7.4.0
+**日期**: 2026-05-03
 **设计师**: 九子圆桌（囚牛 + 睚眦 + 嘲风 + 狻猊 + 霸下 + 蒲牢 + 狴犴 + 负屃 + 螭吻）
+
+---
+
+## v7.4.0: Auth 重构 + Sync 重构
+
+### 问题描述
+
+用户反馈："登录注册和同步功能非常不完善"
+
+### 根因分析
+
+1. **Auth 状态散落**：登录状态存在 AuthPlugin 实例 `_user` 中，未纳入 Store，其他插件通过 `window.AuthPlugin.isLoggedIn` 判断，数据源不统一
+2. **同步模块混乱**：两条并行路径共存 — AutoSyncPlugin（在用，USN 合并）和 SyncService（Gist 旧同步，功能完整但正常流程不调用）；SyncMerge 的 Vector Clock 冲突解决已加载但 AutoSyncPlugin 不用
+3. **缺关键用户流程**：无密码重置、无同步日志可视化、`_syncMoodToServer` 是空壳、无 JWT 自动续期
+
+### 修改方案
+
+**模块 A：Auth 重构**
+- Auth 状态纳入 Store（`state.app.auth`），统一数据源
+- 新增密码重置流程（后端 `/api/auth/request-reset` + `/api/auth/reset-password` + 前端 UI）
+- 新增 JWT 静默续期机制（过期前 5 分钟自动请求 `/api/auth/refresh`）
+- 保留现有登录/注册/后端安全机制不动
+
+**模块 B：Sync 重构**
+- 废弃 SyncService（Gist 同步），合并其有用能力到 AutoSyncPlugin
+- 将 SyncMerge 接入 AutoSyncPlugin 的 `_mergeServerChanges`，用 Vector Clock 做精细冲突解决
+- 实现 `#sync-log` 写入（同步操作可视化）
+- 实现 `_syncMoodToServer`（心情数据同步到服务器）
+- 新增离线变更队列 UI（显示待同步数量）
+
+### 修改文件清单
+
+| 文件 | 改动类型 |
+|------|----------|
+| `src/plugins/auth/index.js` | 重写：Auth 状态接入 Store，新增密码重置、JWT 续期 |
+| `src/plugins/profile/index.js` | 适配：从 Store 读 auth 状态，新增重置密码入口 |
+| `src/plugins/auto-sync/index.js` | 重写：接入 SyncMerge，实现 sync-log，实现 mood sync |
+| `src/plugins/sync/index.js` | 简化：纯 UI 层，接入新的 sync-log 显示 |
+| `src/services/sync.js` | 标记 deprecated，保留但不暴露 |
+| `src/services/sync-merge.js` | 保留，导出供 AutoSyncPlugin 调用 |
+| `server/index.js` | 新增：密码重置 2 端点 + JWT refresh 端点 |
+| `index.html` | 新增：密码重置 UI 入口、sync-log 容器更新 |
+
+### 验收标准
+
+- [x] 登录/注册流程不变且更稳定
+- [x] 新增密码重置流程完整可用
+- [x] JWT 自动续期在后台静默完成
+- [x] Auth 状态可在 Store 中查询
+- [x] 同步日志在 cloud-modal 中实时显示
+- [x] 心情数据同步到服务器
+- [x] 冲突解决使用 Vector Clock 字段级合并
+- [x] Gist 同步代码标记 deprecated
+- [ ] full-test-v7.mjs 100% 通过（待部署后验证）
 
 ---
 

@@ -1,6 +1,8 @@
 /**
  * SyncService - 云同步服务 (v6.4.0 重构版)
- * 使用 SyncMerge 共享合并模块 + Vector Clock
+ * @deprecated v7.4.0 — 此模块为 Gist 同步，已被 AutoSyncPlugin（后端 API 同步）替代。
+ *   保留此文件仅为向后兼容，正常用户流程不再调用。
+ *   使用 SyncMerge 共享合并模块 + Vector Clock
  * 状态机简化为: idle | syncing | error
  */
 
